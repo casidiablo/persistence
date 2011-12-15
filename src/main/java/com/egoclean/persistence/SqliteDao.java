@@ -146,9 +146,16 @@ class SqliteDao {
             for (Field field : fields) {
                 String normalize = SqlUtils.normalize(field.getName());
                 Class type = field.getType();
-                if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
+                field.setAccessible(true);
+                if (type == int.class || type == Integer.class) {
                     values.put(normalize, (Integer) field.get(bean));
-                } else if (type == boolean.class || type == Boolean.class) {
+                } else if (type == long.class || type == Long.class) {
+                    if (SQLHelper.ID.equals(field.getName()) && ((Long) field.get(bean)) == 0) {
+                        // this means we are referring to a primary key that has not been set yet... so do not add it
+                        continue;
+                    }
+                    values.put(normalize, (Long) field.get(bean));
+                }  else if (type == boolean.class || type == Boolean.class) {
                     values.put(normalize, (Integer) field.get(bean));
                 } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
                     values.put(normalize, (Float) field.get(bean));

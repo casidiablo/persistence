@@ -8,7 +8,7 @@ import java.util.List;
 
 class SQLHelper {
 
-    private static final String ID = "id";
+    static final String ID = "id";
     private static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
 
     static String getCreateTableSentence(Class clazz) {
