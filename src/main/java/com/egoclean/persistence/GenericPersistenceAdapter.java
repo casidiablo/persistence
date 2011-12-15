@@ -20,10 +20,15 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
 
     @Override
     public <T> void store(Class<? extends T> clazz, T bean, Predicate predicate) {
-        try {
-            mPrefsAdapter.store(clazz, bean, predicate);
-        } catch (DaoNotFoundException e) {
-            mSqliteAdapter.store(clazz, bean, predicate);
+        switch (Persistence.getPersistenceType(clazz)) {
+            case SQLITE:
+                mSqliteAdapter.store(clazz, bean, predicate);
+                break;
+            case PREFERENCES:
+                mPrefsAdapter.store(clazz, bean, predicate);
+                break;
+            case UNKNOWN:
+                throw new RuntimeException("Could not find how to store object of type " + clazz);
         }
     }
 
@@ -35,10 +40,14 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
 
     @Override
     public <T> T findFirst(Class<T> clazz, Predicate where) {
-        try {
-            return mPrefsAdapter.findFirst(clazz, where);
-        } catch (DaoNotFoundException e) {
-            return mSqliteAdapter.findFirst(clazz, where);
+        switch (Persistence.getPersistenceType(clazz)) {
+            case SQLITE:
+                return mSqliteAdapter.findFirst(clazz, where);
+            case PREFERENCES:
+                return mPrefsAdapter.findFirst(clazz, where);
+            case UNKNOWN:
+            default:
+                throw new RuntimeException("Could not find how to store object of type " + clazz);
         }
     }
 
@@ -54,10 +63,15 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
 
     @Override
     public <T> void delete(Class<T> clazz, Predicate where) {
-        try {
-            mPrefsAdapter.delete(clazz, where);
-        } catch (DaoNotFoundException e) {
-            mSqliteAdapter.delete(clazz, where);
+        switch (Persistence.getPersistenceType(clazz)) {
+            case SQLITE:
+                mSqliteAdapter.delete(clazz, where);
+                break;
+            case PREFERENCES:
+                mPrefsAdapter.delete(clazz, where);
+                break;
+            case UNKNOWN:
+                throw new RuntimeException("Could not find how to store object of type " + clazz);
         }
     }
 }

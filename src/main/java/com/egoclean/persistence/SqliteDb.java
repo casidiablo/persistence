@@ -28,7 +28,7 @@ class SqliteDb {
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
             // create all tables for registered daos
-            List<Class> objects = DaoFactory.getRegisteredObjects();
+            List<Class> objects = Persistence.getSqliteClasses();
             for (Class clazz : objects) {
                 sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(clazz));
             }

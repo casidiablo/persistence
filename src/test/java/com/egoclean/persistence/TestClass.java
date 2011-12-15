@@ -6,8 +6,8 @@ public class TestClass {
 
     @Test
     public void testMatch() {
-        DaoFactory.matchSqlite(JuaneloMendieta.class);
-        DaoFactory.matchPreference(Object.class);
+        Persistence.matchSqlite(JuaneloMendieta.class);
+        Persistence.matchPreference(Object.class);
     }
 
     @Test
