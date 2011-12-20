@@ -21,16 +21,17 @@ class SqliteAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void store(Class<? extends T> clazz, T bean, Predicate predicate) {
-        if (predicate == null) {
-            mDao.insert(clazz, bean);
-        } else {
-            T match = findFirst(clazz, predicate);
-            if (match == null) {// if there was NOT a matching bean, update it!
-                mDao.insert(clazz, bean);
-            } else { // if there was a matching bean, insert a new record
-                mDao.update(clazz, bean, predicate);
-            }
+    public <T> void store(Class<T> clazz, T bean) {
+        mDao.insert(clazz, bean);
+    }
+
+    @Override
+    public <T> int update(Class<T> clazz, T bean, T sample) {
+        T match = findFirst(clazz, sample);
+        if (match == null) {// if there was NOT a matching bean, update it!
+            return 0;
+        } else { // if there was a matching bean, insert a new record
+            return mDao.update(clazz, bean, sample);
         }
     }
 
@@ -40,8 +41,8 @@ class SqliteAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> T findFirst(Class<T> clazz, Predicate where) {
-        return mDao.findFirstWhere(clazz, where);
+    public <T> T findFirst(Class<T> clazz, T sample) {
+        return mDao.findFirstWhere(clazz, sample);
     }
 
     @Override
@@ -50,19 +51,16 @@ class SqliteAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, Predicate where) {
+    public <T> List<T> findAll(Class<T> clazz, T where) {
         if (where == null) {
             return findAll(clazz);
-        }
-        if (where.getExtraTables() != null) {
-            return mDao.findAll(clazz, where.getExtraTables(), where);
         }
         return mDao.findAll(clazz, where);
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, Predicate predicate) {
-        mDao.delete(clazz, predicate);
+    public <T> void delete(Class<T> clazz, T where) {
+        mDao.delete(clazz, where);
     }
 
 }

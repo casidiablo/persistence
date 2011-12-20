@@ -10,8 +10,8 @@ import java.util.List;
  * @author cristian
  */
 class GenericPersistenceAdapter implements PersistenceAdapter {
-    private final SqliteAdapter mSqliteAdapter;
-    private final PreferencesAdapter mPrefsAdapter;
+    private final PersistenceAdapter mSqliteAdapter;
+    private final PersistenceAdapter mPrefsAdapter;
 
     GenericPersistenceAdapter(Context context) {
         mSqliteAdapter = new SqliteAdapter(context);
@@ -19,17 +19,13 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void store(Class<? extends T> clazz, T bean, Predicate predicate) {
-        switch (Persistence.getPersistenceType(clazz)) {
-            case SQLITE:
-                mSqliteAdapter.store(clazz, bean, predicate);
-                break;
-            case PREFERENCES:
-                mPrefsAdapter.store(clazz, bean, predicate);
-                break;
-            case UNKNOWN:
-                throw new RuntimeException("Could not find how to store object of type " + clazz);
-        }
+    public <T> void store(Class<T> clazz, T bean) {
+        getPersister(clazz).store(clazz, bean);
+    }
+
+    @Override
+    public <T> int update(Class<T> clazz, T bean, T predicate) {
+        return getPersister(clazz).update(clazz, bean, predicate);
     }
 
     @Override
@@ -39,16 +35,8 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> T findFirst(Class<T> clazz, Predicate where) {
-        switch (Persistence.getPersistenceType(clazz)) {
-            case SQLITE:
-                return mSqliteAdapter.findFirst(clazz, where);
-            case PREFERENCES:
-                return mPrefsAdapter.findFirst(clazz, where);
-            case UNKNOWN:
-            default:
-                throw new RuntimeException("Could not find how to store object of type " + clazz);
-        }
+    public <T> T findFirst(Class<T> clazz, T where) {
+        return getPersister(clazz).findFirst(clazz, where);
     }
 
     @Override
@@ -57,20 +45,23 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, Predicate where) {
+    public <T> List<T> findAll(Class<T> clazz, T where) {
         return mSqliteAdapter.findAll(clazz, where);
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, Predicate where) {
+    public <T> void delete(Class<T> clazz, T where) {
+        getPersister(clazz).delete(clazz, where);
+    }
+
+    private <T> PersistenceAdapter getPersister(Class<T> clazz) {
         switch (Persistence.getPersistenceType(clazz)) {
             case SQLITE:
-                mSqliteAdapter.delete(clazz, where);
-                break;
+                return mSqliteAdapter;
             case PREFERENCES:
-                mPrefsAdapter.delete(clazz, where);
-                break;
+                return mPrefsAdapter;
             case UNKNOWN:
+            default:
                 throw new RuntimeException("Could not find how to store object of type " + clazz);
         }
     }

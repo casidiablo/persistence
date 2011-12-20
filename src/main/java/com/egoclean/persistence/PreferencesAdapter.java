@@ -13,17 +13,22 @@ import java.util.List;
  */
 class PreferencesAdapter implements PersistenceAdapter {
 
-    private final SharedPreferences mPreferences;
     private final PrefDao mDao;
 
     public PreferencesAdapter(Context context) {
-        mPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-        mDao = new PrefDao(mPreferences);
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        mDao = new PrefDao(preferences);
     }
 
     @Override
-    public <T> void store(Class<? extends T> clazz, T bean, Predicate predicate) {
+    public <T> void store(Class<T> clazz, T bean) {
         mDao.persist(clazz, bean);
+    }
+
+    @Override
+    public <T> int update(Class<T> clazz, T bean, T where) {
+        store(clazz, null);
+        return 1;
     }
 
     @Override
@@ -32,7 +37,7 @@ class PreferencesAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> T findFirst(Class<T> clazz, Predicate where) {
+    public <T> T findFirst(Class<T> clazz, T where) {
         return mDao.find(clazz);
     }
 
@@ -42,12 +47,12 @@ class PreferencesAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, Predicate where) {
+    public <T> List<T> findAll(Class<T> clazz, T where) {
         throw new UnsupportedOperationException("PreferencesAdapter works for single objects. Not collections of them.");
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, Predicate predicate) {
+    public <T> void delete(Class<T> clazz, T where) {
         mDao.delete(clazz);
     }
 }

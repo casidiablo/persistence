@@ -34,14 +34,12 @@ class SqliteDao {
         return result;
     }
 
-    <T> T findFirstWhere(Class<? extends T> clazz, Predicate predicate) {
-        String order = null;
+    <T> T findFirstWhere(Class<? extends T> clazz, T sample) {
         String where = null;
-        if (predicate != null) {
-            order = predicate.getOrder();
-            where = predicate.getWhere();
+        if (sample != null) {
+            where = SQLHelper.getWhere(sample);
         }
-        Cursor query = db.query(getTableName(clazz), null, where, null, null, null, order, "1");
+        Cursor query = db.query(getTableName(clazz), null, where, null, null, null, null, "1");
         if (query.moveToFirst()) {
             T bean = getBeanFromCursor(clazz, query);
             query.close();
@@ -51,8 +49,8 @@ class SqliteDao {
         return null;
     }
 
-    <T> List<T> findAll(Class<? extends T> clazz, Predicate predicate) {
-        Cursor query = getCursorFindAllWhere(clazz, predicate);
+    <T> List<T> findAll(Class<? extends T> clazz, T where) {
+        Cursor query = getCursorFindAllWhere(clazz, where);
         List<T> beans = new ArrayList<T>();
         if (query.moveToFirst()) {
             do {
@@ -64,59 +62,14 @@ class SqliteDao {
         return beans;
     }
 
-    <T> List<T> findAll(Class<? extends T> clazz, String[] additionalTables, Predicate predicate) {
-        Cursor query = getCursorFindAllWhere(clazz, additionalTables, predicate);
-        List<T> beans = new ArrayList<T>();
-        if (query.moveToFirst()) {
-            do {
-                T bean = getBeanFromCursor(clazz, query);
-                beans.add(bean);
-            } while (query.moveToNext());
-        }
-        query.close();
-        return beans;
+    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, T sample) {
+        return db.query(getTableName(clazz), null, SQLHelper.getWhere(sample), null, null, null, null, null);
     }
 
-    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, Predicate predicate) {
-        int limitMax = predicate.getLimit();
-        String limit = limitMax <= 0 ? null : String.valueOf(limitMax);
-        return db.query(getTableName(clazz), null, predicate.getWhere(), null, null, null, predicate.getOrder(), limit);
-    }
-
-    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, String[] additionalTables, Predicate predicate) {
-        if (predicate.getGroupBy() == null || predicate.getGroupBy().length() == 0) {
-            throw new IllegalStateException("Creating a query with multiple tables and without group by clause");
-        }
-        int limitMax = predicate.getLimit();
-        String limit = limitMax <= 0 ? null : String.valueOf(limitMax);
-        if (additionalTables == null) {
-            return db.query(getTableName(clazz), null, predicate.getWhere(), null, null, null, predicate.getOrder(), limit);
-        } else {
-            String tables = getTableName(clazz);
-            for (String additional : additionalTables) {
-                if (!getTableName(clazz).equals(additional)) {
-                    tables += ", " + additional;
-                }
-            }
-            StringBuilder builder = new StringBuilder();
-            builder.append("SELECT ").append(getTableName(clazz)).append(".* FROM ").append(tables);
-            builder.append(" WHERE ").append(predicate.getWhere());
-            builder.append(" GROUP BY ").append(predicate.getGroupBy());
-
-            if (predicate.getOrder() != null && predicate.getOrder().length() > 0) {
-                builder.append(" ORDER BY ").append(predicate.getOrder());
-            }
-            if (limit != null && limit.length() > 0) {
-                builder.append(" LIMIT ").append(limit);
-            }
-            return db.rawQuery(builder.toString(), null);
-        }
-    }
-
-    <T> int update(Class<? extends T> clazz, T bean, Predicate predicate) {
+    <T> int update(Class<? extends T> clazz, T bean, T sample) {
         try {
             ContentValues values = getValuesFromBean(bean);
-            return db.update(getTableName(clazz), values, predicate.getWhere(), null);
+            return db.update(getTableName(clazz), values, SQLHelper.getWhere(sample), null);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
@@ -131,8 +84,8 @@ class SqliteDao {
         }
     }
 
-    <T> long delete(Class<? extends T> clazz, Predicate predicate) {
-        return db.delete(getTableName(clazz), predicate == null ? null : predicate.getWhere(), null);
+    <T> long delete(Class<? extends T> clazz, T sample) {
+        return db.delete(getTableName(clazz), SQLHelper.getWhere(sample), null);
     }
 
     <T> ContentValues getValuesFromBean(T bean) throws IllegalAccessException {
@@ -155,7 +108,7 @@ class SqliteDao {
                         continue;
                     }
                     values.put(normalize, (Long) field.get(bean));
-                }  else if (type == boolean.class || type == Boolean.class) {
+                } else if (type == boolean.class || type == Boolean.class) {
                     values.put(normalize, (Integer) field.get(bean));
                 } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
                     values.put(normalize, (Float) field.get(bean));
