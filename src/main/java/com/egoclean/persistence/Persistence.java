@@ -10,7 +10,6 @@ public class Persistence {
     private static final List<Class> SQLITE_MAP = new ArrayList<Class>();
     private static final List<Class> PREFS_MAP = new ArrayList<Class>();
 
-    @SuppressWarnings({"unchecked"})
     public static void matchSqlite(Class<?> type) {
         SQLITE_MAP.add(type);
     }
