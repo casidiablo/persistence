@@ -19,13 +19,13 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void store(Class<T> clazz, T bean) {
-        getPersister(clazz).store(clazz, bean);
+    public <T> void store(T bean) {
+        getPersister(bean.getClass()).store(bean);
     }
 
     @Override
-    public <T> int update(Class<T> clazz, T bean, T predicate) {
-        return getPersister(clazz).update(clazz, bean, predicate);
+    public <T> int update(T bean, T predicate) {
+        return getPersister(bean.getClass()).update(bean, predicate);
     }
 
     @Override
@@ -50,8 +50,8 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, T where) {
-        getPersister(clazz).delete(clazz, where);
+    public <T> void delete(T where) {
+        getPersister(where.getClass()).delete(where);
     }
 
     private <T> PersistenceAdapter getPersister(Class<T> clazz) {

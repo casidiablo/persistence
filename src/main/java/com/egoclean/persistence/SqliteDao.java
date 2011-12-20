@@ -66,26 +66,26 @@ class SqliteDao {
         return db.query(getTableName(clazz), null, SQLHelper.getWhere(sample), null, null, null, null, null);
     }
 
-    <T> int update(Class<? extends T> clazz, T bean, T sample) {
+    <T> int update(T bean, T sample) {
         try {
             ContentValues values = getValuesFromBean(bean);
-            return db.update(getTableName(clazz), values, SQLHelper.getWhere(sample), null);
+            return db.update(getTableName(bean.getClass()), values, SQLHelper.getWhere(sample), null);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
     }
 
-    <T> long insert(Class<? extends T> clazz, T bean) {
+    <T> long insert(T bean) {
         try {
             ContentValues values = getValuesFromBean(bean);
-            return db.insert(getTableName(clazz), null, values);
+            return db.insert(getTableName(bean.getClass()), null, values);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
     }
 
-    <T> long delete(Class<? extends T> clazz, T sample) {
-        return db.delete(getTableName(clazz), SQLHelper.getWhere(sample), null);
+    <T> long delete(T sample) {
+        return db.delete(getTableName(sample.getClass()), SQLHelper.getWhere(sample), null);
     }
 
     <T> ContentValues getValuesFromBean(T bean) throws IllegalAccessException {

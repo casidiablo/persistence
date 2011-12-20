@@ -21,13 +21,13 @@ class PreferencesAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void store(Class<T> clazz, T bean) {
-        mDao.persist(clazz, bean);
+    public <T> void store(T bean) {
+        mDao.persist(bean);
     }
 
     @Override
-    public <T> int update(Class<T> clazz, T bean, T where) {
-        store(clazz, null);
+    public <T> int update(T bean, T where) {
+        store(bean);
         return 1;
     }
 
@@ -52,7 +52,7 @@ class PreferencesAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, T where) {
-        mDao.delete(clazz);
+    public <T> void delete(T where) {
+        mDao.delete(where == null ? null : where.getClass());
     }
 }

@@ -21,17 +21,17 @@ class SqliteAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void store(Class<T> clazz, T bean) {
-        mDao.insert(clazz, bean);
+    public <T> void store(T bean) {
+        mDao.insert(bean);
     }
 
     @Override
-    public <T> int update(Class<T> clazz, T bean, T sample) {
-        T match = findFirst(clazz, sample);
+    public <T> int update(T bean, T sample) {
+        T match = findFirst((Class<T>) bean.getClass(), sample);
         if (match == null) {// if there was NOT a matching bean, update it!
             return 0;
         } else { // if there was a matching bean, insert a new record
-            return mDao.update(clazz, bean, sample);
+            return mDao.update(bean, sample);
         }
     }
 
@@ -59,8 +59,8 @@ class SqliteAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, T where) {
-        mDao.delete(clazz, where);
+    public <T> void delete(T where) {
+        mDao.delete(where);
     }
 
 }
