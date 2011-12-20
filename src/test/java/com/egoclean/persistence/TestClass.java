@@ -7,9 +7,6 @@ public class TestClass {
     @Test
     public void testMatch() {
         Persistence.matchSqlite(JuaneloMendieta.class);
-        PersistenceAdapter adapter = PersistenceFactory.getAdapter(null);
-        JuaneloMendieta object = new JuaneloMendieta();
-        adapter.store(object);
     }
 
     @Test
