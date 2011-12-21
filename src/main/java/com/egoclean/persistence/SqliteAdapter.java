@@ -27,12 +27,7 @@ class SqliteAdapter implements PersistenceAdapter {
 
     @Override
     public <T> int update(T bean, T sample) {
-        T match = findFirst((Class<T>) bean.getClass(), sample);
-        if (match == null) {// if there was NOT a matching bean, update it!
-            return 0;
-        } else { // if there was a matching bean, insert a new record
-            return mDao.update(bean, sample);
-        }
+        return mDao.update(bean, sample);
     }
 
     @Override
