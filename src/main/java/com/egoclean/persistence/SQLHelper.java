@@ -17,20 +17,28 @@ class SQLHelper {
         }
         String tableName = clazz.getSimpleName();
         List<String> fieldSentences = new ArrayList<String>();
-        // loop through the hierarchy and get all the fields
-        do {
-            Field[] declaredFields = clazz.getDeclaredFields();
-            for (Field declaredField : declaredFields) {
-                if (declaredField.getName().equals(ID)) {
-                    fieldSentences.add(PRIMARY_KEY);
-                } else {
-                    if (declaredField.getType() != List.class) {
-                        fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
-                    }
-                }
+        // loop through all the fields and add sql statements
+        Field[] declaredFields = clazz.getDeclaredFields();
+        for (Field declaredField : declaredFields) {
+            if (declaredField.getName().equals(ID)) {
+                fieldSentences.add(PRIMARY_KEY);
+            } else if (declaredField.getType() != List.class) {
+                fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
             }
-            clazz = clazz.getSuperclass();
-        } while (clazz != Object.class);
+        }
+
+        // check whether this class belongs to a has-many relation, in which case we need to create an additional field
+        HasMany belongsTo = Persistence.belongsTo(clazz);
+        if (belongsTo != null) {
+            // if so, add a new field to the table creation statement to create the relation
+            Class<?> containerClass = belongsTo.getClasses()[0];
+            try {
+                Field field = containerClass.getDeclaredField(belongsTo.getThrough());
+                String columnName = String.format("%s_%s", containerClass.getSimpleName(), SqlUtils.normalize(belongsTo.getThrough()));
+                fieldSentences.add(getFieldSentence(columnName, field.getType()));
+            } catch (NoSuchFieldException ignored) {
+            }
+        }
 
         // sort sentences
         Collections.sort(fieldSentences, new Comparator<String>() {
@@ -84,24 +92,21 @@ class SQLHelper {
 
         List<String> conditions = new ArrayList<String>();
         Class<?> clazz = object.getClass();
-        do {
-            Field[] fields = clazz.getDeclaredFields();
-            for (Field field : fields) {
-                try {
-                    Class<?> type = field.getType();
-                    if (type == List.class) {
-                        continue;
-                    }
-                    field.setAccessible(true);
-                    Object value = field.get(object);
-                    if (hasData(type, value)) {
-                        conditions.add(String.format("%s = '%s'", SqlUtils.normalize(field.getName()), value));
-                    }
-                } catch (IllegalAccessException ignored) {
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
+            try {
+                Class<?> type = field.getType();
+                if (type == List.class) {
+                    continue;
                 }
+                field.setAccessible(true);
+                Object value = field.get(object);
+                if (hasData(type, value)) {
+                    conditions.add(String.format("%s = '%s'", SqlUtils.normalize(field.getName()), value));
+                }
+            } catch (IllegalAccessException ignored) {
             }
-            clazz = clazz.getSuperclass();
-        } while (clazz != Object.class);
+        }
 
         StringBuilder builder = new StringBuilder();
         boolean glue = false;
