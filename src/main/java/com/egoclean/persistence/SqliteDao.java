@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,23 +28,21 @@ class SqliteDao {
         Cursor query = db.query(getTableName(clazz), null, null, null, null, null, null);
         if (query.moveToFirst()) {
             do {
-                result.add(getBeanFromCursor(clazz, query));
+                result.add(getBeanFromCursor(clazz, query, new ArrayList<Class<?>>()));
             } while (query.moveToNext());
         }
         query.close();
         return result;
     }
 
-    <T> T findFirstWhere(Class<? extends T> clazz, Predicate predicate) {
-        String order = null;
+    <T> T findFirstWhere(Class<? extends T> clazz, T sample) {
         String where = null;
-        if (predicate != null) {
-            order = predicate.getOrder();
-            where = predicate.getWhere();
+        if (sample != null) {
+            where = SQLHelper.getWhere(sample);
         }
-        Cursor query = db.query(getTableName(clazz), null, where, null, null, null, order, "1");
+        Cursor query = db.query(getTableName(clazz), null, where, null, null, null, null, "1");
         if (query.moveToFirst()) {
-            T bean = getBeanFromCursor(clazz, query);
+            T bean = getBeanFromCursor(clazz, query, new ArrayList<Class<?>>());
             query.close();
             return bean;
         }
@@ -51,12 +50,12 @@ class SqliteDao {
         return null;
     }
 
-    <T> List<T> findAll(Class<? extends T> clazz, Predicate predicate) {
-        Cursor query = getCursorFindAllWhere(clazz, predicate);
+    <T> List<T> findAll(Class<? extends T> clazz, T where) {
+        Cursor query = getCursorFindAllWhere(clazz, where);
         List<T> beans = new ArrayList<T>();
         if (query.moveToFirst()) {
             do {
-                T bean = getBeanFromCursor(clazz, query);
+                T bean = getBeanFromCursor(clazz, query, new ArrayList<Class<?>>());
                 beans.add(bean);
             } while (query.moveToNext());
         }
@@ -64,78 +63,37 @@ class SqliteDao {
         return beans;
     }
 
-    <T> List<T> findAll(Class<? extends T> clazz, String[] additionalTables, Predicate predicate) {
-        Cursor query = getCursorFindAllWhere(clazz, additionalTables, predicate);
-        List<T> beans = new ArrayList<T>();
-        if (query.moveToFirst()) {
-            do {
-                T bean = getBeanFromCursor(clazz, query);
-                beans.add(bean);
-            } while (query.moveToNext());
-        }
-        query.close();
-        return beans;
+    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, T sample) {
+        return db.query(getTableName(clazz), null, SQLHelper.getWhere(sample), null, null, null, null, null);
     }
 
-    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, Predicate predicate) {
-        int limitMax = predicate.getLimit();
-        String limit = limitMax <= 0 ? null : String.valueOf(limitMax);
-        return db.query(getTableName(clazz), null, predicate.getWhere(), null, null, null, predicate.getOrder(), limit);
-    }
-
-    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, String[] additionalTables, Predicate predicate) {
-        if (predicate.getGroupBy() == null || predicate.getGroupBy().length() == 0) {
-            throw new IllegalStateException("Creating a query with multiple tables and without group by clause");
-        }
-        int limitMax = predicate.getLimit();
-        String limit = limitMax <= 0 ? null : String.valueOf(limitMax);
-        if (additionalTables == null) {
-            return db.query(getTableName(clazz), null, predicate.getWhere(), null, null, null, predicate.getOrder(), limit);
-        } else {
-            String tables = getTableName(clazz);
-            for (String additional : additionalTables) {
-                if (!getTableName(clazz).equals(additional)) {
-                    tables += ", " + additional;
-                }
-            }
-            StringBuilder builder = new StringBuilder();
-            builder.append("SELECT ").append(getTableName(clazz)).append(".* FROM ").append(tables);
-            builder.append(" WHERE ").append(predicate.getWhere());
-            builder.append(" GROUP BY ").append(predicate.getGroupBy());
-
-            if (predicate.getOrder() != null && predicate.getOrder().length() > 0) {
-                builder.append(" ORDER BY ").append(predicate.getOrder());
-            }
-            if (limit != null && limit.length() > 0) {
-                builder.append(" LIMIT ").append(limit);
-            }
-            return db.rawQuery(builder.toString(), null);
-        }
-    }
-
-    <T> int update(Class<? extends T> clazz, T bean, Predicate predicate) {
+    <T> int update(T bean, T sample) {
         try {
-            ContentValues values = getValuesFromBean(bean);
-            return db.update(getTableName(clazz), values, predicate.getWhere(), null);
+            ContentValues values = getValuesFromBean(bean, true);
+            return db.update(getTableName(bean.getClass()), values, SQLHelper.getWhere(sample), null);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
     }
 
-    <T> long insert(Class<? extends T> clazz, T bean) {
+    <T> long insert(T bean) {
+        return insert(bean, true);
+    }
+
+    <T> long insert(T bean, boolean deep) {
         try {
-            ContentValues values = getValuesFromBean(bean);
-            return db.insert(getTableName(clazz), null, values);
+            ContentValues values = getValuesFromBean(bean, deep);
+            return db.insert(getTableName(bean.getClass()), null, values);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
     }
 
-    <T> long delete(Class<? extends T> clazz, Predicate predicate) {
-        return db.delete(getTableName(clazz), predicate == null ? null : predicate.getWhere(), null);
+    <T> long delete(T sample) {
+        return db.delete(getTableName(sample.getClass()), SQLHelper.getWhere(sample), null);
     }
 
-    <T> ContentValues getValuesFromBean(T bean) throws IllegalAccessException {
+    private <T> ContentValues getValuesFromBean(T bean, boolean deep) throws IllegalAccessException {
         ContentValues values = new ContentValues();
 
         // loop through the whole class hierarchy
@@ -146,12 +104,45 @@ class SqliteDao {
             for (Field field : fields) {
                 String normalize = SqlUtils.normalize(field.getName());
                 Class type = field.getType();
-                if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
+                field.setAccessible(true);
+                if (type == int.class || type == Integer.class) {
                     values.put(normalize, (Integer) field.get(bean));
+                } else if (type == long.class || type == Long.class) {
+                    if (SQLHelper.ID.equals(field.getName()) && ((Long) field.get(bean)) == 0) {
+                        // this means we are referring to a primary key that has not been set yet... so do not add it
+                        continue;
+                    }
+                    values.put(normalize, (Long) field.get(bean));
                 } else if (type == boolean.class || type == Boolean.class) {
                     values.put(normalize, (Integer) field.get(bean));
                 } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
                     values.put(normalize, (Float) field.get(bean));
+                } else if (type == List.class) {
+                    if (deep) {
+                        ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
+                        Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+                        // insert items in the relation table
+                        List list = (List) field.get(bean);
+                        for (Object object : list) {
+                            final boolean goDeep = false;
+                            long insert = insert(object, goDeep);
+                            // insert items in the joined table
+                            try {
+                                Field id = clazz.getDeclaredField(SQLHelper.ID);
+                                id.setAccessible(true);
+                                Long beanId = (Long) id.get(bean);
+
+                                ContentValues joinValues = new ContentValues();
+                                joinValues.put(getTableName(clazz) + "_id", beanId);
+                                joinValues.put(getTableName(collectionClass) + "_id", insert);
+
+                                db.insert(ManyToMany.getTableName(clazz.getSimpleName(), collectionClass.getSimpleName()),
+                                        null, joinValues);
+                            } catch (NoSuchFieldException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 } else {
                     values.put(normalize, (String) field.get(bean));
                 }
@@ -161,7 +152,7 @@ class SqliteDao {
         return values;
     }
 
-    <T> T getBeanFromCursor(Class<? extends T> clazz, Cursor query) {
+    <T> T getBeanFromCursor(Class<? extends T> clazz, Cursor query, List<Class<?>> toSkip) {
         // loop through the whole class hierarchy
         T bean;
         try {
@@ -181,7 +172,7 @@ class SqliteDao {
                 int columnIndex = query.getColumnIndex(normalize);
                 // get an object value depending on the type
                 Class type = field.getType();
-                Object value;
+                Object value = null;
                 if (type == int.class || type == Integer.class) {
                     value = query.getInt(columnIndex);
                 } else if (type == long.class || type == Long.class) {
@@ -190,12 +181,46 @@ class SqliteDao {
                     value = query.getInt(columnIndex) == 1;
                 } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
                     value = query.getFloat(columnIndex);
-                } else {
+                } else if (type == String.class) {
                     value = query.getString(columnIndex);
+                } else if (columnIndex == -1 && type == List.class) {// it could be a collection
+                    ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
+                    Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+                    if (!toSkip.contains(theClass)) {
+                        switch (Persistence.getRelationship(theClass, collectionClass)) {
+                            case MANY_TO_MANY:
+                                // build a query that uses the joining table and the joined object
+
+                                long id = query.getLong(query.getColumnIndex(SQLHelper.ID));
+
+                                String collectionTableName = getTableName(collectionClass);
+                                String sql = "SELECT * FROM " + getTableName(collectionClass) +
+                                        " WHERE " + SQLHelper.ID + " IN (SELECT " + collectionTableName + "_id FROM " +
+                                        ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName()) +
+                                        " WHERE " + getTableName(theClass) + "_id = '" + id + "')";
+                                // execute the query
+                                Cursor join = db.rawQuery(sql, null);
+                                // set the result to the current field
+                                List listValue = new ArrayList();
+                                if (join.moveToFirst()) {
+                                    do {
+                                        if (!toSkip.contains(theClass)) {
+                                            toSkip.add(theClass);
+                                        }
+                                        Object beanFromCursor = getBeanFromCursor(collectionClass, join, toSkip);
+                                        listValue.add(beanFromCursor);
+                                    } while (join.moveToNext());
+                                }
+                                value = listValue;
+                                break;
+                        }
+                    }
                 }
                 try {
-                    field.setAccessible(true);
-                    field.set(bean, value);
+                    if (value != null) {
+                        field.setAccessible(true);
+                        field.set(bean, value);
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(String.format("An error occurred setting value to '%s', (%s): %s%n", field, value, e.getMessage()));
                 }

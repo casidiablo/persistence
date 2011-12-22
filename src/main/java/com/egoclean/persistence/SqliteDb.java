@@ -28,18 +28,20 @@ class SqliteDb {
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
             // create all tables for registered daos
-            List<Class> objects = DaoFactory.getRegisteredObjects();
+            List<Class> objects = Persistence.getSqliteClasses();
             for (Class clazz : objects) {
                 sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(clazz));
+            }
+            // create all extra table for many to many relations
+            List<ManyToMany> sqliteManyToMany = Persistence.getSqliteManyToMany();
+            for (ManyToMany manyToMany : sqliteManyToMany) {
+                sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
             }
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-            sqLiteDatabase.execSQL("DROP TABLE " + DbSchema.Media.TABLE_NAME);
-            sqLiteDatabase.execSQL("DROP TABLE " + DbSchema.Show.TABLE_NAME);
-            sqLiteDatabase.execSQL("DROP TABLE " + DbSchema.Likes.TABLE_NAME);
-            onCreate(sqLiteDatabase);
+            // TODO define a way to migrate data
         }
 
     }

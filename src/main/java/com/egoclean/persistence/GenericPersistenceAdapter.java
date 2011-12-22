@@ -10,8 +10,8 @@ import java.util.List;
  * @author cristian
  */
 class GenericPersistenceAdapter implements PersistenceAdapter {
-    private final SqliteAdapter mSqliteAdapter;
-    private final PreferencesAdapter mPrefsAdapter;
+    private final PersistenceAdapter mSqliteAdapter;
+    private final PersistenceAdapter mPrefsAdapter;
 
     GenericPersistenceAdapter(Context context) {
         mSqliteAdapter = new SqliteAdapter(context);
@@ -19,12 +19,13 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> void store(Class<? extends T> clazz, T bean, Predicate predicate) {
-        try {
-            mPrefsAdapter.store(clazz, bean, predicate);
-        } catch (DaoNotFoundException e) {
-            mSqliteAdapter.store(clazz, bean, predicate);
-        }
+    public <T> void store(T bean) {
+        getPersister(bean.getClass()).store(bean);
+    }
+
+    @Override
+    public <T> int update(T bean, T predicate) {
+        return getPersister(bean.getClass()).update(bean, predicate);
     }
 
     @Override
@@ -34,12 +35,8 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> T findFirst(Class<T> clazz, Predicate where) {
-        try {
-            return mPrefsAdapter.findFirst(clazz, where);
-        } catch (DaoNotFoundException e) {
-            return mSqliteAdapter.findFirst(clazz, where);
-        }
+    public <T> T findFirst(Class<T> clazz, T where) {
+        return getPersister(clazz).findFirst(clazz, where);
     }
 
     @Override
@@ -48,16 +45,24 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, Predicate where) {
+    public <T> List<T> findAll(Class<T> clazz, T where) {
         return mSqliteAdapter.findAll(clazz, where);
     }
 
     @Override
-    public <T> void delete(Class<T> clazz, Predicate where) {
-        try {
-            mPrefsAdapter.delete(clazz, where);
-        } catch (DaoNotFoundException e) {
-            mSqliteAdapter.delete(clazz, where);
+    public <T> void delete(T where) {
+        getPersister(where.getClass()).delete(where);
+    }
+
+    private <T> PersistenceAdapter getPersister(Class<T> clazz) {
+        switch (Persistence.getPersistenceType(clazz)) {
+            case SQLITE:
+                return mSqliteAdapter;
+            case PREFERENCES:
+                return mPrefsAdapter;
+            case UNKNOWN:
+            default:
+                throw new RuntimeException("Could not find how to store object of type " + clazz);
         }
     }
 }

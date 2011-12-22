@@ -8,8 +8,8 @@ import java.util.List;
 
 class SQLHelper {
 
-    private static final String ID = "id";
-    private static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
+    static final String ID = "id";
+    static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
 
     static String getCreateTableSentence(Class clazz) {
         if (clazz == Object.class) {
@@ -24,7 +24,9 @@ class SQLHelper {
                 if (declaredField.getName().equals(ID)) {
                     fieldSentences.add(PRIMARY_KEY);
                 } else {
-                    fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
+                    if (declaredField.getType() != List.class) {
+                        fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
+                    }
                 }
             }
             clazz = clazz.getSuperclass();
@@ -75,4 +77,60 @@ class SQLHelper {
         return String.format("%s TEXT NOT NULL", SqlUtils.normalize(name));
     }
 
+    static String getWhere(Object object) {
+        if (object == null) {
+            return null;
+        }
+
+        List<String> conditions = new ArrayList<String>();
+        Class<?> clazz = object.getClass();
+        do {
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field field : fields) {
+                try {
+                    Class<?> type = field.getType();
+                    if (type == List.class) {
+                        continue;
+                    }
+                    field.setAccessible(true);
+                    Object value = field.get(object);
+                    if (hasData(type, value)) {
+                        conditions.add(String.format("%s = '%s'", SqlUtils.normalize(field.getName()), value));
+                    }
+                } catch (IllegalAccessException ignored) {
+                }
+            }
+            clazz = clazz.getSuperclass();
+        } while (clazz != Object.class);
+
+        StringBuilder builder = new StringBuilder();
+        boolean glue = false;
+        for (String condition : conditions) {
+            if (glue) {
+                builder.append(" AND ");
+            }
+            builder.append(condition);
+            glue = true;
+        }
+        return builder.toString();
+    }
+
+    private static boolean hasData(Class<?> type, Object value) {
+        if (type == long.class || type == Long.class) {
+            return ((Long) value) != 0L;
+        }
+        if (type == int.class || type == Integer.class) {
+            return ((Integer) value) != 0L;
+        }
+        if (type == float.class || type == Float.class) {
+            return ((Float) value) != 0.0;
+        }
+        if (type == double.class || type == Double.class) {
+            return ((Double) value) != 0.0;
+        }
+        if (type == boolean.class || type == Boolean.class) {
+            return false;
+        }
+        return value != null;
+    }
 }

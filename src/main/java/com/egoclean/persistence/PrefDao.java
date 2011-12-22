@@ -16,9 +16,9 @@ class PrefDao {
         mPreferences = prefs;
     }
 
-    public <T> void persist(Class<? extends T> clazz, T bean) {
+    public <T> void persist(T bean) {
         SharedPreferences.Editor editor = mPreferences.edit();
-        fillEditor(clazz, editor, bean);
+        fillEditor(bean.getClass(), editor, bean);
         editor.commit();
     }
 
