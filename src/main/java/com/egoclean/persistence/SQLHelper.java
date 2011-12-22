@@ -9,7 +9,7 @@ import java.util.List;
 class SQLHelper {
 
     static final String ID = "id";
-    private static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
+    static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
 
     static String getCreateTableSentence(Class clazz) {
         if (clazz == Object.class) {
@@ -24,7 +24,9 @@ class SQLHelper {
                 if (declaredField.getName().equals(ID)) {
                     fieldSentences.add(PRIMARY_KEY);
                 } else {
-                    fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
+                    if (declaredField.getType() != List.class) {
+                        fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
+                    }
                 }
             }
             clazz = clazz.getSuperclass();
@@ -87,6 +89,9 @@ class SQLHelper {
             for (Field field : fields) {
                 try {
                     Class<?> type = field.getType();
+                    if (type == List.class) {
+                        continue;
+                    }
                     field.setAccessible(true);
                     Object value = field.get(object);
                     if (hasData(type, value)) {
