@@ -85,14 +85,57 @@ class SqliteDao {
     }
 
     <T> long insert(T bean, Node tree, ContentValues initialValues) {
+        // first try to find the bean by id (if its id is not autoincrement)
+        // and if it exists, do not insert it, update it
+        Class<?> theClass = bean.getClass();
+        if (!Persistence.getAutoIncrementList().contains(theClass)) {
+            Object match = findFirstWhere((Class<? extends T>) theClass, bean);
+            if (match != null) {
+                // get its ID
+                Field theId;
+                Object beanId;
+                try {
+                    theId = theClass.getDeclaredField(SQLHelper.ID);
+                    theId.setAccessible(true);
+                    beanId = theId.get(bean);
+
+                    // if they are the same, do nothing...
+                    if (bean.equals(match)) {
+                        return (Long) beanId;
+                    }
+                    // create an object of the same type of the bean
+                    Constructor<?> constructor = theClass.getConstructor();
+                    Object sample = constructor.newInstance();
+                    theId.set(sample, beanId);
+                    // update the bean using the just create sample
+                    update(bean, sample);
+                    return (Long) beanId;
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         try {
             ContentValues values = getValuesFromBean(bean);
             if (initialValues != null) {
                 values.putAll(initialValues);
             }
-            long id = db.insert(getTableName(bean.getClass()), null, values);
-            // TODO set the primary key to the bean
-            // TODO there must be flexible enough to allow AUTOINCREMENT keys
+            // if the class has an autoincrement, remove the ID
+            if (Persistence.getAutoIncrementList().contains(theClass)) {
+                values.remove(SQLHelper.ID);
+            }
+
+            // insert it into the database
+            long id = db.insert(getTableName(theClass), null, values);
+
+            // set the inserted ID to the bean so that children classes can know it
+            try {
+                Field idField = theClass.getDeclaredField(SQLHelper.ID);
+                idField.setAccessible(true);
+                idField.set(bean, id);
+            } catch (NoSuchFieldException ignored) {
+            }
+
             insertChildrenOf(bean, tree);
             return id;
         } catch (IllegalAccessException e) {
@@ -101,6 +144,7 @@ class SqliteDao {
     }
 
     <T> long delete(T sample) {
+        // TODO delete in cascade
         return db.delete(getTableName(sample.getClass()), SQLHelper.getWhere(sample), null);
     }
 
@@ -186,7 +230,7 @@ class SqliteDao {
 
                                 // insert items in the relation table
                                 ContentValues relationValues = getValuesFromObject(foreignValue, hasMany.getForeignKey());
-                                insert(object, tree, relationValues);// TODO insert or update?
+                                insert(object, tree, relationValues);
                             } catch (NoSuchFieldException ignored) {
                             }
                         }

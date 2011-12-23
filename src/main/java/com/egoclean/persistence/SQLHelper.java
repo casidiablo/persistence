@@ -21,7 +21,11 @@ class SQLHelper {
         Field[] declaredFields = clazz.getDeclaredFields();
         for (Field declaredField : declaredFields) {
             if (declaredField.getName().equals(ID)) {
-                fieldSentences.add(PRIMARY_KEY);
+                String primaryKeySentence = PRIMARY_KEY;
+                if (Persistence.getAutoIncrementList().contains(clazz)) {
+                    primaryKeySentence += " AUTOINCREMENT";
+                }
+                fieldSentences.add(primaryKeySentence);
             } else if (declaredField.getType() != List.class) {
                 fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
             }
@@ -44,10 +48,10 @@ class SQLHelper {
         Collections.sort(fieldSentences, new Comparator<String>() {
             @Override
             public int compare(String s1, String s2) {
-                if (s1.equals(PRIMARY_KEY)) {
+                if (s1.contains(PRIMARY_KEY)) {
                     return -1;
                 }
-                if (s2.equals(PRIMARY_KEY)) {
+                if (s2.contains(PRIMARY_KEY)) {
                     return 1;
                 }
                 return 0;
@@ -57,11 +61,13 @@ class SQLHelper {
         // build create table sentence
         StringBuilder builder = new StringBuilder();
         builder.append("CREATE TABLE IF NOT EXISTS ").append(SqlUtils.normalize(tableName)).append(" (");
+        boolean first = true;
         for (String fieldSentence : fieldSentences) {
-            if (!fieldSentence.equals(PRIMARY_KEY)) {
+            if (!first) {
                 builder.append(", ");
             }
             builder.append(fieldSentence);
+            first = false;
         }
         builder.append(");");
         return builder.toString();

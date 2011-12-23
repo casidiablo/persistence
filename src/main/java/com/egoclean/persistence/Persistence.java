@@ -6,16 +6,26 @@ import java.util.List;
 /**
  * @author cristian
  */
+@SuppressWarnings("UnusedDeclaration")
 public class Persistence {
-    private static final List<Class> SQLITE_LIST = new ArrayList<Class>();
+    private static final List<Class<?>> SQLITE_LIST = new ArrayList<Class<?>>();
+    private static final List<Class<?>> AUTO_INCREMENT_LIST = new ArrayList<Class<?>>();
     private static final List<ManyToMany> MANY_TO_MANY_LIST = new ArrayList<ManyToMany>();
     private static final List<HasMany> HAS_MANY_LIST = new ArrayList<HasMany>();
-    private static final List<Class> PREFS_MAP = new ArrayList<Class>();
+    private static final List<Class<?>> PREFS_MAP = new ArrayList<Class<?>>();
 
     public static void match(Class<?>... types) {
         for (Class<?> type : types) {
             if (!SQLITE_LIST.contains(type)) {
                 SQLITE_LIST.add(type);
+            }
+        }
+    }
+
+    public static void autoincrementPrimaryKey(Class<?>... types) {
+        for (Class<?> type : types) {
+            if (!AUTO_INCREMENT_LIST.contains(type)) {
+                AUTO_INCREMENT_LIST.add(type);
             }
         }
     }
@@ -105,8 +115,12 @@ public class Persistence {
         return PersistenceType.UNKNOWN;
     }
 
-    static List<Class> getSqliteClasses() {
+    static List<Class<?>> getSqliteClasses() {
         return SQLITE_LIST;
+    }
+
+    static List<Class<?>> getAutoIncrementList() {
+        return AUTO_INCREMENT_LIST;
     }
 
     static List<ManyToMany> getSqliteManyToMany() {
