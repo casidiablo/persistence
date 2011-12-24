@@ -89,29 +89,29 @@ class SqliteDao {
         // and if it exists, do not insert it, update it
         Class<?> theClass = bean.getClass();
         if (!Persistence.getAutoIncrementList().contains(theClass)) {
-            Object match = findFirstWhere((Class<? extends T>) theClass, bean);
-            if (match != null) {
+            try {
                 // get its ID
-                Field theId;
-                Object beanId;
-                try {
-                    theId = theClass.getDeclaredField(SQLHelper.ID);
-                    theId.setAccessible(true);
-                    beanId = theId.get(bean);
+                Field theId = theClass.getDeclaredField(SQLHelper.ID);
+                theId.setAccessible(true);
+                Object beanId = theId.get(bean);
 
+                // create an object of the same type of the bean with the same id to search of it
+                Constructor<?> constructor = theClass.getConstructor();
+                Object sample = constructor.newInstance();
+                theId.set(sample, beanId);
+
+                Object match = findFirstWhere(theClass, sample);
+                if (match != null) {
                     // if they are the same, do nothing...
                     if (bean.equals(match)) {
                         return (Long) beanId;
                     }
-                    // create an object of the same type of the bean
-                    Constructor<?> constructor = theClass.getConstructor();
-                    Object sample = constructor.newInstance();
-                    theId.set(sample, beanId);
                     // update the bean using the just create sample
                     update(bean, sample);
                     return (Long) beanId;
-                } catch (Exception ignored) {
+
                 }
+            } catch (Exception ignored) {
             }
         }
 
