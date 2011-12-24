@@ -22,7 +22,7 @@ public class ManyToManyTest {
     public void testManyToMany2() {
         Persistence.match(new ManyToMany(Feed.class, County.class));
         // create all tables for registered daos
-        List<Class> objects = Persistence.getSqliteClasses();
+        List<Class<?>> objects = Persistence.getSqliteClasses();
         for (Class clazz : objects) {
             System.out.println(SQLHelper.getCreateTableSentence(clazz));
         }
