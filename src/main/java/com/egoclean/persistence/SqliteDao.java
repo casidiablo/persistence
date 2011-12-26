@@ -37,10 +37,11 @@ class SqliteDao {
 
     <T> T findFirstWhere(Class<? extends T> clazz, T sample) {
         String where = null;
+        ArrayList<String> args = new ArrayList<String>();
         if (sample != null) {
-            where = SQLHelper.getWhere(sample);
+            where = SQLHelper.getWhere(sample, args);
         }
-        Cursor query = db.query(getTableName(clazz), null, where, null, null, null, null, "1");
+        Cursor query = db.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, "1");
         if (query.moveToFirst()) {
             T bean = getBeanFromCursor(clazz, query, new Node(clazz));
             query.close();
@@ -64,13 +65,17 @@ class SqliteDao {
     }
 
     <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, T sample) {
-        return db.query(getTableName(clazz), null, SQLHelper.getWhere(sample), null, null, null, null, null);
+        ArrayList<String> args = new ArrayList<String>();
+        String where = SQLHelper.getWhere(sample, args);
+        return db.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, null);
     }
 
     <T> int update(T bean, T sample) {
         try {
             ContentValues values = getValuesFromBean(bean);
-            return db.update(getTableName(bean.getClass()), values, SQLHelper.getWhere(sample), null);
+            ArrayList<String> args = new ArrayList<String>();
+            String where = SQLHelper.getWhere(sample, args);
+            return db.update(getTableName(bean.getClass()), values, where, args.toArray(new String[args.size()]));
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
@@ -145,7 +150,9 @@ class SqliteDao {
 
     <T> long delete(T sample) {
         // TODO delete in cascade
-        return db.delete(getTableName(sample.getClass()), SQLHelper.getWhere(sample), null);
+        ArrayList<String> args = new ArrayList<String>();
+        String where = SQLHelper.getWhere(sample, args);
+        return db.delete(getTableName(sample.getClass()), where, args.toArray(new String[args.size()]));
     }
 
     private <T> ContentValues getValuesFromBean(T bean) throws IllegalAccessException {

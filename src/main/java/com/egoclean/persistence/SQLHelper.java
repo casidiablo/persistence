@@ -91,7 +91,7 @@ class SQLHelper {
         return String.format("%s TEXT NOT NULL", SqlUtils.normalize(name));
     }
 
-    static String getWhere(Object object) {
+    static String getWhere(Object object, List<String> args) {
         if (object == null) {
             return null;
         }
@@ -108,7 +108,8 @@ class SQLHelper {
                 field.setAccessible(true);
                 Object value = field.get(object);
                 if (hasData(type, value)) {
-                    conditions.add(String.format("%s = '%s'", SqlUtils.normalize(field.getName()), value));
+                    conditions.add(String.format("%s = ?", SqlUtils.normalize(field.getName())));
+                    args.add(String.valueOf(value));
                 }
             } catch (IllegalAccessException ignored) {
             }
