@@ -23,23 +23,15 @@ class SqliteDao {
         db = database.getWritableDatabase();
     }
 
-    <T> List<T> findAll(Class<? extends T> clazz) {
-        List<T> result = new ArrayList<T>();
-        Cursor query = db.query(getTableName(clazz), null, null, null, null, null, null);
-        if (query.moveToFirst()) {
-            do {
-                result.add(getBeanFromCursor(clazz, query, new Node(clazz)));
-            } while (query.moveToNext());
-        }
-        query.close();
-        return result;
+    <T, G> List<T> findAll(Class<? extends T> clazz, G attachedTo) {
+        return findAll(clazz, null, attachedTo);
     }
 
     <T> T findFirstWhere(Class<? extends T> clazz, T sample) {
         String where = null;
         ArrayList<String> args = new ArrayList<String>();
         if (sample != null) {
-            where = SQLHelper.getWhere(sample, args);
+            where = SQLHelper.getWhere(clazz, sample, args, null);// TODO is needed a findFirstWhere with attachment
         }
         Cursor query = db.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, "1");
         if (query.moveToFirst()) {
@@ -51,8 +43,8 @@ class SqliteDao {
         return null;
     }
 
-    <T> List<T> findAll(Class<? extends T> clazz, T where) {
-        Cursor query = getCursorFindAllWhere(clazz, where);
+    <T, G> List<T> findAll(Class<? extends T> clazz, T where, G attachedTo) {
+        Cursor query = getCursorFindAllWhere(clazz, where, attachedTo);
         List<T> beans = new ArrayList<T>();
         if (query.moveToFirst()) {
             do {
@@ -64,32 +56,40 @@ class SqliteDao {
         return beans;
     }
 
-    <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, T sample) {
-        ArrayList<String> args = new ArrayList<String>();
-        String where = SQLHelper.getWhere(sample, args);
-        return db.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, null);
+    <T, G> Cursor getCursorFindAllWhere(Class<? extends T> clazz, T sample, G attachedTo) {
+        String[] selectionArgs = null;
+        String where = null;
+        if (sample != null || attachedTo != null) {
+            ArrayList<String> args = new ArrayList<String>();
+            where = SQLHelper.getWhere(clazz, sample, args, attachedTo);
+            selectionArgs = args.toArray(new String[args.size()]);
+        }
+        return db.query(getTableName(clazz), null, where, selectionArgs, null, null, null, null);
     }
 
     <T> int update(T bean, T sample) {
+        if (bean == null) {
+            return 0;
+        }
         try {
             ContentValues values = getValuesFromBean(bean);
             ArrayList<String> args = new ArrayList<String>();
-            String where = SQLHelper.getWhere(sample, args);
+            String where = SQLHelper.getWhere(bean.getClass(), sample, args, null);// TODO update with attachment?
             return db.update(getTableName(bean.getClass()), values, where, args.toArray(new String[args.size()]));
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
     }
 
-    <T> long insert(T bean) {
-        return insert(bean, new Node(bean.getClass()));
+    <T, G> long insert(T bean, G attachedTo) {
+        return insert(bean, new Node(bean.getClass()), attachedTo);
     }
 
-    <T> long insert(T bean, Node tree) {
-        return insert(bean, tree, null);
+    <T, G> long insert(T bean, Node tree, G attachedTo) {
+        return insert(bean, tree, null, attachedTo);
     }
 
-    <T> long insert(T bean, Node tree, ContentValues initialValues) {
+    <T, G> long insert(T bean, Node tree, ContentValues initialValues, G attachedTo) {
         // first try to find the bean by id (if its id is not autoincrement)
         // and if it exists, do not insert it, update it
         Class<?> theClass = bean.getClass();
@@ -125,6 +125,15 @@ class SqliteDao {
             if (initialValues != null) {
                 values.putAll(initialValues);
             }
+
+            // if this object is attached to another object, try to get more values
+            if (attachedTo != null) {
+                ContentValues attachedValues = getValuesFromAttachment(bean, attachedTo);
+                if (attachedValues != null) {
+                    values.putAll(attachedValues);
+                }
+            }
+
             // if the class has an autoincrement, remove the ID
             if (Persistence.getAutoIncrementList().contains(theClass)) {
                 values.remove(SQLHelper.ID);
@@ -148,10 +157,30 @@ class SqliteDao {
         }
     }
 
+    private <T, G> ContentValues getValuesFromAttachment(T bean, G attachedTo) {
+        switch (Persistence.getRelationship(attachedTo.getClass(), bean.getClass())) {
+            case HAS_MANY: {
+                try {
+                    HasMany hasMany = Persistence.belongsTo(bean.getClass());
+                    Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
+                    primaryForeignKey.setAccessible(true);
+                    Object foreignValue = primaryForeignKey.get(attachedTo);
+                    return getValuesFromObject(foreignValue, hasMany.getForeignKey());
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
     <T> long delete(T sample) {
+        if (sample == null) {
+            return -1;
+        }
         // TODO delete in cascade
         ArrayList<String> args = new ArrayList<String>();
-        String where = SQLHelper.getWhere(sample, args);
+        String where = SQLHelper.getWhere(sample.getClass(), sample, args, null); // TODO delete with attachment?
         return db.delete(getTableName(sample.getClass()), where, args.toArray(new String[args.size()]));
     }
 

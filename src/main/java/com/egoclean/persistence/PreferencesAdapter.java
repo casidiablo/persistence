@@ -26,6 +26,11 @@ class PreferencesAdapter implements PersistenceAdapter {
     }
 
     @Override
+    public <T, G> void store(T bean, G attachedTo) {
+        mDao.persist(bean);
+    }
+
+    @Override
     public <T> int update(T bean, T where) {
         store(bean);
         return 1;
@@ -48,6 +53,11 @@ class PreferencesAdapter implements PersistenceAdapter {
 
     @Override
     public <T> List<T> findAll(Class<T> clazz, T where) {
+        throw new UnsupportedOperationException("PreferencesAdapter works for single objects. Not collections of them.");
+    }
+
+    @Override
+    public <T, G> List<T> findAll(Class<T> clazz, T where, G attached) {
         throw new UnsupportedOperationException("PreferencesAdapter works for single objects. Not collections of them.");
     }
 

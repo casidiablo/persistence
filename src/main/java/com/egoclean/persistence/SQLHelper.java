@@ -91,27 +91,51 @@ class SQLHelper {
         return String.format("%s TEXT NOT NULL", SqlUtils.normalize(name));
     }
 
-    static String getWhere(Object object, List<String> args) {
+    static <T> String getWhere(T object, List<String> args) {
         if (object == null) {
             return null;
         }
+        return getWhere(object.getClass(), object, args, null);
+    }
 
+    static <T, G> String getWhere(Class<?> theClass, T bean, List<String> args, G attachedTo) {
         List<String> conditions = new ArrayList<String>();
-        Class<?> clazz = object.getClass();
-        Field[] fields = clazz.getDeclaredFields();
-        for (Field field : fields) {
-            try {
-                Class<?> type = field.getType();
-                if (type == List.class) {
-                    continue;
+        if (bean != null) {
+            Class<?> clazz = bean.getClass();
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field field : fields) {
+                try {
+                    Class<?> type = field.getType();
+                    if (type == List.class) {
+                        continue;
+                    }
+                    field.setAccessible(true);
+                    Object value = field.get(bean);
+                    if (hasData(type, value)) {
+                        conditions.add(String.format("%s = ?", SqlUtils.normalize(field.getName())));
+                        args.add(String.valueOf(value));
+                    }
+                } catch (IllegalAccessException ignored) {
                 }
-                field.setAccessible(true);
-                Object value = field.get(object);
-                if (hasData(type, value)) {
-                    conditions.add(String.format("%s = ?", SqlUtils.normalize(field.getName())));
-                    args.add(String.valueOf(value));
+            }
+        }
+
+        // if there is an attachment
+        if (attachedTo != null) {
+            switch (Persistence.getRelationship(attachedTo.getClass(), theClass)) {
+                case HAS_MANY: {
+                    try {
+                        HasMany hasMany = Persistence.belongsTo(theClass);
+                        Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
+                        primaryForeignKey.setAccessible(true);
+                        Object foreignValue = primaryForeignKey.get(attachedTo);
+                        if (foreignValue != null) {
+                            args.add(foreignValue.toString());
+                            conditions.add(String.format("%s = ?", hasMany.getForeignKey()));
+                        }
+                    } catch (Exception ignored) {
+                    }
                 }
-            } catch (IllegalAccessException ignored) {
             }
         }
 

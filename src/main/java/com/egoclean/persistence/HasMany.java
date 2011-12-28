@@ -16,7 +16,7 @@ public class HasMany {
     private final Class<?> mClassB;
     private final String mThrough;
 
-    public HasMany(Class<?> classA, Class<?> hasMany, String through) {
+    public HasMany(Class<?> classA, Class<?> hasMany, String through, boolean artificial) {
         // do not accept recursive relations
         if (classA == hasMany) {
             throw new IllegalStateException("Recursive has-many relations are not accepted");
@@ -27,26 +27,32 @@ public class HasMany {
         } catch (NoSuchFieldException e) {
             throw new IllegalStateException(e);
         }
-        // we must make sure the relation exists
-        boolean relationExists = false;
-        for (Field field : classA.getDeclaredFields()) {
-            if (field.getType() == List.class) {
-                ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
-                Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
-                if (collectionClass == hasMany) {
-                    relationExists = true;
-                    break;
+        if (!artificial) {
+            // we must make sure the relation exists
+            boolean relationExists = false;
+            for (Field field : classA.getDeclaredFields()) {
+                if (field.getType() == List.class) {
+                    ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
+                    Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+                    if (collectionClass == hasMany) {
+                        relationExists = true;
+                        break;
+                    }
                 }
             }
-        }
-        // if relation does not exist, do not continue
-        if (!relationExists) {
-            throw new IllegalStateException("Relation does not exist (" + classA + " has many " + hasMany + ")");
+            // if relation does not exist, do not continue
+            if (!relationExists) {
+                throw new IllegalStateException("Relation does not exist (" + classA + " has many " + hasMany + ")");
+            }
         }
         // if it does exist, set the fields
         mClassA = classA;
         mClassB = hasMany;
         mThrough = through;
+    }
+
+    public HasMany(Class<?> classA, Class<?> hasMany, String through) {
+        this(classA, hasMany, through, false);
     }
 
     /**
@@ -57,6 +63,17 @@ public class HasMany {
      */
     public HasMany(Class<?> classA, Class<?> hasMany) {
         this(classA, hasMany, SQLHelper.ID);
+    }
+
+    /**
+     * Creates a has-many relation
+     *
+     * @param classA  the class that has many objects...
+     * @param hasMany the class contained in classA
+     * @param artificial must be true if the relation does not actually exists and you will force it
+     */
+    public HasMany(Class<?> classA, Class<?> hasMany, boolean artificial) {
+        this(classA, hasMany, SQLHelper.ID, artificial);
     }
 
     Class<?>[] getClasses() {

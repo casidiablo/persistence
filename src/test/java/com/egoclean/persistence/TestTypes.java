@@ -2,6 +2,8 @@ package com.egoclean.persistence;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+
 import static org.junit.Assert.assertNull;
 
 public class TestTypes {
@@ -13,22 +15,49 @@ public class TestTypes {
 
     @Test
     public void testWhere() {
-        assertNull(SQLHelper.getWhere(null));
+        Persistence.match(new HasMany(Types.class, Foo.class, true));
+        assertNull(SQLHelper.getWhere(null, new ArrayList<String>()));
         Types types = new Types();
-        System.out.println(SQLHelper.getWhere(types));
+        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
         types.setInteger(1);
-        System.out.println(SQLHelper.getWhere(types));
+        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
         types.setLonged(2);
-        System.out.println(SQLHelper.getWhere(types));
+        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
         types.setFloated(2.1f);
-        System.out.println(SQLHelper.getWhere(types));
+        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
         types.setDoubled(2.3);
-        System.out.println(SQLHelper.getWhere(types));
+        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
         types.setString("foo");
-        System.out.println(SQLHelper.getWhere(types));
+        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        Foo foo = new Foo();
+        foo.setBar("baz");
+        types.id = 44;
+        ArrayList<String> args = new ArrayList<String>();
+        System.out.println(SQLHelper.getWhere(Foo.class, foo, args, types));
+        System.out.println(args);
+    }
+    
+    private static class Foo{
+        private String bar;
+
+        public String getBar() {
+            return bar;
+        }
+
+        public void setBar(String bar) {
+            this.bar = bar;
+        }
+
+        @Override
+        public String toString() {
+            return "Foo{" +
+                    "bar='" + bar + '\'' +
+                    '}';
+        }
     }
 
     private static class Types{
+        private long id;
         private int integer;
         private long longed;
         private float floated;

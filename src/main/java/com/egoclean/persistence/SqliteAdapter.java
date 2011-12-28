@@ -22,7 +22,12 @@ class SqliteAdapter implements PersistenceAdapter {
 
     @Override
     public <T> void store(T bean) {
-        mDao.insert(bean);
+        mDao.insert(bean, null);
+    }
+
+    @Override
+    public <T, G> void store(T bean, G attachedTo) {
+        mDao.insert(bean, attachedTo);
     }
 
     @Override
@@ -42,7 +47,7 @@ class SqliteAdapter implements PersistenceAdapter {
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        return mDao.findAll(clazz);
+        return mDao.findAll(clazz, null);
     }
 
     @Override
@@ -51,6 +56,11 @@ class SqliteAdapter implements PersistenceAdapter {
             return findAll(clazz);
         }
         return mDao.findAll(clazz, where);
+    }
+
+    @Override
+    public <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo) {
+        return mDao.findAll(clazz, where, attachedTo);
     }
 
     @Override

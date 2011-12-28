@@ -24,6 +24,11 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     }
 
     @Override
+    public <T, G> void store(T bean, G attachedTo) {
+        getPersister(bean.getClass()).store(bean, attachedTo);
+    }
+
+    @Override
     public <T> int update(T bean, T predicate) {
         return getPersister(bean.getClass()).update(bean, predicate);
     }
@@ -47,6 +52,11 @@ class GenericPersistenceAdapter implements PersistenceAdapter {
     @Override
     public <T> List<T> findAll(Class<T> clazz, T where) {
         return mSqliteAdapter.findAll(clazz, where);
+    }
+
+    @Override
+    public <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo) {
+        return mSqliteAdapter.findAll(clazz, where, attachedTo);
     }
 
     @Override
