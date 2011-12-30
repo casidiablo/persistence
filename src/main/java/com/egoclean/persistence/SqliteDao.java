@@ -23,10 +23,6 @@ class SqliteDao {
         db = database.getWritableDatabase();
     }
 
-    <T, G> List<T> findAll(Class<? extends T> clazz, G attachedTo) {
-        return findAll(clazz, null, attachedTo);
-    }
-
     <T> T findFirstWhere(Class<? extends T> clazz, T sample) {
         String where = null;
         ArrayList<String> args = new ArrayList<String>();
@@ -256,7 +252,9 @@ class SqliteDao {
                                     selectionArgs[1] = String.valueOf(insert);
                                     String selection = mainForeignKey + " = ? AND " + secondaryForeignKey + " = ?";
                                     Cursor query = db.query(relationTableName, null, selection, selectionArgs, null, null, null);
-                                    if (query.getCount() <= 0) {
+                                    int count = query.getCount();
+                                    query.close();
+                                    if (count <= 0) {
                                         ContentValues joinValues = new ContentValues();
                                         joinValues.put(mainForeignKey, beanId);
                                         joinValues.put(secondaryForeignKey, insert);
@@ -347,9 +345,11 @@ class SqliteDao {
                             String sql = "SELECT * FROM " + getTableName(collectionClass) +
                                     " WHERE " + SQLHelper.ID + " IN (SELECT " + collectionTableName + "_id FROM " +
                                     ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName()) +
-                                    " WHERE " + getTableName(theClass) + "_id = '" + id + "')";
+                                    " WHERE " + getTableName(theClass) + "_id = ?)";
                             // execute the query
-                            Cursor join = db.rawQuery(sql, null);
+                            String[] selectionArgs = new String[1];
+                            selectionArgs[0] = String.valueOf(id);
+                            Cursor join = db.rawQuery(sql, selectionArgs);
                             // set the result to the current field
                             List listValue = new ArrayList();
                             if (join.moveToFirst()) {

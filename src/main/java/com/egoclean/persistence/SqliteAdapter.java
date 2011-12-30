@@ -47,7 +47,7 @@ class SqliteAdapter implements PersistenceAdapter {
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        return mDao.findAll(clazz, null);
+        return mDao.findAll(clazz, null, null);
     }
 
     @Override
@@ -55,7 +55,7 @@ class SqliteAdapter implements PersistenceAdapter {
         if (where == null) {
             return findAll(clazz);
         }
-        return mDao.findAll(clazz, where);
+        return mDao.findAll(clazz, where, null);
     }
 
     @Override
