@@ -143,11 +143,13 @@ class SqliteDao {
             long id = db.insert(getTableName(theClass), null, values);
 
             // set the inserted ID to the bean so that children classes can know it
-            try {
-                Field idField = theClass.getDeclaredField(SQLHelper.ID);
-                idField.setAccessible(true);
-                idField.set(bean, id);
-            } catch (NoSuchFieldException ignored) {
+            if (Persistence.getAutoIncrementList().contains(theClass)) {
+                try {
+                    Field idField = theClass.getDeclaredField(SQLHelper.ID);
+                    idField.setAccessible(true);
+                    idField.set(bean, id);
+                } catch (NoSuchFieldException ignored) {
+                }
             }
 
             insertChildrenOf(bean, tree);
@@ -234,22 +236,24 @@ class SqliteDao {
                 switch (Persistence.getRelationship(theClass, collectionClass)) {
                     case MANY_TO_MANY: {
                         List list = (List) field.get(bean);
-                        for (Object object : list) {
-                            long insert = insert(object, tree);
-                            // insert items in the joined table
-                            try {
-                                Field id = theClass.getDeclaredField(SQLHelper.ID);
-                                id.setAccessible(true);
-                                Long beanId = (Long) id.get(bean);
+                        if (list != null) {
+                            for (Object object : list) {
+                                long insert = insert(object, tree);
+                                // insert items in the joined table
+                                try {
+                                    Field id = theClass.getDeclaredField(SQLHelper.ID);
+                                    id.setAccessible(true);
+                                    Long beanId = (Long) id.get(bean);
 
-                                ContentValues joinValues = new ContentValues();
-                                joinValues.put(getTableName(theClass) + "_id", beanId);
-                                joinValues.put(getTableName(collectionClass) + "_id", insert);
+                                    ContentValues joinValues = new ContentValues();
+                                    joinValues.put(getTableName(theClass) + "_id", beanId);
+                                    joinValues.put(getTableName(collectionClass) + "_id", insert);
 
-                                db.insert(ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName()),
-                                        null, joinValues);
-                            } catch (NoSuchFieldException e) {
-                                e.printStackTrace();
+                                    db.insert(ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName()),
+                                            null, joinValues);
+                                } catch (NoSuchFieldException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
                         break;
