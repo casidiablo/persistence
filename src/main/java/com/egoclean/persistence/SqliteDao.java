@@ -245,12 +245,24 @@ class SqliteDao {
                                     id.setAccessible(true);
                                     Long beanId = (Long) id.get(bean);
 
-                                    ContentValues joinValues = new ContentValues();
-                                    joinValues.put(getTableName(theClass) + "_id", beanId);
-                                    joinValues.put(getTableName(collectionClass) + "_id", insert);
+                                    // get the table name and columns
+                                    String relationTableName = ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName());
+                                    String mainForeignKey = getTableName(theClass) + "_id";
+                                    String secondaryForeignKey = getTableName(collectionClass) + "_id";
 
-                                    db.insert(ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName()),
-                                            null, joinValues);
+                                    // if the relation already existed, do not create it again
+                                    String[] selectionArgs = new String[2];
+                                    selectionArgs[0] = String.valueOf(beanId);
+                                    selectionArgs[1] = String.valueOf(insert);
+                                    String selection = mainForeignKey + " = ? AND " + secondaryForeignKey + " = ?";
+                                    Cursor query = db.query(relationTableName, null, selection, selectionArgs, null, null, null);
+                                    if (query.getCount() <= 0) {
+                                        ContentValues joinValues = new ContentValues();
+                                        joinValues.put(mainForeignKey, beanId);
+                                        joinValues.put(secondaryForeignKey, insert);
+                                        db.insert(relationTableName,
+                                                null, joinValues);
+                                    }
                                 } catch (NoSuchFieldException e) {
                                     e.printStackTrace();
                                 }
