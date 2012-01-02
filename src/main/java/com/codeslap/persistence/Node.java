@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 import java.util.ArrayList;
 import java.util.List;

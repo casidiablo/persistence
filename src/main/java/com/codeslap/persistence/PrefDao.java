@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 import android.content.SharedPreferences;
 

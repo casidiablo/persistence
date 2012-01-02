@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 public interface PreferencesAdapter {
     public <T> void store(T bean);

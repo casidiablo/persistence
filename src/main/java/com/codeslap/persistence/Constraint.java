@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 /**
  * This class define a set of constraint for sqlite queries

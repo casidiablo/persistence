@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 /**
  * Establishes a many-to-many relation between two models

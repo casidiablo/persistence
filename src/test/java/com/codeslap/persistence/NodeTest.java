@@ -1,5 +1,6 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
+import com.codeslap.persistence.Node;
 import org.junit.Test;
 
 import java.util.List;

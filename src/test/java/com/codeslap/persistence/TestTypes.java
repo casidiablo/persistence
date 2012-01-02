@@ -1,5 +1,8 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
+import com.codeslap.persistence.HasMany;
+import com.codeslap.persistence.Persistence;
+import com.codeslap.persistence.SQLHelper;
 import org.junit.Test;
 
 import java.util.ArrayList;
