@@ -8,7 +8,11 @@ import android.content.Context;
  * @author cristian
  */
 public class PersistenceFactory {
-    public static PersistenceAdapter getAdapter(Context context) {
-        return new GenericPersistenceAdapter(context);
+    public static SqliteAdapter getSqliteAdapter(Context context) {
+        return new SqliteAdapterImpl(context);
+    }
+
+    public static PreferencesAdapter getPreferenceAdapter(Context context) {
+        return new PreferencesAdapterImpl(context);
     }
 }
