@@ -6,18 +6,39 @@ package com.egoclean.persistence;
 public class Constraint {
     private String mOrderBy;
     private int mLimit;
+    private String mGroupBy;
+
+    public Constraint() {
+    }
 
     public Constraint(int limit, String orderBy) {
         limit(limit).orderBy(orderBy);
     }
 
-    private Constraint orderBy(String column) {
+    public Constraint orderBy(String column) {
         mOrderBy = column;
         return this;
     }
 
-    private Constraint limit(int limit) {
+    public Constraint limit(int limit) {
         mLimit = limit;
         return this;
+    }
+
+    public Constraint groupBy(String groupBy) {
+        mGroupBy = groupBy;
+        return this;
+    }
+
+    public String getOrderBy() {
+        return mOrderBy;
+    }
+
+    public int getLimit() {
+        return mLimit;
+    }
+
+    public String getGroupBy() {
+        return mGroupBy;
     }
 }

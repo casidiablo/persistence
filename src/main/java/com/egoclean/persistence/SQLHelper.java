@@ -38,7 +38,7 @@ class SQLHelper {
             Class<?> containerClass = belongsTo.getClasses()[0];
             try {
                 Field field = containerClass.getDeclaredField(belongsTo.getThrough());
-                String columnName = String.format("%s_%s", containerClass.getSimpleName(), SqlUtils.normalize(belongsTo.getThrough()));
+                String columnName = String.format("%s_%s", containerClass.getSimpleName(), normalize(belongsTo.getThrough()));
                 fieldSentences.add(getFieldSentence(columnName, field.getType()));
             } catch (NoSuchFieldException ignored) {
             }
@@ -60,7 +60,7 @@ class SQLHelper {
 
         // build create table sentence
         StringBuilder builder = new StringBuilder();
-        builder.append("CREATE TABLE IF NOT EXISTS ").append(SqlUtils.normalize(tableName)).append(" (");
+        builder.append("CREATE TABLE IF NOT EXISTS ").append(normalize(tableName)).append(" (");
         boolean first = true;
         for (String fieldSentence : fieldSentences) {
             if (!first) {
@@ -80,15 +80,15 @@ class SQLHelper {
      */
     private static String getFieldSentence(String name, Class<?> type) {
         if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
-            return String.format("%s INTEGER NOT NULL", SqlUtils.normalize(name));
+            return String.format("%s INTEGER NOT NULL", normalize(name));
         }
         if (type == boolean.class || type == Boolean.class) {
-            return String.format("%s BOOLEAN NOT NULL", SqlUtils.normalize(name));
+            return String.format("%s BOOLEAN NOT NULL", normalize(name));
         }
         if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-            return String.format("%s REAL NOT NULL", SqlUtils.normalize(name));
+            return String.format("%s REAL NOT NULL", normalize(name));
         }
-        return String.format("%s TEXT NOT NULL", SqlUtils.normalize(name));
+        return String.format("%s TEXT NOT NULL", normalize(name));
     }
 
     static <T> String getWhere(T object, List<String> args) {
@@ -112,7 +112,7 @@ class SQLHelper {
                     field.setAccessible(true);
                     Object value = field.get(bean);
                     if (hasData(type, value)) {
-                        conditions.add(String.format("%s = ?", SqlUtils.normalize(field.getName())));
+                        conditions.add(String.format("%s = ?", normalize(field.getName())));
                         args.add(String.valueOf(value));
                     }
                 } catch (IllegalAccessException ignored) {
@@ -168,5 +168,21 @@ class SQLHelper {
             return false;
         }
         return value != null;
+    }
+
+    /**
+     * @param name string to normalize
+     * @return converts a camelcase string into a lowercase, _ separated string
+     */
+    static String normalize(String name) {
+        StringBuilder newName = new StringBuilder();
+        newName.append(name.charAt(0));
+        for (int i = 1; i < name.length(); i++) {
+            if (Character.isUpperCase(name.charAt(i))) {
+                newName.append("_");
+            }
+            newName.append(name.charAt(i));
+        }
+        return newName.toString().toLowerCase();
     }
 }

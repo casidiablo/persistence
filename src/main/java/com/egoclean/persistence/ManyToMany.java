@@ -39,8 +39,8 @@ public class ManyToMany {
     String getCreateTableStatement() {
         StringBuilder builder = new StringBuilder();
 
-        String classA = SqlUtils.normalize(mClassA.getSimpleName());
-        String classB = SqlUtils.normalize(mClassB.getSimpleName());
+        String classA = SQLHelper.normalize(mClassA.getSimpleName());
+        String classB = SQLHelper.normalize(mClassB.getSimpleName());
         builder.append("CREATE TABLE IF NOT EXISTS ").append(getTableName(classA, classB));
         builder.append(" (").append(SQLHelper.PRIMARY_KEY).append(" AUTOINCREMENT, ");
         builder.append(classA).append("_").append(mClassAPrimaryKey).append(" INTEGER NOT NULL, ");

@@ -3,9 +3,9 @@ package com.egoclean.persistence;
 import java.util.List;
 
 public interface SqliteAdapter {
-    <T> void store(T object);
+    <T> long store(T object);
     
-    <T, G> void store(T object, G attachedTo);
+    <T, G> long store(T object, G attachedTo);
 
     <T> int update(T object, T where);
 
@@ -17,9 +17,9 @@ public interface SqliteAdapter {
 
     <T> List<T> findAll(Class<T> clazz, T where);
 
-    <T> List<T> findAll(Class<T> clazz, T where, Constraint constraint);
-
     <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo);
 
-    <T> void delete(T where);
+    <T> List<T> findAll(Class<T> clazz, T where, Constraint constraint);
+
+    <T> int delete(T where);
 }

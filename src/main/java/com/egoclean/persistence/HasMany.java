@@ -110,7 +110,7 @@ public class HasMany {
     }
 
     String getForeignKey() {
-        return String.format("%s_%s", SqlUtils.normalize(mClassA.getSimpleName()), SqlUtils.normalize(mThrough));
+        return String.format("%s_%s", SQLHelper.normalize(mClassA.getSimpleName()), SQLHelper.normalize(mThrough));
     }
 
     @Override
