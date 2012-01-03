@@ -61,6 +61,10 @@ public class Persistence {
         }
     }
 
+    static boolean belongsToPreferences(Class<?> clazz) {
+        return PREFS_MAP.contains(clazz);
+    }
+
     /**
      * @param theClass a class
      * @param collectionClass another class
@@ -101,19 +105,6 @@ public class Persistence {
     enum PersistenceType {SQLITE, PREFERENCES, UNKNOWN}
 
     enum Relationship {MANY_TO_MANY, HAS_MANY, UNKNOWN}
-
-    /**
-     * @param clazz the class to search in the list of registered classes
-     * @return the type of persistence to use for the specified type
-     */
-    public static PersistenceType getPersistenceType(Class clazz) {
-        if (SQLITE_LIST.contains(clazz)) {
-            return PersistenceType.SQLITE;
-        } else if (PREFS_MAP.contains(clazz)) {
-            return PersistenceType.PREFERENCES;
-        }
-        return PersistenceType.UNKNOWN;
-    }
 
     static List<Class<?>> getSqliteClasses() {
         return SQLITE_LIST;
