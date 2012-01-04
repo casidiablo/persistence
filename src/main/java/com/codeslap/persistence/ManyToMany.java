@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 /**
  * Establishes a many-to-many relation between two models
@@ -39,8 +39,8 @@ public class ManyToMany {
     String getCreateTableStatement() {
         StringBuilder builder = new StringBuilder();
 
-        String classA = SqlUtils.normalize(mClassA.getSimpleName());
-        String classB = SqlUtils.normalize(mClassB.getSimpleName());
+        String classA = SQLHelper.normalize(mClassA.getSimpleName());
+        String classB = SQLHelper.normalize(mClassB.getSimpleName());
         builder.append("CREATE TABLE IF NOT EXISTS ").append(getTableName(classA, classB));
         builder.append(" (").append(SQLHelper.PRIMARY_KEY).append(" AUTOINCREMENT, ");
         builder.append(classA).append("_").append(mClassAPrimaryKey).append(" INTEGER NOT NULL, ");
@@ -60,5 +60,37 @@ public class ManyToMany {
             return new StringBuilder().append(classA).append("_").append(classB).toString();
         }
         return new StringBuilder().append(classB).append("_").append(classA).toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ManyToMany)) return false;
+
+        ManyToMany that = (ManyToMany) o;
+
+        if (mClassA != null ? !mClassA.equals(that.mClassA) : that.mClassA != null) return false;
+        if (mClassAPrimaryKey != null ? !mClassAPrimaryKey.equals(that.mClassAPrimaryKey) : that.mClassAPrimaryKey != null)
+            return false;
+        if (mClassB != null ? !mClassB.equals(that.mClassB) : that.mClassB != null) return false;
+        if (mClassBPrimaryKey != null ? !mClassBPrimaryKey.equals(that.mClassBPrimaryKey) : that.mClassBPrimaryKey != null)
+            return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mClassA != null ? mClassA.hashCode() : 0;
+        result = 31 * result + (mClassAPrimaryKey != null ? mClassAPrimaryKey.hashCode() : 0);
+        result = 31 * result + (mClassB != null ? mClassB.hashCode() : 0);
+        result = 31 * result + (mClassBPrimaryKey != null ? mClassBPrimaryKey.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ManyToMany relation between {" + mClassA +
+                " and " + mClassB + ", using " + mClassAPrimaryKey + " and " + mClassBPrimaryKey + " respectively}";
     }
 }

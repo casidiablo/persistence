@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 import org.junit.Test;
 
@@ -15,14 +15,14 @@ public class ManyToManyTest {
         relation = new ManyToMany(Long.class, String.class);
         String createTableStatement2 = relation.getCreateTableStatement();
         assertEquals(createTableStatement, createTableStatement2);
-        Persistence.matchSqlite(relation);
+        Persistence.match(relation);
     }
 
     @Test
     public void testManyToMany2() {
-        Persistence.matchSqlite(new ManyToMany(Feed.class, County.class));
+        Persistence.match(new ManyToMany(Feed.class, County.class));
         // create all tables for registered daos
-        List<Class> objects = Persistence.getSqliteClasses();
+        List<Class<?>> objects = Persistence.getSqliteClasses();
         for (Class clazz : objects) {
             System.out.println(SQLHelper.getCreateTableSentence(clazz));
         }

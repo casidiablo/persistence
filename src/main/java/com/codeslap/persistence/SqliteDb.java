@@ -1,4 +1,4 @@
-package com.egoclean.persistence;
+package com.codeslap.persistence;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -28,8 +28,8 @@ class SqliteDb {
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
             // create all tables for registered daos
-            List<Class> objects = Persistence.getSqliteClasses();
-            for (Class clazz : objects) {
+            List<Class<?>> objects = Persistence.getSqliteClasses();
+            for (Class<?> clazz : objects) {
                 sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(clazz));
             }
             // create all extra table for many to many relations
@@ -53,6 +53,8 @@ class SqliteDb {
     public SqliteDb open() {
         dbHelper = new Helper(mContext);
         sqLiteDatabase = dbHelper.getWritableDatabase();
+        // create new tables without increasing db version
+        dbHelper.onCreate(sqLiteDatabase);
         return this;
     }
 
