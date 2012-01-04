@@ -35,17 +35,18 @@ class PreferencesAdapterImpl implements PreferencesAdapter {
             T bean = clazz.newInstance();
             for (Field field : clazz.getDeclaredFields()) {
                 field.setAccessible(true);
+                String value = mPreferences.getString(field.getName(), null);
                 if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                    field.set(bean, mPreferences.getBoolean(field.getName(), false));
+                    field.set(bean, Boolean.parseBoolean(value == null ? "false" : value));
                 } else if (field.getType() == float.class || field.getType() == Float.class
                         || field.getType() == Double.class || field.getType() == double.class) {
-                    field.set(bean, mPreferences.getFloat(field.getName(), 0));
+                    field.set(bean, Float.parseFloat(value == null ? "0.0" : value));
                 } else if (field.getType() == Integer.class || field.getType() == int.class) {
-                    field.set(bean, mPreferences.getInt(field.getName(), 0));
+                    field.set(bean, Integer.parseInt(value == null ? "0" : value));
                 } else if (field.getType() == Long.class || field.getType() == long.class) {
-                    field.set(bean, mPreferences.getLong(field.getName(), 0));
+                    field.set(bean, Long.parseLong(value == null ? "0" : value));
                 } else if (field.getType() == String.class) {
-                    field.set(bean, mPreferences.getString(field.getName(), null));
+                    field.set(bean, value);
                 }
             }
             return bean;
