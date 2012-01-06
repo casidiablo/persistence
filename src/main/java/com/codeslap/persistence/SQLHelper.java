@@ -10,6 +10,7 @@ class SQLHelper {
 
     static final String ID = "id";
     static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
+    static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
 
     static String getCreateTableSentence(Class clazz) {
         if (clazz == Object.class) {
@@ -22,7 +23,9 @@ class SQLHelper {
         for (Field declaredField : declaredFields) {
             if (declaredField.getName().equals(ID)) {
                 String primaryKeySentence = PRIMARY_KEY;
-                if (Persistence.getAutoIncrementList().contains(clazz)) {
+                if (declaredField.getType() == String.class) {
+                    primaryKeySentence = PRIMARY_KEY_TEXT;
+                } else if (Persistence.getAutoIncrementList().contains(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
                 fieldSentences.add(primaryKeySentence);

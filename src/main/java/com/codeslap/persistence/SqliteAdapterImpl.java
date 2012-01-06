@@ -163,7 +163,6 @@ class SqliteAdapterImpl implements SqliteAdapter {
                     // update the bean using the just create sample
                     update(bean, sample);
                     return (Long) beanId;
-
                 }
             } catch (Exception ignored) {
             }
@@ -238,7 +237,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
             if (type == int.class || type == Integer.class) {
                 values.put(normalize, (Integer) field.get(bean));
             } else if (type == long.class || type == Long.class) {
-                if (SQLHelper.ID.equals(field.getName()) && ((Long) field.get(bean)) == 0) {
+                if (SQLHelper.ID.equals(field.getName()) && field.get(bean) == null) {
                     // this means we are referring to a primary key that has not been set yet... so do not add it
                     continue;
                 }
