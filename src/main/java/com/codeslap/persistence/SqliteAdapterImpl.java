@@ -25,7 +25,8 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> T findFirst(Class<T> clazz, T sample) {
+    public <T> T findFirst(T sample) {
+        Class<T> clazz = (Class<T>) sample.getClass();
         String where = null;
         ArrayList<String> args = new ArrayList<String>();
         if (sample != null) {
@@ -47,13 +48,13 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, T where) {
-        return findAll(clazz, where, null);
+    public <T> List<T> findAll(T where) {
+        return findAll(where, null);
     }
 
     @Override
-    public <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo) {
-        return findAll(clazz, where, attachedTo, null);
+    public <T, G> List<T> findAll(T where, G attachedTo) {
+        return findAll((Class<T>) where.getClass(), where, attachedTo, null);
     }
 
     @Override
@@ -154,7 +155,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
                 Object sample = constructor.newInstance();
                 theId.set(sample, beanId);
 
-                Object match = findFirst(theClass, (T) sample);
+                Object match = findFirst((T) sample);
                 if (match != null) {
                     // if they are the same, do nothing...
                     if (bean.equals(match)) {
