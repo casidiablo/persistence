@@ -23,9 +23,9 @@ public class PersistenceHelper {
         return delete;
     }
 
-    public static <T> long store(Context context, T bean) {
+    public static <T> Object store(Context context, T bean) {
         SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
-        long id = adapter.store(bean);
+        Object id = adapter.store(bean);
         adapter.close();
         return id;
     }

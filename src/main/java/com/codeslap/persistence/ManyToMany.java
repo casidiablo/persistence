@@ -43,8 +43,8 @@ public class ManyToMany {
         String classB = SQLHelper.normalize(mClassB.getSimpleName());
         builder.append("CREATE TABLE IF NOT EXISTS ").append(getTableName(classA, classB));
         builder.append(" (").append(SQLHelper.PRIMARY_KEY).append(" AUTOINCREMENT, ");
-        builder.append(classA).append("_").append(mClassAPrimaryKey).append(" INTEGER NOT NULL, ");
-        builder.append(classB).append("_").append(mClassBPrimaryKey).append(" INTEGER NOT NULL");
+        builder.append(classA).append("_").append(mClassAPrimaryKey).append(" TEXT NOT NULL, ");
+        builder.append(classB).append("_").append(mClassBPrimaryKey).append(" TEXT NOT NULL");
         builder.append(");");
 
         return builder.toString();
