@@ -84,7 +84,14 @@ public class PersistenceHelper {
         return feeds;
     }
 
-    public static <T, G> List<T> findAll(Context context, Class<T> clazz, T bean, G attachedTo) {
+    public static <T> List<T> findAll(Context context, T where) {
+        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context);
+        List<T> feeds = persistenceAdapter.findAll(where);
+        persistenceAdapter.close();
+        return feeds;
+    }
+
+    public static <T, G> List<T> findAll(Context context, T bean, G attachedTo) {
         SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context);
         List<T> list = persistenceAdapter.findAll(bean, attachedTo);
         persistenceAdapter.close();
