@@ -49,9 +49,9 @@ class SQLHelper {
             try {
                 Field field = containerClass.getDeclaredField(belongsTo.getThrough());
                 String columnName = String.format("%s_%s", containerClass.getSimpleName(), normalize(belongsTo.getThrough()));
-                if (!columns.contains(normalize(field.getName()))) {
+                if (!columns.contains(columnName)) {
                     fieldSentences.add(getFieldSentence(columnName, field.getType()));
-                    columns.add(normalize(field.getName()));
+                    columns.add(normalize(columnName));
                 }
             } catch (NoSuchFieldException ignored) {
             }
