@@ -22,4 +22,6 @@ public interface SqliteAdapter {
     <T> List<T> findAll(Class<T> clazz, T where, Constraint constraint);
 
     <T> int delete(T where);
+
+    <T> int count(T bean);
 }

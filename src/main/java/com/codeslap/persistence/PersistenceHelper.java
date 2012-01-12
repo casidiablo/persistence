@@ -97,4 +97,11 @@ public class PersistenceHelper {
         persistenceAdapter.close();
         return list;
     }
+
+    public static <T> int count(Context context, T bean) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        int count = adapter.count(bean);
+        adapter.close();
+        return count;
+    }
 }

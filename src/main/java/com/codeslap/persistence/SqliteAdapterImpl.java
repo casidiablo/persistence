@@ -99,6 +99,14 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
+    public <T> int count(T bean) {
+        Cursor query = getCursorFindAllWhere(bean.getClass(), bean, null, null);
+        int count = query.getCount();
+        query.close();
+        return count;
+    }
+
+    @Override
     public void close() {
         db.close();
     }
