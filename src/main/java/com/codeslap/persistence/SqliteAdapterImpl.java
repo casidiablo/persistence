@@ -25,7 +25,8 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> T findFirst(Class<T> clazz, T sample) {
+    public <T> T findFirst(T sample) {
+        Class<T> clazz = (Class<T>) sample.getClass();
         String where = null;
         ArrayList<String> args = new ArrayList<String>();
         if (sample != null) {
@@ -47,13 +48,13 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, T where) {
-        return findAll(clazz, where, null);
+    public <T> List<T> findAll(T where) {
+        return findAll(where, null);
     }
 
     @Override
-    public <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo) {
-        return findAll(clazz, where, attachedTo, null);
+    public <T, G> List<T> findAll(T where, G attachedTo) {
+        return findAll((Class<T>) where.getClass(), where, attachedTo, null);
     }
 
     @Override
@@ -62,12 +63,12 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> long store(T bean) {
+    public <T> Object store(T bean) {
         return store(bean, null);
     }
 
     @Override
-    public <T, G> long store(T bean, G attachedTo) {
+    public <T, G> Object store(T bean, G attachedTo) {
         return store(bean, new Node(bean.getClass()), attachedTo);
     }
 
@@ -134,11 +135,11 @@ class SqliteAdapterImpl implements SqliteAdapter {
         return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
     }
 
-    private <T, G> long store(T bean, Node tree, G attachedTo) {
+    private <T, G> Object store(T bean, Node tree, G attachedTo) {
         return store(bean, tree, null, attachedTo);
     }
 
-    private <T, G> long store(T bean, Node tree, ContentValues initialValues, G attachedTo) {
+    private <T, G> Object store(T bean, Node tree, ContentValues initialValues, G attachedTo) {
         // first try to find the bean by id (if its id is not autoincrement)
         // and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
@@ -154,16 +155,15 @@ class SqliteAdapterImpl implements SqliteAdapter {
                 Object sample = constructor.newInstance();
                 theId.set(sample, beanId);
 
-                Object match = findFirst(theClass, (T) sample);
+                Object match = findFirst((T) sample);
                 if (match != null) {
                     // if they are the same, do nothing...
                     if (bean.equals(match)) {
-                        return (Long) beanId;
+                        return beanId;
                     }
                     // update the bean using the just create sample
                     update(bean, sample);
-                    return (Long) beanId;
-
+                    return beanId;
                 }
             } catch (Exception ignored) {
             }
@@ -235,13 +235,13 @@ class SqliteAdapterImpl implements SqliteAdapter {
             Class type = field.getType();
             field.setAccessible(true);
 
+            if (SQLHelper.ID.equals(field.getName()) && field.get(bean) == null) {
+                // this means we are referring to a primary key that has not been set yet... so do not add it
+                continue;
+            }
             if (type == int.class || type == Integer.class) {
                 values.put(normalize, (Integer) field.get(bean));
             } else if (type == long.class || type == Long.class) {
-                if (SQLHelper.ID.equals(field.getName()) && ((Long) field.get(bean)) == 0) {
-                    // this means we are referring to a primary key that has not been set yet... so do not add it
-                    continue;
-                }
                 values.put(normalize, (Long) field.get(bean));
             } else if (type == boolean.class || type == Boolean.class) {
                 values.put(normalize, (Integer) field.get(bean));
@@ -250,7 +250,11 @@ class SqliteAdapterImpl implements SqliteAdapter {
             } else if (type == double.class || type == Double.class) {
                 values.put(normalize, (Double) field.get(bean));
             } else if (type != List.class) {
-                values.put(normalize, (String) field.get(bean));
+                try {
+                    values.put(normalize, (String) field.get(bean));
+                } catch (ClassCastException ignored) {
+                    // only some types are supported... I won't store any more than that
+                }
             }
         }
         return values;
@@ -277,12 +281,12 @@ class SqliteAdapterImpl implements SqliteAdapter {
                         List list = (List) field.get(bean);
                         if (list != null) {
                             for (Object object : list) {
-                                long insert = store(object, tree);
+                                Object insert = store(object, tree);
                                 // insert items in the joined table
                                 try {
                                     Field id = theClass.getDeclaredField(SQLHelper.ID);
                                     id.setAccessible(true);
-                                    Long beanId = (Long) id.get(bean);
+                                    Object beanId = id.get(bean);
 
                                     // get the table name and columns
                                     String relationTableName = ManyToMany.getTableName(theClass.getSimpleName(), collectionClass.getSimpleName());
@@ -299,8 +303,8 @@ class SqliteAdapterImpl implements SqliteAdapter {
                                     query.close();
                                     if (count <= 0) {
                                         ContentValues joinValues = new ContentValues();
-                                        joinValues.put(mainForeignKey, beanId);
-                                        joinValues.put(secondaryForeignKey, insert);
+                                        joinValues.put(mainForeignKey, String.valueOf(beanId));
+                                        joinValues.put(secondaryForeignKey, String.valueOf(insert));
                                         db.insert(relationTableName,
                                                 null, joinValues);
                                     }

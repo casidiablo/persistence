@@ -10,6 +10,7 @@ class SQLHelper {
 
     static final String ID = "id";
     static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
+    static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
 
     static String getCreateTableSentence(Class clazz) {
         if (clazz == Object.class) {
@@ -19,15 +20,24 @@ class SQLHelper {
         List<String> fieldSentences = new ArrayList<String>();
         // loop through all the fields and add sql statements
         Field[] declaredFields = clazz.getDeclaredFields();
+        List<String> columns = new ArrayList<String>();
         for (Field declaredField : declaredFields) {
             if (declaredField.getName().equals(ID)) {
                 String primaryKeySentence = PRIMARY_KEY;
-                if (Persistence.getAutoIncrementList().contains(clazz)) {
+                if (declaredField.getType() == String.class) {
+                    primaryKeySentence = PRIMARY_KEY_TEXT;
+                } else if (Persistence.getAutoIncrementList().contains(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
-                fieldSentences.add(primaryKeySentence);
+                if (!columns.contains(normalize(declaredField.getName()))) {
+                    fieldSentences.add(primaryKeySentence);
+                    columns.add(normalize(declaredField.getName()));
+                }
             } else if (declaredField.getType() != List.class) {
-                fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
+                if (!columns.contains(normalize(declaredField.getName()))) {
+                    fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
+                    columns.add(normalize(declaredField.getName()));
+                }
             }
         }
 
@@ -39,7 +49,10 @@ class SQLHelper {
             try {
                 Field field = containerClass.getDeclaredField(belongsTo.getThrough());
                 String columnName = String.format("%s_%s", containerClass.getSimpleName(), normalize(belongsTo.getThrough()));
-                fieldSentences.add(getFieldSentence(columnName, field.getType()));
+                if (!columns.contains(normalize(field.getName()))) {
+                    fieldSentences.add(getFieldSentence(columnName, field.getType()));
+                    columns.add(normalize(field.getName()));
+                }
             } catch (NoSuchFieldException ignored) {
             }
         }
