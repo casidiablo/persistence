@@ -13,27 +13,28 @@ import java.util.List;
  */
 class SqliteDb {
 
-    private static final String DB_NAME = "persistence.db";
-    private static final int DB_VERSION = 1;
-    private SQLiteDatabase sqLiteDatabase;
+    private SQLiteDatabase mSqLiteDatabase;
     private final Context mContext;
-    private Helper dbHelper;
+    private Helper mDbHelper;
 
     private static class Helper extends SQLiteOpenHelper {
 
-        public Helper(Context context) {
-            super(context, DB_NAME, null, DB_VERSION);
+        private final String mName;
+
+        public Helper(Context context, String name, int version) {
+            super(context, name, null, version);
+            mName = name;
         }
 
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
             // create all tables for registered daos
-            List<Class<?>> objects = Persistence.getSqliteClasses();
+            List<Class<?>> objects = Persistence.getDatabase(mName).getSqliteClasses();
             for (Class<?> clazz : objects) {
-                sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(clazz));
+                sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(mName, clazz));
             }
             // create all extra table for many to many relations
-            List<ManyToMany> sqliteManyToMany = Persistence.getSqliteManyToMany();
+            List<ManyToMany> sqliteManyToMany = Persistence.getDatabase(mName).getSqliteManyToMany();
             for (ManyToMany manyToMany : sqliteManyToMany) {
                 sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
             }
@@ -50,19 +51,17 @@ class SqliteDb {
         mContext = context;
     }
 
-    public SqliteDb open() {
-        dbHelper = new Helper(mContext);
-        sqLiteDatabase = dbHelper.getWritableDatabase();
-        // create new tables without increasing db version
-        dbHelper.onCreate(sqLiteDatabase);
+    public SqliteDb open(String name, int version) {
+        mDbHelper = new Helper(mContext, name, version);
+        mSqLiteDatabase = mDbHelper.getWritableDatabase();
         return this;
     }
 
     public void close() {
-        dbHelper.close();
+        mDbHelper.close();
     }
 
     public SQLiteDatabase getWritableDatabase() {
-        return sqLiteDatabase;
+        return mSqLiteDatabase;
     }
 }

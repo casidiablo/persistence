@@ -1,8 +1,5 @@
 package com.codeslap.persistence;
 
-import com.codeslap.persistence.HasMany;
-import com.codeslap.persistence.Persistence;
-import com.codeslap.persistence.SQLHelper;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,29 +15,31 @@ public class TestTypes {
 
     @Test
     public void testWhere() {
-        Persistence.match(new HasMany(Types.class, Foo.class, true));
-        assertNull(SQLHelper.getWhere(null, new ArrayList<String>()));
+        String dbName = "test.db";
+        SqlPersistence database = Persistence.getDatabase(dbName, 1);
+        database.match(new HasMany(Types.class, Foo.class, true));
+        assertNull(SQLHelper.getWhere(dbName, null, new ArrayList<String>()));
         Types types = new Types();
-        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        System.out.println(SQLHelper.getWhere(dbName, types, new ArrayList<String>()));
         types.setInteger(1);
-        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        System.out.println(SQLHelper.getWhere(dbName, types, new ArrayList<String>()));
         types.setLonged(2);
-        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        System.out.println(SQLHelper.getWhere(dbName, types, new ArrayList<String>()));
         types.setFloated(2.1f);
-        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        System.out.println(SQLHelper.getWhere(dbName, types, new ArrayList<String>()));
         types.setDoubled(2.3);
-        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        System.out.println(SQLHelper.getWhere(dbName, types, new ArrayList<String>()));
         types.setString("foo");
-        System.out.println(SQLHelper.getWhere(types, new ArrayList<String>()));
+        System.out.println(SQLHelper.getWhere(dbName, types, new ArrayList<String>()));
         Foo foo = new Foo();
         foo.setBar("baz");
         types.id = 44;
         ArrayList<String> args = new ArrayList<String>();
-        System.out.println(SQLHelper.getWhere(Foo.class, foo, args, types));
+        System.out.println(SQLHelper.getWhere(dbName, Foo.class, foo, args, types));
         System.out.println(args);
     }
-    
-    private static class Foo{
+
+    private static class Foo {
         private String bar;
 
         public String getBar() {
@@ -59,7 +58,7 @@ public class TestTypes {
         }
     }
 
-    private static class Types{
+    private static class Types {
         private long id;
         private int integer;
         private long longed;

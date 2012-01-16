@@ -3,13 +3,13 @@ package com.codeslap.persistence;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * This is a persistence adapter that uses sqlite database as persistence engine.
@@ -18,21 +18,26 @@ import java.util.List;
  * paradigm), use PreferencesAdapter.
  */
 class SqliteAdapterImpl implements SqliteAdapter {
-    private final SQLiteDatabase db;
+    private static final Map<String, DatabaseUtils.InsertHelper> INSERT_HELPER_MAP = new HashMap<String, DatabaseUtils.InsertHelper>();
+    private static final Map<String, FieldCache> FIELDS_CACHE = new HashMap<String, FieldCache>();
+    private static final Map<Class<?>, String> TABLE_NAMES = new HashMap<Class<?>, String>();
 
-    SqliteAdapterImpl(Context context) {
-        db = new SqliteDb(context).open().getWritableDatabase();
+    private final SQLiteDatabase mDb;
+    private final SqlPersistence mPersistence;
+
+    SqliteAdapterImpl(Context context, String name) {
+        mPersistence = Persistence.getDatabase(name);
+        SqliteDb sqliteDb = new SqliteDb(context);
+        sqliteDb.open(mPersistence.getName(), mPersistence.getVersion());
+        mDb = sqliteDb.getWritableDatabase();
     }
 
     @Override
     public <T> T findFirst(T sample) {
         Class<T> clazz = (Class<T>) sample.getClass();
-        String where = null;
         ArrayList<String> args = new ArrayList<String>();
-        if (sample != null) {
-            where = SQLHelper.getWhere(clazz, sample, args, null);// TODO is needed a findFirstWhere with attachment
-        }
-        Cursor query = db.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, "1");
+        String where = SQLHelper.getWhere(mPersistence.getName(), clazz, sample, args, null);// TODO is needed a findFirstWhere with attachment
+        Cursor query = mDb.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, "1");
         if (query.moveToFirst()) {
             T bean = getBeanFromCursor(clazz, query, new Node(clazz));
             query.close();
@@ -80,11 +85,22 @@ class SqliteAdapterImpl implements SqliteAdapter {
         try {
             ContentValues values = getValuesFromBean(bean);
             ArrayList<String> args = new ArrayList<String>();
-            String where = SQLHelper.getWhere(bean.getClass(), sample, args, null);// TODO update with attachment?
-            return db.update(getTableName(bean.getClass()), values, where, args.toArray(new String[args.size()]));
+            String where = SQLHelper.getWhere(mPersistence.getName(), bean.getClass(), sample, args, null);// TODO update with attachment?
+            return mDb.update(getTableName(bean.getClass()), values, where, args.toArray(new String[args.size()]));
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
+    }
+
+    private DatabaseUtils.InsertHelper getInsertHelper(Class<?> theClass) {
+        DatabaseUtils.InsertHelper helper;
+        if (INSERT_HELPER_MAP.containsKey(getTableName(theClass))) {
+            helper = INSERT_HELPER_MAP.get(getTableName(theClass));
+        } else {
+            helper = new DatabaseUtils.InsertHelper(mDb, getTableName(theClass));
+            INSERT_HELPER_MAP.put(getTableName(theClass), helper);
+        }
+        return helper;
     }
 
     @Override
@@ -94,13 +110,24 @@ class SqliteAdapterImpl implements SqliteAdapter {
         }
         // TODO delete in cascade
         ArrayList<String> args = new ArrayList<String>();
-        String where = SQLHelper.getWhere(sample.getClass(), sample, args, null); // TODO delete with attachment?
-        return db.delete(getTableName(sample.getClass()), where, args.toArray(new String[args.size()]));
+        String where = SQLHelper.getWhere(mPersistence.getName(), sample.getClass(), sample, args, null); // TODO delete with attachment?
+        return mDb.delete(getTableName(sample.getClass()), where, args.toArray(new String[args.size()]));
+    }
+
+    @Override
+    public <T> int count(T bean) {
+        Cursor query = getCursorFindAllWhere(bean.getClass(), bean, null, null);
+        int count = query.getCount();
+        query.close();
+        return count;
     }
 
     @Override
     public void close() {
-        db.close();
+        for (String key : INSERT_HELPER_MAP.keySet()) {
+            INSERT_HELPER_MAP.get(key).close();
+        }
+        mDb.close();
     }
 
     private <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo, Constraint constraint) {
@@ -121,7 +148,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
         String where = null;
         if (sample != null || attachedTo != null) {
             ArrayList<String> args = new ArrayList<String>();
-            where = SQLHelper.getWhere(clazz, sample, args, attachedTo);
+            where = SQLHelper.getWhere(mPersistence.getName(), clazz, sample, args, attachedTo);
             selectionArgs = args.toArray(new String[args.size()]);
         }
         String orderBy = null;
@@ -132,18 +159,14 @@ class SqliteAdapterImpl implements SqliteAdapter {
             limit = String.valueOf(constraint.getLimit());
             groupBy = constraint.getGroupBy();
         }
-        return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
+        return mDb.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
     }
 
     private <T, G> Object store(T bean, Node tree, G attachedTo) {
-        return store(bean, tree, null, attachedTo);
-    }
-
-    private <T, G> Object store(T bean, Node tree, ContentValues initialValues, G attachedTo) {
         // first try to find the bean by id (if its id is not autoincrement)
         // and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
-        if (!Persistence.getAutoIncrementList().contains(theClass)) {
+        if (!mPersistence.getAutoIncrementList().contains(theClass)) {
             try {
                 // get its ID
                 Field theId = theClass.getDeclaredField(SQLHelper.ID);
@@ -170,29 +193,30 @@ class SqliteAdapterImpl implements SqliteAdapter {
         }
 
         try {
-            ContentValues values = getValuesFromBean(bean);
-            if (initialValues != null) {
-                values.putAll(initialValues);
-            }
+            DatabaseUtils.InsertHelper helper = getInsertHelper(theClass);
+            helper.prepareForInsert();
+            matchValues(helper, bean);
 
             // if this object is attached to another object, try to get more values
             if (attachedTo != null) {
                 ContentValues attachedValues = getValuesFromAttachment(bean, attachedTo);
                 if (attachedValues != null) {
-                    values.putAll(attachedValues);
+                    for (Map.Entry<String, Object> stringObjectEntry : attachedValues.valueSet()) {
+                        int columnIndex = helper.getColumnIndex(stringObjectEntry.getKey());
+                        helper.bind(columnIndex, stringObjectEntry.getValue().toString());
+                    }
                 }
             }
 
             // if the class has an autoincrement, remove the ID
-            if (Persistence.getAutoIncrementList().contains(theClass)) {
-                values.remove(SQLHelper.ID);
+            if (mPersistence.getAutoIncrementList().contains(theClass)) {
+                helper.bindNull(helper.getColumnIndex(SQLHelper.ID));
             }
 
             // insert it into the database
-            long id = db.insert(getTableName(theClass), null, values);
-
+            long id = helper.execute();
             // set the inserted ID to the bean so that children classes can know it
-            if (Persistence.getAutoIncrementList().contains(theClass)) {
+            if (mPersistence.getAutoIncrementList().contains(theClass)) {
                 try {
                     Field idField = theClass.getDeclaredField(SQLHelper.ID);
                     idField.setAccessible(true);
@@ -209,10 +233,10 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     private <T, G> ContentValues getValuesFromAttachment(T bean, G attachedTo) {
-        switch (Persistence.getRelationship(attachedTo.getClass(), bean.getClass())) {
+        switch (mPersistence.getRelationship(attachedTo.getClass(), bean.getClass())) {
             case HAS_MANY: {
                 try {
-                    HasMany hasMany = Persistence.belongsTo(bean.getClass());
+                    HasMany hasMany = mPersistence.belongsTo(bean.getClass());
                     Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
                     primaryForeignKey.setAccessible(true);
                     Object foreignValue = primaryForeignKey.get(attachedTo);
@@ -260,6 +284,66 @@ class SqliteAdapterImpl implements SqliteAdapter {
         return values;
     }
 
+
+    private <T> void matchValues(DatabaseUtils.InsertHelper helper, T bean) throws IllegalAccessException {
+        Class theClass = bean.getClass();
+        if (!FIELDS_CACHE.containsKey(theClass.toString())) {
+            Field[] fields = theClass.getDeclaredFields();
+            FieldCache cache = new FieldCache();
+            cache.fields = new ArrayList<Field>();
+            cache.types = new ArrayList<Class<?>>();
+            cache.indexes = new ArrayList<Integer>();
+            for (Field field : fields) {
+                field.setAccessible(true);
+                try {
+                    String columnName = SQLHelper.normalize(field.getName());
+                    int columnIndex = helper.getColumnIndex(columnName);
+
+                    cache.fields.add(field);
+                    cache.indexes.add(columnIndex);
+                    cache.types.add(field.getType());
+                } catch (Exception ignored) {
+                }
+            }
+            FIELDS_CACHE.put(theClass.toString(), cache);
+        }   // get each field and put its value in a content values object
+        FieldCache cache = FIELDS_CACHE.get(theClass.toString());
+        List<Field> fields = cache.fields;
+        for (int i = 0, fieldsSize = fields.size(); i < fieldsSize; i++) {
+            Field field = fields.get(i);
+            Class type = cache.types.get(i);
+
+            if (SQLHelper.ID.equals(field.getName()) && field.get(bean) == null) {
+                // this means we are referring to a primary key that has not been set yet... so do not add it
+                continue;
+            }
+            int index = cache.indexes.get(i);
+            if (type == int.class || type == Integer.class) {
+                helper.bind(index, (Integer) field.get(bean));
+            } else if (type == long.class || type == Long.class) {
+                helper.bind(index, (Long) field.get(bean));
+            } else if (type == boolean.class || type == Boolean.class) {
+                helper.bind(index, (Boolean) field.get(bean));
+            } else if (type == float.class || type == Float.class) {
+                helper.bind(index, (Float) field.get(bean));
+            } else if (type == double.class || type == Double.class) {
+                helper.bind(index, (Double) field.get(bean));
+            } else if (type != List.class) {
+                try {
+                    helper.bind(index, (String) field.get(bean));
+                } catch (ClassCastException ignored) {
+                    // only some types are supported... I won't store any more than that
+                }
+            }
+        }
+    }
+
+    private static class FieldCache {
+        List<Field> fields;
+        List<Class<?>> types;
+        List<Integer> indexes;
+    }
+
     private <T> void insertChildrenOf(T bean, Node tree) throws IllegalAccessException {// bodom
         Class<?> theClass = bean.getClass();
         Field[] fields = theClass.getDeclaredFields();
@@ -276,7 +360,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
             Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
             Node child = new Node(collectionClass);
             if (tree.addChild(child)) {
-                switch (Persistence.getRelationship(theClass, collectionClass)) {
+                switch (mPersistence.getRelationship(theClass, collectionClass)) {
                     case MANY_TO_MANY: {
                         List list = (List) field.get(bean);
                         if (list != null) {
@@ -298,14 +382,14 @@ class SqliteAdapterImpl implements SqliteAdapter {
                                     selectionArgs[0] = String.valueOf(beanId);
                                     selectionArgs[1] = String.valueOf(insert);
                                     String selection = mainForeignKey + " = ? AND " + secondaryForeignKey + " = ?";
-                                    Cursor query = db.query(relationTableName, null, selection, selectionArgs, null, null, null);
+                                    Cursor query = mDb.query(relationTableName, null, selection, selectionArgs, null, null, null);
                                     int count = query.getCount();
                                     query.close();
                                     if (count <= 0) {
                                         ContentValues joinValues = new ContentValues();
                                         joinValues.put(mainForeignKey, String.valueOf(beanId));
                                         joinValues.put(secondaryForeignKey, String.valueOf(insert));
-                                        db.insert(relationTableName,
+                                        mDb.insert(relationTableName,
                                                 null, joinValues);
                                     }
                                 } catch (NoSuchFieldException e) {
@@ -320,7 +404,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
                         for (Object object : list) {
                             try {
                                 // prepare the object by setting the foreign value
-                                HasMany hasMany = Persistence.belongsTo(collectionClass);
+                                HasMany hasMany = mPersistence.belongsTo(collectionClass);
                                 Field primaryForeignKey = theClass.getDeclaredField(hasMany.getThrough());
                                 primaryForeignKey.setAccessible(true);
                                 Object foreignValue = primaryForeignKey.get(bean);
@@ -384,7 +468,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
                 Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
                 Node node = new Node(collectionClass);
                 if (tree.addChild(node)) {
-                    switch (Persistence.getRelationship(theClass, collectionClass)) {
+                    switch (mPersistence.getRelationship(theClass, collectionClass)) {
                         case MANY_TO_MANY: {
                             // build a query that uses the joining table and the joined object
                             long id = query.getLong(query.getColumnIndex(SQLHelper.ID));
@@ -396,7 +480,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
                             // execute the query
                             String[] selectionArgs = new String[1];
                             selectionArgs[0] = String.valueOf(id);
-                            Cursor join = db.rawQuery(sql, selectionArgs);
+                            Cursor join = mDb.rawQuery(sql, selectionArgs);
                             // set the result to the current field
                             List listValue = new ArrayList();
                             if (join.moveToFirst()) {
@@ -410,7 +494,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
                         break;
                         case HAS_MANY:
                             // build a query that uses the joining table and the joined object
-                            HasMany belongsTo = Persistence.belongsTo(collectionClass);
+                            HasMany belongsTo = mPersistence.belongsTo(collectionClass);
                             Class<?> containerClass = belongsTo.getClasses()[0];
                             Field throughField;
                             try {
@@ -423,7 +507,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
                                 String sql = "SELECT * FROM " + getTableName(collectionClass) +
                                         " WHERE " + belongsTo.getForeignKey() + " = '" + foreignValue + "'";
                                 // execute the query and set the result to the current field
-                                Cursor join = db.rawQuery(sql, null);
+                                Cursor join = mDb.rawQuery(sql, null);
                                 List listValue = new ArrayList();
                                 if (join.moveToFirst()) {
                                     do {
@@ -472,7 +556,12 @@ class SqliteAdapterImpl implements SqliteAdapter {
         return value;
     }
 
-    private final <T> String getTableName(Class<? extends T> clazz) {
-        return SQLHelper.normalize(clazz.getSimpleName());
+    private <T> String getTableName(Class<? extends T> clazz) {
+        if (TABLE_NAMES.containsKey(clazz)) {
+            return TABLE_NAMES.get(clazz);
+        }
+        String normalize = SQLHelper.normalize(clazz.getSimpleName());
+        TABLE_NAMES.put(clazz, normalize);
+        return normalize;
     }
 }

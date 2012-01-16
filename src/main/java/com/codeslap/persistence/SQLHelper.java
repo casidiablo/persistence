@@ -10,9 +10,9 @@ class SQLHelper {
 
     static final String ID = "id";
     static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
-    static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
+    private static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
 
-    static String getCreateTableSentence(Class clazz) {
+    static String getCreateTableSentence(String dbName, Class clazz) {
         if (clazz == Object.class) {
             throw new IllegalArgumentException("You cannot pass an Object type");
         }
@@ -26,7 +26,7 @@ class SQLHelper {
                 String primaryKeySentence = PRIMARY_KEY;
                 if (declaredField.getType() == String.class) {
                     primaryKeySentence = PRIMARY_KEY_TEXT;
-                } else if (Persistence.getAutoIncrementList().contains(clazz)) {
+                } else if (Persistence.getDatabase(dbName).getAutoIncrementList().contains(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
                 if (!columns.contains(normalize(declaredField.getName()))) {
@@ -42,7 +42,7 @@ class SQLHelper {
         }
 
         // check whether this class belongs to a has-many relation, in which case we need to create an additional field
-        HasMany belongsTo = Persistence.belongsTo(clazz);
+        HasMany belongsTo = Persistence.getDatabase(dbName).belongsTo(clazz);
         if (belongsTo != null) {
             // if so, add a new field to the table creation statement to create the relation
             Class<?> containerClass = belongsTo.getClasses()[0];
@@ -104,14 +104,14 @@ class SQLHelper {
         return String.format("%s TEXT NOT NULL", normalize(name));
     }
 
-    static <T> String getWhere(T object, List<String> args) {
+    static <T> String getWhere(String dbName, T object, List<String> args) {
         if (object == null) {
             return null;
         }
-        return getWhere(object.getClass(), object, args, null);
+        return getWhere(dbName, object.getClass(), object, args, null);
     }
 
-    static <T, G> String getWhere(Class<?> theClass, T bean, List<String> args, G attachedTo) {
+    static <T, G> String getWhere(String dbName, Class<?> theClass, T bean, List<String> args, G attachedTo) {
         List<String> conditions = new ArrayList<String>();
         if (bean != null) {
             Class<?> clazz = bean.getClass();
@@ -135,10 +135,10 @@ class SQLHelper {
 
         // if there is an attachment
         if (attachedTo != null) {
-            switch (Persistence.getRelationship(attachedTo.getClass(), theClass)) {
+            switch (Persistence.getDatabase(dbName).getRelationship(attachedTo.getClass(), theClass)) {
                 case HAS_MANY: {
                     try {
-                        HasMany hasMany = Persistence.belongsTo(theClass);
+                        HasMany hasMany = Persistence.getDatabase(dbName).belongsTo(theClass);
                         Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
                         primaryForeignKey.setAccessible(true);
                         Object foreignValue = primaryForeignKey.get(attachedTo);
