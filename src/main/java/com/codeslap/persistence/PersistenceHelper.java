@@ -11,28 +11,44 @@ import java.util.List;
  */
 public class PersistenceHelper {
     public static <T> T findFirst(Context context, T where) {
-        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        return findFirst(context, Persistence.sFirstDatabase, where);
+    }
+
+    public static <T> T findFirst(Context context, String dbName, T where) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         T result = adapter.findFirst(where);
         adapter.close();
         return result;
     }
 
     public static <T> int delete(Context context, T where) {
-        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        return delete(context, Persistence.sFirstDatabase, where);
+    }
+
+    public static <T> int delete(Context context, String dbName, T where) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         int delete = adapter.delete(where);
         adapter.close();
         return delete;
     }
 
     public static <T> Object store(Context context, T bean) {
-        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        return store(context, Persistence.sFirstDatabase, bean);
+    }
+
+    public static <T> Object store(Context context, String dbName, T bean) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         Object id = adapter.store(bean);
         adapter.close();
         return id;
     }
 
     public static <T> void storeCollection(Context context, List<T> beans) {
-        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        storeCollection(context, Persistence.sFirstDatabase, beans);
+    }
+
+    public static <T> void storeCollection(Context context, String dbName, List<T> beans) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         for (T bean : beans) {
             adapter.store(bean);
         }
@@ -47,7 +63,11 @@ public class PersistenceHelper {
      * @param <T>     the type of the collection
      */
     public static <T> void storeUniqueCollection(Context context, List<T> beans) {
-        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        storeUniqueCollection(context, Persistence.sFirstDatabase, beans);
+    }
+
+    public static <T> void storeUniqueCollection(Context context, String dbName, List<T> beans) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         if (beans.size() > 0) {
             try {
                 Class<T> theClass = (Class<T>) beans.get(0).getClass();
@@ -78,28 +98,44 @@ public class PersistenceHelper {
     }
 
     public static <T> List<T> findAll(Context context, Class<T> clazz) {
-        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context);
+        return findAll(context, Persistence.sFirstDatabase, clazz);
+    }
+
+    public static <T> List<T> findAll(Context context, String dbName, Class<T> clazz) {
+        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         List<T> feeds = persistenceAdapter.findAll(clazz);
         persistenceAdapter.close();
         return feeds;
     }
 
     public static <T> List<T> findAll(Context context, T where) {
-        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context);
+        return findAll(context, Persistence.sFirstDatabase, where);
+    }
+
+    public static <T> List<T> findAll(Context context, String dbName, T where) {
+        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         List<T> feeds = persistenceAdapter.findAll(where);
         persistenceAdapter.close();
         return feeds;
     }
 
     public static <T, G> List<T> findAll(Context context, T bean, G attachedTo) {
-        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context);
+        return findAll(context, Persistence.sFirstDatabase, bean, attachedTo);
+    }
+
+    public static <T, G> List<T> findAll(Context context, String dbName, T bean, G attachedTo) {
+        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         List<T> list = persistenceAdapter.findAll(bean, attachedTo);
         persistenceAdapter.close();
         return list;
     }
 
     public static <T> int count(Context context, T bean) {
-        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context);
+        return count(context, Persistence.sFirstDatabase, bean);
+    }
+
+    public static <T> int count(Context context, String dbName, T bean) {
+        SqliteAdapter adapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         int count = adapter.count(bean);
         adapter.close();
         return count;

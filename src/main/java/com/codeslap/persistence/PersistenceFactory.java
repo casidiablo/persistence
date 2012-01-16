@@ -8,11 +8,15 @@ import android.content.Context;
  * @author cristian
  */
 public class PersistenceFactory {
-    public static SqliteAdapter getSqliteAdapter(Context context) {
-        return new SqliteAdapterImpl(context);
+    public static SqliteAdapter getSqliteAdapter(Context context, String name) {
+        return new SqliteAdapterImpl(context, name);
     }
 
-    public static PreferencesAdapter getPreferenceAdapter(Context context) {
-        return new PreferencesAdapterImpl(context);
+    public static SqliteAdapter getSqliteAdapter(Context context) {
+        return new SqliteAdapterImpl(context, Persistence.sFirstDatabase);
+    }
+
+    public static PreferencesAdapter getPreferenceAdapter(Context context, String name) {
+        return new PrefsAdapterImpl(context, name);
     }
 }

@@ -2,7 +2,6 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 
 import java.lang.reflect.Field;
 
@@ -11,17 +10,19 @@ import java.lang.reflect.Field;
  * to the SqliteAdapter which is more useful when we want to save collection of
  * beans that can be organized in tables.
  */
-class PreferencesAdapterImpl implements PreferencesAdapter {
+class PrefsAdapterImpl implements PreferencesAdapter {
 
     private final SharedPreferences mPreferences;
+    private final String mName;
 
-    public PreferencesAdapterImpl(Context context) {
-        mPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+    public PrefsAdapterImpl(Context context, String name) {
+        mName = name;
+        mPreferences = context.getSharedPreferences(name, Context.MODE_PRIVATE);
     }
 
     @Override
     public <T> void store(T bean) {
-        if (!Persistence.belongsToPreferences(bean.getClass())) {
+        if (!Persistence.getPreference(mName).belongsToPreferences(bean.getClass())) {
             throw new IllegalStateException("This object is not associated with a preference persister");
         }
         SharedPreferences.Editor editor = mPreferences.edit();

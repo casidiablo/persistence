@@ -83,9 +83,7 @@ class Node {
 
         Node node = (Node) o;
 
-        if (!mContent.equals(node.mContent)) return false;
-
-        return true;
+        return mContent.equals(node.mContent);
     }
 
     @Override
