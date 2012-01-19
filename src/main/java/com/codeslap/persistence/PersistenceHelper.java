@@ -112,6 +112,17 @@ public class PersistenceHelper {
         return findAll(context, Persistence.sFirstDatabase, where);
     }
 
+    public static <T> List<T> findAll(Context context, Class<T> clazz, String rawQuery, String[] args) {
+        return findAll(context, Persistence.sFirstDatabase, clazz, rawQuery, args);
+    }
+
+    public static <T> List<T> findAll(Context context, String dbName, Class<T> clazz, String rawQuery, String[] args) {
+        SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context, dbName);
+        List<T> feeds = persistenceAdapter.findAll(clazz, rawQuery, args);
+        persistenceAdapter.close();
+        return feeds;
+    }
+
     public static <T> List<T> findAll(Context context, String dbName, T where) {
         SqliteAdapter persistenceAdapter = PersistenceFactory.getSqliteAdapter(context, dbName);
         List<T> feeds = persistenceAdapter.findAll(where);

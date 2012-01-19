@@ -50,7 +50,7 @@ class SqliteAdapterImpl implements SqliteAdapter {
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        return findAll(clazz, null, null);
+        return findAll(clazz, (T) null, null);
     }
 
     @Override
@@ -61,6 +61,12 @@ class SqliteAdapterImpl implements SqliteAdapter {
     @Override
     public <T, G> List<T> findAll(T where, G attachedTo) {
         return findAll((Class<T>) where.getClass(), where, attachedTo, null);
+    }
+
+    @Override
+    public <T> List<T> findAll(Class<T> clazz, String where, String[] whereArgs) {
+        Cursor query = getCursorFindAllWhere(clazz, where, whereArgs);
+        return findAllFromCursor(clazz, query);
     }
 
     @Override
@@ -133,6 +139,10 @@ class SqliteAdapterImpl implements SqliteAdapter {
 
     private <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo, Constraint constraint) {
         Cursor query = getCursorFindAllWhere(clazz, where, attachedTo, constraint);
+        return findAllFromCursor(clazz, query);
+    }
+
+    private <T> List<T> findAllFromCursor(Class<T> clazz, Cursor query) {
         List<T> beans = new ArrayList<T>();
         if (query.moveToFirst()) {
             do {
@@ -161,6 +171,10 @@ class SqliteAdapterImpl implements SqliteAdapter {
             groupBy = constraint.getGroupBy();
         }
         return mDb.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
+    }
+
+    private <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, String where, String[] args) {
+        return mDb.query(getTableName(clazz), null, where, args, null, null, null, null);
     }
 
     private <T, G> Object store(T bean, Node tree, G attachedTo) {

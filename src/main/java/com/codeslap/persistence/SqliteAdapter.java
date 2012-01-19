@@ -18,6 +18,8 @@ public interface SqliteAdapter {
     <T> List<T> findAll(T where);
 
     <T, G> List<T> findAll(T where, G attachedTo);
+    
+    <T> List<T> findAll(Class<T> clazz, String rawQuery, String[] args);
 
     <T> List<T> findAll(Class<T> clazz, T where, Constraint constraint);
 
