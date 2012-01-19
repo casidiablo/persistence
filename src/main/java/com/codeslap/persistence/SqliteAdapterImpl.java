@@ -17,7 +17,7 @@ import java.util.*;
  * that don't get repeated, singletons, or any data that don't fit into the tables
  * paradigm), use PreferencesAdapter.
  */
-class SqliteAdapterImpl implements SqliteAdapter {
+class SqliteAdapterImpl implements SqlAdapter {
     private static final Map<String, FieldCache> FIELDS_CACHE = new HashMap<String, FieldCache>();
     private static final Map<Class<?>, String> TABLE_NAMES = new HashMap<Class<?>, String>();
     private final SQLiteDatabase mDb;
@@ -39,18 +39,18 @@ class SqliteAdapterImpl implements SqliteAdapter {
         ArrayList<String> args = new ArrayList<String>();
         String where = SQLHelper.getWhere(mPersistence.getName(), clazz, sample, args, null);// TODO is needed a findFirstWhere with attachment
         Cursor query = mDb.query(getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, "1");
-        if (query.moveToFirst()) {
-            T bean = getBeanFromCursor(clazz, query, new Node(clazz));
-            query.close();
-            return bean;
-        }
-        query.close();
-        return null;
+        return findFirstFromCursor(clazz, query);
+    }
+
+    @Override
+    public <T> T findFirst(Class<T> clazz, String where, String[] whereArgs) {
+        Cursor query = mDb.query(getTableName(clazz), null, where, whereArgs, null, null, null, "1");
+        return findFirstFromCursor(clazz, query);
     }
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        return findAll(clazz, (T) null, null);
+        return findAll(null, null);
     }
 
     @Override
@@ -70,7 +70,8 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz, T where, Constraint constraint) {
+    public <T> List<T> findAll(T where, Constraint constraint) {
+        Class<T> clazz = (Class<T>) where.getClass();
         return findAll(clazz, where, null, constraint);
     }
 
@@ -85,15 +86,65 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
-    public <T> int update(T bean, T sample) {
-        if (bean == null) {
+    public <T> void storeCollection(List<T> collection) {
+        for (T object : collection) {
+            store(object);
+        }
+    }
+
+    @Override
+    public <T> void storeUniqueCollection(List<T> collection) {
+        if (collection.size() > 0) {
+            try {
+                Class<T> theClass = (Class<T>) collection.get(0).getClass();
+                Field id = theClass.getDeclaredField("id");
+                id.setAccessible(true);
+                List<T> allStored = findAll(theClass);
+                for (T stored : allStored) {
+                    boolean contained = false;
+                    for (T object : collection) {
+                        Object storedId = id.get(stored);
+                        Object storedObject = id.get(object);
+                        if (storedId != null && storedObject != null && storedId.equals(storedObject)) {
+                            contained = true;
+                        }
+                    }
+                    if (!contained) {
+                        delete(stored);
+                    }
+                }
+            } catch (Exception ignored) {
+                // not a big deal
+            }
+        }
+        for (T object : collection) {
+            store(object);
+        }
+    }
+
+    @Override
+    public <T> int update(T object, T sample) {
+        if (object == null) {
             return 0;
         }
         try {
-            ContentValues values = getValuesFromBean(bean);
+            ContentValues values = getValuesFromBean(object);
             ArrayList<String> args = new ArrayList<String>();
-            String where = SQLHelper.getWhere(mPersistence.getName(), bean.getClass(), sample, args, null);// TODO update with attachment?
-            return mDb.update(getTableName(bean.getClass()), values, where, args.toArray(new String[args.size()]));
+            String where = SQLHelper.getWhere(mPersistence.getName(), object.getClass(), sample, args, null);// TODO update with attachment?
+            return mDb.update(getTableName(object.getClass()), values, where, args.toArray(new String[args.size()]));
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Error inserting: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public <T> int update(T object, String where, String[] whereArgs) {
+        if (object == null) {
+            return 0;
+        }
+        try {
+            ContentValues values = getValuesFromBean(object);
+            return mDb.update(getTableName(object.getClass()), values, where, whereArgs);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Error inserting: " + e.getMessage());
         }
@@ -122,8 +173,22 @@ class SqliteAdapterImpl implements SqliteAdapter {
     }
 
     @Override
+    public <T> int delete(Class<T> clazz, String where, String[] whereArgs) {
+        // TODO delete in cascade
+        return mDb.delete(getTableName(clazz), where, whereArgs);
+    }
+
+    @Override
     public <T> int count(T bean) {
         Cursor query = getCursorFindAllWhere(bean.getClass(), bean, null, null);
+        int count = query.getCount();
+        query.close();
+        return count;
+    }
+
+    @Override
+    public <T> int count(Class<T> clazz) {
+        Cursor query = getCursorFindAllWhere(clazz, null, null, null);
         int count = query.getCount();
         query.close();
         return count;
@@ -299,7 +364,6 @@ class SqliteAdapterImpl implements SqliteAdapter {
         return values;
     }
 
-
     private <T> void matchValues(DatabaseUtils.InsertHelper helper, T bean) throws IllegalAccessException {
         Class theClass = bean.getClass();
         if (!FIELDS_CACHE.containsKey(theClass.toString())) {
@@ -353,7 +417,9 @@ class SqliteAdapterImpl implements SqliteAdapter {
         }
     }
 
+
     private static class FieldCache {
+
         List<Field> fields;
         List<Class<?>> types;
         List<Integer> indexes;
@@ -458,6 +524,16 @@ class SqliteAdapterImpl implements SqliteAdapter {
         }
 
         return values;
+    }
+
+    private <T> T findFirstFromCursor(Class<T> clazz, Cursor query) {
+        if (query.moveToFirst()) {
+            T bean = getBeanFromCursor(clazz, query, new Node(clazz));
+            query.close();
+            return bean;
+        }
+        query.close();
+        return null;
     }
 
     private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Node tree) {

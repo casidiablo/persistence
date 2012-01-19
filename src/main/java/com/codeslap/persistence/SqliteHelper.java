@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * This is a persitence helper. You must know that each time that you call a method from this class,
- * the database will be open and closed. So, if you need to do bulk tasks, consider using {@link SqliteAdapter} instead
+ * the database will be open and closed. So, if you need to do bulk tasks, consider using {@link SqlAdapter} instead
  */
 public interface SqliteHelper {
     /**
@@ -23,12 +23,13 @@ public interface SqliteHelper {
      * Retrieves an object from the database
      *
      * @param context   used to open the database
+     * @param clazz     the type of the object to retrieve
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return the first found element using the raw query parameters
      */
-    <T> T findFirst(Context context, String where, String[] whereArgs);
+    <T> T findFirst(Context context, Class<T> clazz, String where, String[] whereArgs);
 
     /**
      * Deletes one or more elements from the database
