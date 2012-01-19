@@ -125,7 +125,11 @@ class SQLHelper {
                     field.setAccessible(true);
                     Object value = field.get(bean);
                     if (hasData(type, value)) {
-                        conditions.add(String.format("%s = ?", normalize(field.getName())));
+                        if (field.getType() == String.class) {
+                            conditions.add(String.format("%s LIKE ?", normalize(field.getName())));
+                        } else {
+                            conditions.add(String.format("%s = ?", normalize(field.getName())));
+                        }
                         args.add(String.valueOf(value));
                     }
                 } catch (IllegalAccessException ignored) {
