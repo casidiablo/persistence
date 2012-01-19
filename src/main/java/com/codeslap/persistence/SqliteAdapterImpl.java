@@ -18,18 +18,19 @@ import java.util.*;
  * paradigm), use PreferencesAdapter.
  */
 class SqliteAdapterImpl implements SqliteAdapter {
-    private static final Map<String, DatabaseUtils.InsertHelper> INSERT_HELPER_MAP = new HashMap<String, DatabaseUtils.InsertHelper>();
     private static final Map<String, FieldCache> FIELDS_CACHE = new HashMap<String, FieldCache>();
     private static final Map<Class<?>, String> TABLE_NAMES = new HashMap<Class<?>, String>();
-
     private final SQLiteDatabase mDb;
+
     private final SqlPersistence mPersistence;
+    private final Map<String, DatabaseUtils.InsertHelper> mInsertHelperMap;
 
     SqliteAdapterImpl(Context context, String name) {
         mPersistence = Persistence.getDatabase(name);
         SqliteDb sqliteDb = new SqliteDb(context);
         sqliteDb.open(mPersistence.getName(), mPersistence.getVersion());
         mDb = sqliteDb.getWritableDatabase();
+        mInsertHelperMap = new HashMap<String, DatabaseUtils.InsertHelper>();
     }
 
     @Override
@@ -94,11 +95,11 @@ class SqliteAdapterImpl implements SqliteAdapter {
 
     private DatabaseUtils.InsertHelper getInsertHelper(Class<?> theClass) {
         DatabaseUtils.InsertHelper helper;
-        if (INSERT_HELPER_MAP.containsKey(getTableName(theClass))) {
-            helper = INSERT_HELPER_MAP.get(getTableName(theClass));
+        if (mInsertHelperMap.containsKey(getTableName(theClass))) {
+            helper = mInsertHelperMap.get(getTableName(theClass));
         } else {
             helper = new DatabaseUtils.InsertHelper(mDb, getTableName(theClass));
-            INSERT_HELPER_MAP.put(getTableName(theClass), helper);
+            mInsertHelperMap.put(getTableName(theClass), helper);
         }
         return helper;
     }
@@ -124,8 +125,8 @@ class SqliteAdapterImpl implements SqliteAdapter {
 
     @Override
     public void close() {
-        for (String key : INSERT_HELPER_MAP.keySet()) {
-            INSERT_HELPER_MAP.get(key).close();
+        for (String key : mInsertHelperMap.keySet()) {
+            mInsertHelperMap.get(key).close();
         }
         mDb.close();
     }

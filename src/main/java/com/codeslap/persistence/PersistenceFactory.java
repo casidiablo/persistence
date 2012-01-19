@@ -8,11 +8,15 @@ import android.content.Context;
  * @author cristian
  */
 public class PersistenceFactory {
+    public static final String TAG = PersistenceFactory.class.getSimpleName();
+
     public static SqliteAdapter getSqliteAdapter(Context context, String name) {
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", name));
         return new SqliteAdapterImpl(context, name);
     }
 
     public static SqliteAdapter getSqliteAdapter(Context context) {
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", Persistence.sFirstDatabase));
         return new SqliteAdapterImpl(context, Persistence.sFirstDatabase);
     }
 

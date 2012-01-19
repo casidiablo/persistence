@@ -13,6 +13,7 @@ import java.util.List;
  */
 class SqliteDb {
 
+    public static final String TAG = SqliteDb.class.getSimpleName();
     private SQLiteDatabase mSqLiteDatabase;
     private final Context mContext;
     private Helper mDbHelper;
@@ -54,6 +55,7 @@ class SqliteDb {
     public SqliteDb open(String name, int version) {
         mDbHelper = new Helper(mContext, name, version);
         mSqLiteDatabase = mDbHelper.getWritableDatabase();
+        PersistenceLogManager.d(TAG, String.format("Opening '%s' database... Open: %s", name, mSqLiteDatabase.isOpen()));
         return this;
     }
 
