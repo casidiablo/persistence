@@ -53,9 +53,32 @@ public class SqlPersistence {
         }
     }
 
+    public void matchNotAutoIncrement(ManyToMany manyToMany) {
+        matchNotAutoIncrement(manyToMany.getClasses());
+        if (!MANY_TO_MANY_LIST.contains(manyToMany)) {
+            MANY_TO_MANY_LIST.add(manyToMany);
+        }
+    }
+
     public void match(HasMany hasMany) {
         Class<?>[] classes = hasMany.getClasses();
         match(classes);
+        // make sure there are no inverted has many relations
+        for (HasMany hasManyRelation : HAS_MANY_LIST) {
+            Class<?>[] clazzes = hasManyRelation.getClasses();
+            if (clazzes[0] == classes[1] && clazzes[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
+                throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
+            }
+        }
+        // add the has many relation to the list
+        if (!HAS_MANY_LIST.contains(hasMany)) {
+            HAS_MANY_LIST.add(hasMany);
+        }
+    }
+
+    public void matchNotAutoIncrement(HasMany hasMany) {
+        Class<?>[] classes = hasMany.getClasses();
+        matchNotAutoIncrement(classes);
         // make sure there are no inverted has many relations
         for (HasMany hasManyRelation : HAS_MANY_LIST) {
             Class<?>[] clazzes = hasManyRelation.getClasses();
