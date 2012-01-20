@@ -50,7 +50,15 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        return findAll(null, null);
+        T emptySample = null;
+        try {
+            emptySample = clazz.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return findAll(emptySample, null);
     }
 
     @Override
