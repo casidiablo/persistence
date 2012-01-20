@@ -33,14 +33,15 @@ public class SqlPersistence {
         for (Class<?> type : types) {
             if (!SQLITE_LIST.contains(type)) {
                 SQLITE_LIST.add(type);
+                AUTO_INCREMENT_LIST.add(type);
             }
         }
     }
 
-    public void autoincrementPrimaryKey(Class<?>... types) {
+    public void matchNotAutoIncrement(Class<?>... types) {
         for (Class<?> type : types) {
-            if (!AUTO_INCREMENT_LIST.contains(type)) {
-                AUTO_INCREMENT_LIST.add(type);
+            if (!SQLITE_LIST.contains(type)) {
+                SQLITE_LIST.add(type);
             }
         }
     }
