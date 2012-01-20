@@ -170,16 +170,16 @@ class SQLHelper {
 
     private static boolean hasData(Class<?> type, Object value) {
         if (type == long.class || type == Long.class) {
-            return ((Long) value) != 0L;
+            return value != null && ((Long) value) != 0L;
         }
         if (type == int.class || type == Integer.class) {
-            return ((Integer) value) != 0L;
+            return value != null && ((Integer) value) != 0;
         }
         if (type == float.class || type == Float.class) {
-            return ((Float) value) != 0.0;
+            return value != null && ((Float) value) != 0.0;
         }
         if (type == double.class || type == Double.class) {
-            return ((Double) value) != 0.0;
+            return value != null && ((Double) value) != 0.0;
         }
         if (type == boolean.class || type == Boolean.class) {
             return false;

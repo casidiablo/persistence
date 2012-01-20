@@ -35,7 +35,7 @@ public class PersistenceLogManager {
     static void d(String tag, String msg) {
         for (Logger logger : loggers) {
             if (logger.active()) {
-                Log.d(String.format("%s:%s", logger.getTag(), tag), msg);
+                Log.d(String.format("%s:persistence:%s", logger.getTag(), tag), msg);
             }
         }
     }
@@ -49,7 +49,7 @@ public class PersistenceLogManager {
     public static void e(String tag, String msg) {
         for (Logger logger : loggers) {
             if (logger.active()) {
-                Log.e(String.format("%s:%s", logger.getTag(), tag), msg);
+                Log.e(String.format("%s:persistence:%s", logger.getTag(), tag), msg);
             }
         }
     }
