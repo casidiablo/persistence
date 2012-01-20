@@ -30,12 +30,12 @@ class SqliteDb {
         @Override
         public void onCreate(SQLiteDatabase sqLiteDatabase) {
             // create all tables for registered daos
-            List<Class<?>> objects = Persistence.getDatabase(mName).getSqliteClasses();
+            List<Class<?>> objects = PersistenceConfig.getDatabase(mName).getSqliteClasses();
             for (Class<?> clazz : objects) {
                 sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(mName, clazz));
             }
             // create all extra table for many to many relations
-            List<ManyToMany> sqliteManyToMany = Persistence.getDatabase(mName).getSqliteManyToMany();
+            List<ManyToMany> sqliteManyToMany = PersistenceConfig.getDatabase(mName).getSqliteManyToMany();
             for (ManyToMany manyToMany : sqliteManyToMany) {
                 sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
             }

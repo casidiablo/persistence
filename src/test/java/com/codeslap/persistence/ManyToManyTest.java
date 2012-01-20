@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 public class ManyToManyTest {
     @Test
     public void testManyToMany() {
-        SqlPersistence database = Persistence.getDatabase("test.db", 1);
+        SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
         ManyToMany relation = new ManyToMany(Feed.class, "id", String.class, "id");
         String createTableStatement = relation.getCreateTableStatement();
         relation = new ManyToMany(Feed.class, String.class);
@@ -20,7 +20,7 @@ public class ManyToManyTest {
 
     @Test
     public void testManyToMany2() {
-        SqlPersistence database = Persistence.getDatabase("test.db", 1);
+        SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
         database.match(new ManyToMany(Feed.class, County.class));
         // create all tables for registered daos
         List<Class<?>> objects = database.getSqliteClasses();

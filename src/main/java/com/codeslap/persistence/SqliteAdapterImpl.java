@@ -26,7 +26,7 @@ class SqliteAdapterImpl implements SqlAdapter {
     private final Map<String, DatabaseUtils.InsertHelper> mInsertHelperMap;
 
     SqliteAdapterImpl(Context context, String name) {
-        mPersistence = Persistence.getDatabase(name);
+        mPersistence = PersistenceConfig.getDatabase(name);
         SqliteDb sqliteDb = new SqliteDb(context);
         sqliteDb.open(mPersistence.getName(), mPersistence.getVersion());
         mDb = sqliteDb.getWritableDatabase();

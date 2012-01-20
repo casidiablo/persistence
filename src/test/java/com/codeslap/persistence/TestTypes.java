@@ -16,7 +16,7 @@ public class TestTypes {
     @Test
     public void testWhere() {
         String dbName = "test.db";
-        SqlPersistence database = Persistence.getDatabase(dbName, 1);
+        SqlPersistence database = PersistenceConfig.getDatabase(dbName, 1);
         database.match(new HasMany(Types.class, Foo.class, true));
         assertNull(SQLHelper.getWhere(dbName, null, new ArrayList<String>()));
         Types types = new Types();

@@ -22,7 +22,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
 
     @Override
     public <T> void store(T bean) {
-        if (!Persistence.getPreference(mName).belongsToPreferences(bean.getClass())) {
+        if (!PersistenceConfig.getPreference(mName).belongsToPreferences(bean.getClass())) {
             throw new IllegalStateException("This object is not associated with a preference persister");
         }
         SharedPreferences.Editor editor = mPreferences.edit();

@@ -26,7 +26,7 @@ class SQLHelper {
                 String primaryKeySentence = PRIMARY_KEY;
                 if (declaredField.getType() == String.class) {
                     primaryKeySentence = PRIMARY_KEY_TEXT;
-                } else if (Persistence.getDatabase(dbName).getAutoIncrementList().contains(clazz)) {
+                } else if (PersistenceConfig.getDatabase(dbName).getAutoIncrementList().contains(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
                 if (!columns.contains(normalize(declaredField.getName()))) {
@@ -42,7 +42,7 @@ class SQLHelper {
         }
 
         // check whether this class belongs to a has-many relation, in which case we need to create an additional field
-        HasMany belongsTo = Persistence.getDatabase(dbName).belongsTo(clazz);
+        HasMany belongsTo = PersistenceConfig.getDatabase(dbName).belongsTo(clazz);
         if (belongsTo != null) {
             // if so, add a new field to the table creation statement to create the relation
             Class<?> containerClass = belongsTo.getClasses()[0];
@@ -139,10 +139,10 @@ class SQLHelper {
 
         // if there is an attachment
         if (attachedTo != null) {
-            switch (Persistence.getDatabase(dbName).getRelationship(attachedTo.getClass(), theClass)) {
+            switch (PersistenceConfig.getDatabase(dbName).getRelationship(attachedTo.getClass(), theClass)) {
                 case HAS_MANY: {
                     try {
-                        HasMany hasMany = Persistence.getDatabase(dbName).belongsTo(theClass);
+                        HasMany hasMany = PersistenceConfig.getDatabase(dbName).belongsTo(theClass);
                         Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
                         primaryForeignKey.setAccessible(true);
                         Object foreignValue = primaryForeignKey.get(attachedTo);
