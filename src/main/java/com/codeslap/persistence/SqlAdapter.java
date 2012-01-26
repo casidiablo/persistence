@@ -122,6 +122,7 @@ public interface SqlAdapter {
     /**
      * Retrieves all elements from the database that matches the specified sample
      *
+     * @param clazz     the class to find all items
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}

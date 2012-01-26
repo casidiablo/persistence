@@ -1,5 +1,8 @@
 package com.codeslap.persistence;
 
+import android.app.SearchManager;
+import android.provider.BaseColumns;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -201,5 +204,15 @@ class SQLHelper {
             newName.append(name.charAt(i));
         }
         return newName.toString().toLowerCase();
+    }
+
+    /**
+     * @param clazz the class to build the table
+     * @return create table SQL statement for a suggestions table
+     */
+    static String getSuggestionsTable(Class<?> clazz) {
+        return "CREATE TABLE " + normalize(clazz.getName()) + "_suggests ("
+                + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + SearchManager.SUGGEST_COLUMN_TEXT_1 + " TEXT NOT NULL)";
     }
 }

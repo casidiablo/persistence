@@ -24,12 +24,13 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     private final SqlPersistence mPersistence;
     private final Map<String, DatabaseUtils.InsertHelper> mInsertHelperMap;
+    private final SqliteDb mSqliteHelper;
 
     SqliteAdapterImpl(Context context, String name) {
         mPersistence = PersistenceConfig.getDatabase(name);
-        SqliteDb sqliteDb = new SqliteDb(context);
-        sqliteDb.open(mPersistence.getName(), mPersistence.getVersion());
-        mDb = sqliteDb.getWritableDatabase();
+        mSqliteHelper = new SqliteDb(context);
+        mSqliteHelper.open(mPersistence.getName(), mPersistence.getVersion());
+        mDb = mSqliteHelper.getWritableDatabase();
         mInsertHelperMap = new HashMap<String, DatabaseUtils.InsertHelper>();
     }
 
@@ -208,6 +209,7 @@ class SqliteAdapterImpl implements SqlAdapter {
             mInsertHelperMap.get(key).close();
         }
         mDb.close();
+        mSqliteHelper.close();
     }
 
     private <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo, Constraint constraint) {

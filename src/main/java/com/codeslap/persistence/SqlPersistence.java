@@ -81,8 +81,8 @@ public class SqlPersistence {
         matchNotAutoIncrement(classes);
         // make sure there are no inverted has many relations
         for (HasMany hasManyRelation : HAS_MANY_LIST) {
-            Class<?>[] clazzes = hasManyRelation.getClasses();
-            if (clazzes[0] == classes[1] && clazzes[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
+            Class<?>[] relationClasses = hasManyRelation.getClasses();
+            if (relationClasses[0] == classes[1] && relationClasses[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
                 throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
             }
         }

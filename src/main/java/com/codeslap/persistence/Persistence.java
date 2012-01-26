@@ -15,9 +15,9 @@ public class Persistence {
 
     private static final Map<String, SqlAdapter> QUICK_ADAPTERS = new HashMap<String, SqlAdapter>();
 
-    public static SqlAdapter getSqliteAdapter(Context context, String name) {
-        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", name));
-        return new SqliteAdapterImpl(context, name);
+    public static SqlAdapter getSqliteAdapter(Context context, String dbName) {
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", dbName));
+        return new SqliteAdapterImpl(context, dbName);
     }
 
     public static SqlAdapter getSqliteAdapter(Context context) {
