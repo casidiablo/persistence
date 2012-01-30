@@ -14,6 +14,20 @@ public class PersistenceLogManager {
         }
     }
 
+    public static void register(final String tag, final boolean active) {
+        register(new PersistenceLogManager.Logger() {
+            @Override
+            public String getTag() {
+                return tag;
+            }
+
+            @Override
+            public boolean active() {
+                return active;
+            }
+        });
+    }
+
     public static void remove(Logger logger) {
         if (loggers.contains(logger)) {
             loggers.remove(logger);
