@@ -18,7 +18,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> Object store(T object) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         Object id = adapter.store(object);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return id;
     }
 
@@ -26,7 +30,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T, G> Object store(T object, G attachedTo) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         Object id = adapter.store(object, attachedTo);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return id;
     }
 
@@ -34,21 +42,33 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> void storeCollection(List<T> collection) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         adapter.storeCollection(collection);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public <T> void storeUniqueCollection(List<T> collection) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         adapter.storeUniqueCollection(collection);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public <T> int update(T object, T where) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int count = adapter.update(object, where);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return count;
     }
 
@@ -56,7 +76,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> int update(T object, String where, String[] whereArgs) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int count = adapter.update(object, where, whereArgs);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return count;
     }
 
@@ -64,7 +88,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> T findFirst(T where) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         T result = adapter.findFirst(where);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return result;
     }
 
@@ -72,47 +100,71 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> T findFirst(Class<T> clazz, String where, String[] whereArgs) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         T result = adapter.findFirst(clazz, where, whereArgs);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return result;
     }
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        SqlAdapter persistenceAdapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        List<T> feeds = persistenceAdapter.findAll(clazz);
-        persistenceAdapter.close();
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        List<T> feeds = adapter.findAll(clazz);
+        try {
+            adapter.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         return feeds;
     }
 
     @Override
     public <T> List<T> findAll(T where) {
-        SqlAdapter persistenceAdapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        List<T> feeds = persistenceAdapter.findAll(where);
-        persistenceAdapter.close();
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        List<T> feeds = adapter.findAll(where);
+        try {
+            adapter.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         return feeds;
     }
 
     @Override
     public <T> List<T> findAll(T where, Constraint constraint) {
-        SqlAdapter persistenceAdapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        List<T> feeds = persistenceAdapter.findAll(where, constraint);
-        persistenceAdapter.close();
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        List<T> feeds = adapter.findAll(where, constraint);
+        try {
+            adapter.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         return feeds;
     }
 
     @Override
     public <T, G> List<T> findAll(T where, G attachedTo) {
-        SqlAdapter persistenceAdapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        List<T> feeds = persistenceAdapter.findAll(where, attachedTo);
-        persistenceAdapter.close();
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        List<T> feeds = adapter.findAll(where, attachedTo);
+        try {
+            adapter.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         return feeds;
     }
 
     @Override
     public <T> List<T> findAll(Class<T> clazz, String where, String[] whereArgs) {
-        SqlAdapter persistenceAdapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        List<T> feeds = persistenceAdapter.findAll(clazz, where, whereArgs);
-        persistenceAdapter.close();
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        List<T> feeds = adapter.findAll(clazz, where, whereArgs);
+        try {
+            adapter.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         return feeds;
     }
 
@@ -120,7 +172,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> int delete(T where) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int delete = adapter.delete(where);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return delete;
     }
 
@@ -128,7 +184,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> int delete(Class<T> clazz, String where, String[] whereArgs) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int delete = adapter.delete(clazz, where, whereArgs);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return delete;
     }
 
@@ -136,7 +196,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> int count(T where) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int count = adapter.count(where);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return count;
     }
 
@@ -144,7 +208,11 @@ class QuickSqlAdapter implements SqlAdapter {
     public <T> int count(Class<T> clazz) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int count = adapter.count(clazz);
-        adapter.close();
+        try {
+            adapter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return count;
     }
 

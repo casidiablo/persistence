@@ -20,8 +20,9 @@ import java.util.*;
 class SqliteAdapterImpl implements SqlAdapter {
     private static final Map<String, FieldCache> FIELDS_CACHE = new HashMap<String, FieldCache>();
     private static final Map<Class<?>, String> TABLE_NAMES = new HashMap<Class<?>, String>();
-    private final SQLiteDatabase mDb;
+    private static final String TAG = SqliteAdapterImpl.class.getSimpleName();
 
+    private final SQLiteDatabase mDb;
     private final SqlPersistence mPersistence;
     private final Map<String, DatabaseUtils.InsertHelper> mInsertHelperMap;
     private final SqliteDb mSqliteHelper;
@@ -208,7 +209,11 @@ class SqliteAdapterImpl implements SqlAdapter {
         for (String key : mInsertHelperMap.keySet()) {
             mInsertHelperMap.get(key).close();
         }
-        mDb.close();
+        try {
+            mDb.close();
+        } catch (Exception e) {
+            PersistenceLogManager.e(TAG, e.getMessage());
+        }
         mSqliteHelper.close();
     }
 
