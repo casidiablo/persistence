@@ -8,12 +8,6 @@ import java.util.List;
 public class PersistenceLogManager {
     private static final List<Logger> loggers = new ArrayList<Logger>();
 
-    public static void register(Logger logger) {
-        if (!loggers.contains(logger)) {
-            loggers.add(logger);
-        }
-    }
-
     public static void register(final String tag, final boolean active) {
         register(new PersistenceLogManager.Logger() {
             @Override
@@ -28,15 +22,14 @@ public class PersistenceLogManager {
         });
     }
 
-    public static void remove(Logger logger) {
-        if (loggers.contains(logger)) {
-            loggers.remove(logger);
+    static void register(Logger logger) {
+        if (!loggers.contains(logger)) {
+            loggers.add(logger);
         }
     }
 
-    public interface Logger {
+    interface Logger {
         String getTag();
-
         boolean active();
     }
 
@@ -60,7 +53,7 @@ public class PersistenceLogManager {
      * @param tag Tag to use
      * @param msg Message to send
      */
-    public static void e(String tag, String msg) {
+    static void e(String tag, String msg) {
         for (Logger logger : loggers) {
             if (logger.active()) {
                 Log.e(String.format("%s:persistence:%s", logger.getTag(), tag), msg);
