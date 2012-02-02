@@ -179,7 +179,7 @@ class SQLHelper {
                     field.setAccessible(true);
                     Object value = field.get(bean);
                     if (hasData(type, value)) {
-                        sets.add(String.format("%s = '%s'", normalize(field.getName()), value));
+                        sets.add(String.format("%s = '%s'", normalize(field.getName()), String.valueOf(value).replace("'", "''")));
                     }
                 } catch (IllegalAccessException ignored) {
                 }
@@ -265,7 +265,7 @@ class SQLHelper {
         }
 
         // build insert statement for the main object
-        return String.format("INSERT INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
+        return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
 
     private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, SqlPersistence persistence) {
