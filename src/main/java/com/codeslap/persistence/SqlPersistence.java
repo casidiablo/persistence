@@ -93,7 +93,7 @@ public class SqlPersistence {
     }
 
     /**
-     * @param theClass a class
+     * @param theClass        a class
      * @param collectionClass another class
      * @return the type of relationship between two classes
      */
@@ -116,6 +116,27 @@ public class SqlPersistence {
     }
 
     /**
+     * @param theClass a class
+     * @return the type of relationship between this class and any other
+     */
+    Relationship getRelationship(Class<?> theClass) {
+        for (HasMany hasMany : HAS_MANY_LIST) {
+            Class<?>[] classes = hasMany.getClasses();
+            if (classes[0] == theClass) {
+                return Relationship.HAS_MANY;
+            }
+        }
+
+        for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
+            Class<?>[] classes = manyToMany.getClasses();
+            if (classes[0] == theClass || classes[1] == theClass) {
+                return Relationship.MANY_TO_MANY;
+            }
+        }
+        return Relationship.UNKNOWN;
+    }
+
+    /**
      * @param clazz the class that we are checking whether belongs to another class
      * @return the class that clazz belongs to or null if not such relation
      */
@@ -123,6 +144,35 @@ public class SqlPersistence {
         for (HasMany hasMany : HAS_MANY_LIST) {
             Class<?>[] classes = hasMany.getClasses();
             if (classes[1] == clazz) {
+                return hasMany;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param theClass the table to search for
+     * @return a list with the many-to-many relations of this table
+     */
+    List<ManyToMany> getManyToMany(Class<?> theClass) {
+        List<ManyToMany> manyToManyList = new ArrayList<ManyToMany>();
+        for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
+            Class<?>[] classes = manyToMany.getClasses();
+            if (classes[0] == theClass || classes[1] == theClass) {
+                manyToManyList.add(manyToMany);
+            }
+        }
+        return manyToManyList;
+    }
+
+    /**
+     * @param clazz the class that we are checking whether has another
+     * @return the class that clazz has or null if not such relation
+     */
+    HasMany has(Class clazz) {
+        for (HasMany hasMany : HAS_MANY_LIST) {
+            Class<?>[] classes = hasMany.getClasses();
+            if (classes[0] == clazz) {
                 return hasMany;
             }
         }

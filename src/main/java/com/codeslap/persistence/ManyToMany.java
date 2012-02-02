@@ -38,16 +38,20 @@ public class ManyToMany {
      */
     String getCreateTableStatement() {
         StringBuilder builder = new StringBuilder();
-
-        String classA = SQLHelper.normalize(mClassA.getSimpleName());
-        String classB = SQLHelper.normalize(mClassB.getSimpleName());
-        builder.append("CREATE TABLE IF NOT EXISTS ").append(getTableName(classA, classB));
+        builder.append("CREATE TABLE IF NOT EXISTS ").append(buildTableName(mClassA, mClassB));
         builder.append(" (").append(SQLHelper.PRIMARY_KEY).append(" AUTOINCREMENT, ");
-        builder.append(classA).append("_").append(mClassAPrimaryKey).append(" TEXT NOT NULL, ");
-        builder.append(classB).append("_").append(mClassBPrimaryKey).append(" TEXT NOT NULL");
+        builder.append(getMainKey()).append(" TEXT NOT NULL, ");
+        builder.append(getSecondaryKey()).append(" TEXT NOT NULL");
         builder.append(");");
-
         return builder.toString();
+    }
+
+    String getMainKey() {
+        return new StringBuilder().append(SQLHelper.getTableName(mClassA)).append("_").append(mClassAPrimaryKey).toString();
+    }
+
+    String getSecondaryKey() {
+        return new StringBuilder().append(SQLHelper.getTableName(mClassB)).append("_").append(mClassBPrimaryKey).toString();
     }
 
     /**
@@ -55,11 +59,21 @@ public class ManyToMany {
      * @param classB another model
      * @return name of the joined class
      */
-    static String getTableName(String classA, String classB) {
-        if (classA.compareToIgnoreCase(classB) <= 0) {
-            return new StringBuilder().append(classA).append("_").append(classB).toString();
+    static String buildTableName(Class<?> classA, Class<?> classB) {
+        if (classA.getSimpleName().compareToIgnoreCase(classB.getSimpleName()) <= 0) {
+            return new StringBuilder().append(SQLHelper.getTableName(classA)).append("_").append(SQLHelper.getTableName(classB)).toString();
         }
-        return new StringBuilder().append(classB).append("_").append(classA).toString();
+        return new StringBuilder().append(SQLHelper.getTableName(classB)).append("_").append(SQLHelper.getTableName(classA)).toString();
+    }
+
+    /**
+     * @return name of the joined class
+     */
+    String getTableName() {
+        if (mClassA.getSimpleName().compareToIgnoreCase(mClassB.getSimpleName()) <= 0) {
+            return new StringBuilder().append(SQLHelper.getTableName(mClassA)).append("_").append(SQLHelper.getTableName(mClassB)).toString();
+        }
+        return new StringBuilder().append(SQLHelper.getTableName(mClassB)).append("_").append(SQLHelper.getTableName(mClassA)).toString();
     }
 
     @Override

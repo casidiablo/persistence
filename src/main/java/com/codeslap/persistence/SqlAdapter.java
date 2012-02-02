@@ -27,18 +27,27 @@ public interface SqlAdapter {
      * Persist a collection of objects into the database
      *
      * @param collection a collection with objects to insert
-     * @param <T>        object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @param listener   callback to notify progress. Can be null.
      */
-    <T> void storeCollection(List<T> collection);
+    <T> void storeCollection(List<T> collection, ProgressListener listener);
+
+    /**
+     * Persist a collection of objects into the database
+     *
+     * @param collection a collection with objects to insert
+     * @param listener   callback to notify progress. Can be null.
+     * @param attachedTo the object that each bean of this collection is attached to
+     */
+    <T, G> void storeCollection(List<T> collection, G attachedTo, ProgressListener listener);
 
     /**
      * Persist a collection of objects into the database. It will delete the objects from the
      * database that are not in the collection.
      *
      * @param collection a collection with objects to insert
-     * @param <T>        object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @param listener   callback to notify progress. Can be null.
      */
-    <T> void storeUniqueCollection(List<T> collection);
+    <T> void storeUniqueCollection(List<T> collection, ProgressListener listener);
 
     /**
      * Updates one of more records in the database
@@ -160,6 +169,17 @@ public interface SqlAdapter {
     <T> int count(T where);
 
     /**
+     * Counts how many items there are in the database and match the specified condition
+     *
+     * @param clazz     the class of the object that we want to count
+     * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+     * @param whereArgs the list of values used in the wildcards
+     * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @return number of elements in the table of the specified object
+     */
+    <T> int count(Class<T> clazz, String where, String[] whereArgs);
+
+    /**
      * Counts how many items there are in the database
      *
      * @param clazz the class of the object that we want to count
@@ -172,4 +192,18 @@ public interface SqlAdapter {
      * Closes the database
      */
     void close();
+
+    /**
+     * Callback used when storing a collection to notify the progress.
+     * Note: when doing a bulk insert, we use the BEGIN TRANSACTION; ...; COMMIT; technique. So, if you are inserting
+     * 99 records, each record will consume 1% and the COMMIT phase another 1%.
+     */
+    interface ProgressListener {
+        /**
+         * Called each time the progress percentage changes
+         *
+         * @param percentage the current progress
+         */
+        void onProgressChange(int percentage);
+    }
 }
