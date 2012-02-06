@@ -538,6 +538,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                                     listValue.add(beanFromCursor);
                                 } while (join.moveToNext());
                             }
+                            join.close();
                             value = listValue;
                         }
                         break;
@@ -564,6 +565,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                                         listValue.add(beanFromCursor);
                                     } while (join.moveToNext());
                                 }
+                                join.close();
                                 value = listValue;
                             }
                             break;
