@@ -143,6 +143,9 @@ class SqliteAdapterImpl implements SqlAdapter {
         for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
             T object = collection.get(i);
             String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
+            if (sqlStatement == null) {
+                continue;
+            }
             String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
             for (String statement : statements) {
                 mDb.execSQL(statement);
