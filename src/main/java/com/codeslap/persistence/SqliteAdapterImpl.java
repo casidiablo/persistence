@@ -20,8 +20,6 @@ import java.util.Map;
  * paradigm), use PreferencesAdapter.
  */
 class SqliteAdapterImpl implements SqlAdapter {
-    private static final String TAG = SqliteAdapterImpl.class.getSimpleName();
-
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
     private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s') == 0 THEN %s ELSE NULL END";
@@ -29,13 +27,11 @@ class SqliteAdapterImpl implements SqlAdapter {
     private final SQLiteDatabase mDb;
     private final SqlPersistence mPersistence;
     private final Map<String, DatabaseUtils.InsertHelper> mInsertHelperMap;
-    private final SqliteDb mSqliteHelper;
 
     SqliteAdapterImpl(Context context, String name) {
         mPersistence = PersistenceConfig.getDatabase(name);
-        mSqliteHelper = new SqliteDb(context);
-        mSqliteHelper.open(mPersistence.getName(), mPersistence.getVersion());
-        mDb = mSqliteHelper.getWritableDatabase();
+        SqliteDb helper = SqliteDb.getInstance(context, mPersistence.getName(), mPersistence.getVersion());
+        mDb = helper.getDatabase();
         mInsertHelperMap = new HashMap<String, DatabaseUtils.InsertHelper>();
     }
 
@@ -99,14 +95,16 @@ class SqliteAdapterImpl implements SqlAdapter {
         if (bean == null) {
             return null;
         }
-        mDb.execSQL("BEGIN TRANSACTION;");
         Class<?> theClass = bean.getClass();
-        String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
-        String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-        for (String statement : statements) {
-            mDb.execSQL(statement);
+        synchronized (mDb) {
+            mDb.execSQL("BEGIN TRANSACTION;");
+            String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
+            String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+            for (String statement : statements) {
+                mDb.execSQL(statement);
+            }
+            mDb.execSQL("COMMIT;");
         }
-        mDb.execSQL("COMMIT;");
         if (mPersistence.getAutoIncrementList().contains(theClass)) {
             Cursor lastId = mDb.query("sqlite_sequence", new String[]{"seq"}, "name = ?",
                     new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
@@ -134,28 +132,30 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T, G> void storeCollection(List<T> collection, G attachedTo, ProgressListener listener) {
-        mDb.execSQL("BEGIN TRANSACTION;");
-        if (listener != null) {
-            listener.onProgressChange(0);
-        }
-        int progress;
-        int all = collection.size() + 1; // 1 == commit phase
-        for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
-            T object = collection.get(i);
-            String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
-            if (sqlStatement == null) {
-                continue;
-            }
-            String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-            for (String statement : statements) {
-                mDb.execSQL(statement);
-            }
+        synchronized (mDb) {
+            mDb.execSQL("BEGIN TRANSACTION;");
             if (listener != null) {
-                progress = i * 100 / all;
-                listener.onProgressChange(progress);
+                listener.onProgressChange(0);
             }
+            int progress;
+            int all = collection.size() + 1; // 1 == commit phase
+            for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
+                T object = collection.get(i);
+                String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
+                if (sqlStatement == null) {
+                    continue;
+                }
+                String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+                for (String statement : statements) {
+                    mDb.execSQL(statement);
+                }
+                if (listener != null) {
+                    progress = i * 100 / all;
+                    listener.onProgressChange(progress);
+                }
+            }
+            mDb.execSQL("COMMIT;");
         }
-        mDb.execSQL("COMMIT;");
         if (listener != null) {
             listener.onProgressChange(100);
         }
@@ -205,18 +205,20 @@ class SqliteAdapterImpl implements SqlAdapter {
             return 0;
         }
         int count = count(bean.getClass(), where, whereArgs);
-        mDb.execSQL("BEGIN TRANSACTION;");
-        if (whereArgs != null) {
-            for (String arg : whereArgs) {
-                where = where.replaceFirst("\\?", String.format("'%s'", arg));
+        synchronized (mDb) {
+            mDb.execSQL("BEGIN TRANSACTION;");
+            if (whereArgs != null) {
+                for (String arg : whereArgs) {
+                    where = where.replaceFirst("\\?", String.format("'%s'", arg));
+                }
             }
+            String sqlStatement = SQLHelper.getUpdateStatement(bean, where);
+            String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+            for (String statement : statements) {
+                mDb.execSQL(statement);
+            }
+            mDb.execSQL("COMMIT;");
         }
-        String sqlStatement = SQLHelper.getUpdateStatement(bean, where);
-        String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-        for (String statement : statements) {
-            mDb.execSQL(statement);
-        }
-        mDb.execSQL("COMMIT;");
         return count;
     }
 
@@ -314,16 +316,6 @@ class SqliteAdapterImpl implements SqlAdapter {
     public void close() {
         for (String key : mInsertHelperMap.keySet()) {
             mInsertHelperMap.get(key).close();
-        }
-        try {
-            mDb.close();
-        } catch (Exception e) {
-            PersistenceLogManager.e(TAG, e.getMessage());
-        }
-        try {
-            mSqliteHelper.close();
-        } catch (Exception e) {
-            PersistenceLogManager.e(TAG, e.getMessage());
         }
     }
 
