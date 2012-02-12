@@ -39,4 +39,8 @@ public class PersistenceConfig {
         PREFS.put(name, persistence);
         return persistence;
     }
+
+    public static PrefsPersistence getPreference() {
+        return getPreference(PreferencesAdapter.DEFAULT_PREFS);
+    }
 }

@@ -40,4 +40,8 @@ public class Persistence {
     public static PreferencesAdapter getPreferenceAdapter(Context context, String name) {
         return new PrefsAdapterImpl(context, name);
     }
+
+    public static PreferencesAdapter getPreferenceAdapter(Context context) {
+        return new PrefsAdapterImpl(context);
+    }
 }
