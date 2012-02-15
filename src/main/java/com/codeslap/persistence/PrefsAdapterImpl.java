@@ -60,20 +60,21 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 }
                 boolean defaultEnabled = annotation != null && !annotation.defaultValue().equals("");
                 Object value = null;
-                if (field.getType() == boolean.class || field.getType() == Boolean.class) {
+                Class<?> type = field.getType();
+                if (type == boolean.class || type == Boolean.class) {
                     boolean def = defaultEnabled && "true".equals(annotation.defaultValue());
                     value = getSharedPreferences(clazz).getBoolean(keyName, def);
-                } else if (field.getType() == float.class || field.getType() == Float.class
-                        || field.getType() == double.class || field.getType() == Double.class) {
+                } else if (type == float.class || type == Float.class
+                        || type == double.class || type == Double.class) {
                     float def = defaultEnabled ? Float.parseFloat(annotation.defaultValue()) : 0.0f;
                     value = getSharedPreferences(clazz).getFloat(keyName, def);
-                } else if (field.getType() == Integer.class || field.getType() == int.class) {
+                } else if (type == Integer.class || type == int.class) {
                     int def = defaultEnabled ? Integer.parseInt(annotation.defaultValue()) : 0;
                     value = getSharedPreferences(clazz).getInt(keyName, def);
-                } else if (field.getType() == Long.class || field.getType() == long.class) {
+                } else if (type == Long.class || type == long.class) {
                     long def = defaultEnabled ? Long.parseLong(annotation.defaultValue()) : 0L;
                     value = getSharedPreferences(clazz).getLong(keyName, def);
-                } else if (field.getType() == String.class) {
+                } else if (type == String.class) {
                     String def = defaultEnabled ? annotation.defaultValue() : null;
                     value = getSharedPreferences(clazz).getString(keyName, def);
                 }
