@@ -1,10 +1,11 @@
 package com.codeslap.persistence.pref;
 
 import android.content.SharedPreferences;
+import android.preference.CheckBoxPreference;
 
 /**
-* @author cristian
-*/
+ * @author cristian
+ */
 class TypeChangeListener implements android.preference.Preference.OnPreferenceChangeListener {
     private final Class<?> mType;
 
@@ -24,6 +25,7 @@ class TypeChangeListener implements android.preference.Preference.OnPreferenceCh
             editor.putLong(key, Long.parseLong((String) o));
         } else if (mType == boolean.class) {
             editor.putBoolean(key, (Boolean) o);
+            ((CheckBoxPreference) preference).setChecked((Boolean) o);
         } else if (mType == String.class) {
             editor.putString(key, (String) o);
         }

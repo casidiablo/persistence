@@ -42,12 +42,17 @@ class PrefsAdapterImpl implements PreferencesAdapter {
 
     @Override
     public <T> T retrieve(Class<T> clazz) {
-        String keyName = null;
+        T bean;
         try {
-            T bean = clazz.newInstance();
+            bean = clazz.newInstance();
+        } catch (Exception e) {
+            return null;
+        }
+        try {
             for (Field field : clazz.getDeclaredFields()) {
                 field.setAccessible(true);
                 Preference annotation = field.getAnnotation(Preference.class);
+                String keyName;
                 if (annotation == null) {
                     keyName = field.getName();
                 } else {
@@ -74,12 +79,10 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 }
                 field.set(bean, value);
             }
-            return bean;
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println(":::::: " + keyName);
         }
-        return null;
+        return bean;
     }
 
     @Override
