@@ -50,7 +50,7 @@ class SQLHelper {
             Class<?> containerClass = belongsTo.getClasses()[0];
             try {
                 Field field = containerClass.getDeclaredField(belongsTo.getThrough());
-                String columnName = String.format("%s_%s", containerClass.getSimpleName(), normalize(belongsTo.getThrough()));
+                String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThrough()));
                 if (!columns.contains(columnName)) {
                     fieldSentences.add(getFieldSentence(columnName, field.getType()));
                     columns.add(normalize(columnName));
