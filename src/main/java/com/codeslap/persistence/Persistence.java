@@ -1,42 +1,47 @@
 package com.codeslap.persistence;
 
+import android.content.Context;
+
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Returns the application persistence adapter. You must close the adapter when you don't need it anymore.
+ *
+ * @author cristian
+ */
 public class Persistence {
+    public static final String TAG = Persistence.class.getSimpleName();
 
-    private static final Map<String, SqlPersistence> SQL = new HashMap<String, SqlPersistence>();
-    private static final Map<String, PrefsPersistence> PREFS = new HashMap<String, PrefsPersistence>();
-    static String sFirstDatabase;
+    private static final Map<String, SqlAdapter> QUICK_ADAPTERS = new HashMap<String, SqlAdapter>();
 
-    public static SqlPersistence getDatabase(String name, int version) {
-        if (name == null) {
-            throw new IllegalStateException("You must provide a valid database name");
-        }
-        if (sFirstDatabase == null) {
-            sFirstDatabase = name;
-        }
-        if (SQL.containsKey(name)) {
-            return SQL.get(name);
-        }
-        SqlPersistence sqlPersistence = new SqlPersistence(name, version);
-        SQL.put(name, sqlPersistence);
-        return sqlPersistence;
+    public static SqlAdapter getSqliteAdapter(Context context, String dbName) {
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", dbName));
+        return new SqliteAdapterImpl(context, dbName);
     }
 
-    static SqlPersistence getDatabase(String name) {
-        if (SQL.containsKey(name)) {
-            return SQL.get(name);
-        }
-        throw new IllegalStateException(String.format("There is no sql persistence for '%s'", name));
+    public static SqlAdapter getSqliteAdapter(Context context) {
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", PersistenceConfig.sFirstDatabase));
+        return new SqliteAdapterImpl(context, PersistenceConfig.sFirstDatabase);
     }
 
-    public static PrefsPersistence getPreference(String name) {
-        if (PREFS.containsKey(name)) {
-            return PREFS.get(name);
+    public static SqlAdapter getQuickAdapter(Context context, String name) {
+        PersistenceLogManager.d(TAG, String.format("Getting quick database adapter for '%s' database", name));
+        if (!QUICK_ADAPTERS.containsKey(name)) {
+            QUICK_ADAPTERS.put(name, new QuickSqlAdapter(context, name));
         }
-        PrefsPersistence persistence = new PrefsPersistence();
-        PREFS.put(name, persistence);
-        return persistence;
+        return QUICK_ADAPTERS.get(name);
+    }
+
+    public static SqlAdapter quick(Context context) {
+        return getQuickAdapter(context, PersistenceConfig.sFirstDatabase);
+    }
+
+    public static PreferencesAdapter getPreferenceAdapter(Context context, String name) {
+        return new PrefsAdapterImpl(context, name);
+    }
+
+    public static PreferencesAdapter getPreferenceAdapter(Context context) {
+        return new PrefsAdapterImpl(context);
     }
 }

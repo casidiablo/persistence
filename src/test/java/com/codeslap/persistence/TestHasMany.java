@@ -20,20 +20,20 @@ public class TestHasMany {
 
     @Test(expected = IllegalStateException.class)
     public void testInvertedHasManyRelation() {
-        SqlPersistence database = Persistence.getDatabase("test.db", 1);
+        SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
         database.match(new HasMany(Feed.class, County.class));
         database.match(new HasMany(County.class, Feed.class));
     }
 
     @Test(expected = IllegalStateException.class)
     public void testRecursiveHasMany() {
-        SqlPersistence database = Persistence.getDatabase("test.db", 1);
+        SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
         database.match(new HasMany(Recursive.class, Recursive.class));
     }
 
     @Test
     public void testTableCreation() {
-        SqlPersistence database = Persistence.getDatabase("test.db", 1);
+        SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
         database.match(new HasMany(Feed.class, County.class));
         assertEquals("CREATE TABLE IF NOT EXISTS feed (id INTEGER PRIMARY KEY, feed TEXT NOT NULL);",
                 SQLHelper.getCreateTableSentence("test.db", Feed.class));
