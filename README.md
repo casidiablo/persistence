@@ -1,4 +1,5 @@
-Yet another persistence library for Android. This library works as a SQLite wrapper and allows you to easily create, query and work with schemas based on objects.
+Yet another persistence library for Android. This library works as a SQLite wrapper and allows you to easily create,
+query and work with schemas based on objects.
 
 ###Maven integration
 
@@ -13,7 +14,7 @@ In order to use this library from you Android project using maven your pom shoul
         <dependency>
             <groupId>com.codeslap</groupId>
             <artifactId>persistence</artifactId>
-            <version>0.9.7</version>
+            <version>[0.9.)</version>
             <scope>compile</scope>
         </dependency>
         ...
@@ -27,6 +28,10 @@ In order to use this library from you Android project using maven your pom shoul
     </repositories>
 </project>
 ```
+
+###Normal integration
+
+Refer to the downloads section to get a JAR to import to your project.
 
 ###How it works?
 
@@ -169,6 +174,11 @@ City sample = new City();
 sample.setCountryCode("CO");
 Persistence.quick(context).delete(sample);
 ```
+
+### Feedback
+
+If you have any questions or suggestions do not hesitate to sending me an email about it (cristian@elhacker.net).
+Keep in mind that this is project is in beta phase and I do not warranty it will work as expected.
 
   [1]: http://en.wikipedia.org/wiki/Plain_Old_Java_Object
   [2]: https://github.com/casidiablo/persistence/blob/master/src/main/java/com/codeslap/persistence/SqlAdapter.java
