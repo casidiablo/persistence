@@ -28,7 +28,7 @@ public class PersistenceConfig {
         if (SQL.containsKey(name)) {
             return SQL.get(name);
         }
-        throw new IllegalStateException(String.format("There is no sql persistence for '%s'", name));
+        throw new IllegalStateException(String.format("There is no sql persistence for \"%s\"", name));
     }
 
     public static PrefsPersistence getPreference(String name) {

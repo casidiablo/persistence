@@ -32,6 +32,19 @@
             <version>2.5.3</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.pivotallabs</groupId>
+            <artifactId>robolectric</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.seventheye.android</groupId>
+            <artifactId>robolectric-sqlite</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -61,4 +74,11 @@
             <url>file:///${basedir}/../codeslap-maven/repository/</url>
         </repository>
     </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>codeslap</id>
+            <url>http://casidiablo.github.com/codeslap-maven/repository/</url>
+        </repository>
+    </repositories>
 </project>

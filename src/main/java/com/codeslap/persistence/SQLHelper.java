@@ -1,5 +1,7 @@
 package com.codeslap.persistence;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -123,6 +125,9 @@ class SQLHelper {
                         if (args == null) {
                             if (field.getType() == String.class) {
                                 conditions.add(String.format("%s LIKE '%s'", normalize(field.getName()), value));
+                            } else if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                                int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                                conditions.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
                             } else {
                                 conditions.add(String.format("%s = '%s'", normalize(field.getName()), value));
                             }
@@ -131,6 +136,9 @@ class SQLHelper {
                                 conditions.add(String.format("%s LIKE ?", normalize(field.getName())));
                             } else {
                                 conditions.add(String.format("%s = ?", normalize(field.getName())));
+                            }
+                            if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                                value = ((Boolean) value).booleanValue() ? 1 : 0;
                             }
                             args.add(String.valueOf(value));
                         }
@@ -178,8 +186,14 @@ class SQLHelper {
                     }
                     field.setAccessible(true);
                     Object value = field.get(bean);
-                    if (hasData(type, value)) {
-                        sets.add(String.format("%s = '%s'", normalize(field.getName()), String.valueOf(value).replace("'", "''")));
+                    boolean isBoolean = field.getType() == Bool.class || field.getType() == boolean.class;
+                    if (isBoolean || hasData(type, value)) {
+                        if (isBoolean) {
+                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            sets.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
+                        } else {
+                            sets.add(String.format("%s = '%s'", normalize(field.getName()), String.valueOf(value).replace("'", "''")));
+                        }
                     }
                 } catch (IllegalAccessException ignored) {
                 }
@@ -202,7 +216,7 @@ class SQLHelper {
         return builder.toString();
     }
 
-    private static boolean hasData(Class<?> type, Object value) {
+    static boolean hasData(Class<?> type, Object value) {
         if (type == long.class || type == Long.class) {
             return value != null && ((Long) value) != 0L;
         }
@@ -216,6 +230,12 @@ class SQLHelper {
             return value != null && ((Double) value) != 0.0;
         }
         if (type == boolean.class || type == Boolean.class) {
+            if (value instanceof Boolean) {
+                return (Boolean)value;
+            }
+            if (value instanceof Integer) {
+                return ((Integer) value) != 0;
+            }
             return false;
         }
         return value != null;
@@ -288,7 +308,12 @@ class SQLHelper {
                         columns.add(normalize(field.getName()));
                     }
                     if (values != null) {
-                        values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                        if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            values.add(String.format("%d", intValue));
+                        } else {
+                            values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                        }
                     }
                 } catch (IllegalAccessException ignored) {
                 }

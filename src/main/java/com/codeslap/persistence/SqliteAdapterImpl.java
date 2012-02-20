@@ -176,6 +176,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                         Object storedObject = id.get(object);
                         if (storedId != null && storedObject != null && storedId.equals(storedObject)) {
                             contained = true;
+                            break;
                         }
                     }
                     if (!contained) {
@@ -342,7 +343,11 @@ class SqliteAdapterImpl implements SqlAdapter {
         if (sample != null || attachedTo != null) {
             ArrayList<String> args = new ArrayList<String>();
             where = SQLHelper.getWhere(mPersistence.getName(), clazz, sample, args, attachedTo);
-            selectionArgs = args.toArray(new String[args.size()]);
+            if (where == null || where.trim().isEmpty()) {
+                where = null;
+            } else {
+                selectionArgs = args.toArray(new String[args.size()]);
+            }
         }
         String orderBy = null;
         String limit = null;
@@ -363,13 +368,12 @@ class SqliteAdapterImpl implements SqlAdapter {
         // first try to find the bean by id (if its id is not autoincrement)
         // and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
-        if (!mPersistence.getAutoIncrementList().contains(theClass)) {
-            try {
-                // get its ID
-                Field theId = theClass.getDeclaredField(SQLHelper.ID);
-                theId.setAccessible(true);
-                Object beanId = theId.get(bean);
-
+        try {
+            // get its ID
+            Field theId = theClass.getDeclaredField(SQLHelper.ID);
+            theId.setAccessible(true);
+            Object beanId = theId.get(bean);
+            if (SQLHelper.hasData(theId.getType(), beanId)) {
                 // create an object of the same type of the bean with the same id to search of it
                 Constructor<?> constructor = theClass.getConstructor();
                 Object sample = constructor.newInstance();
@@ -384,8 +388,9 @@ class SqliteAdapterImpl implements SqlAdapter {
                     // update the bean using the just create sample
                     return SQLHelper.getUpdateStatement(bean, sample);// TODO update children
                 }
-            } catch (Exception ignored) {
             }
+
+        } catch (Exception ignored) {
         }
 
         String mainInsertStatement = SQLHelper.getInsertStatement(bean, attachedTo, mPersistence);
@@ -495,7 +500,7 @@ class SqliteAdapterImpl implements SqlAdapter {
             Constructor<? extends T> constructor = theClass.getConstructor();
             bean = constructor.newInstance();
         } catch (Exception e) {
-            throw new RuntimeException("Could not initialize object of type " + theClass);
+            throw new RuntimeException("Could not initialize object of type " + theClass + ", " + e.getMessage());
         }
 
         // get each field and put its value in a content values object
@@ -576,7 +581,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                     field.set(bean, value);
                 }
             } catch (Exception e) {
-                throw new RuntimeException(String.format("An error occurred setting value to '%s', (%s): %s%n", field, value, e.getMessage()));
+                throw new RuntimeException(String.format("An error occurred setting value to \"%s\", (%s): %s%n", field, value, e.getMessage()));
             }
         }
         return bean;
