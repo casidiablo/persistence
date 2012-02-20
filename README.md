@@ -32,6 +32,7 @@ sqlite tables for those classes, which will allow you to insert, query, update a
 In order to interact with the database, you must use an implementation of the [SqlAdapter][2] interface. There are two
 implementations; you can get an instance of those implemantion this way:
 
+```java
 // 1. Standard implementation...
 SqlAdapter adapter = Persistence.getSqliteAdapter(context);
 // use the adapter and then...
@@ -39,6 +40,7 @@ adapter.close();
 
 // 2. Quick implementation
 Persistence.quick(context).someMethod();
+```
 
 Difference between standard and quick implementation is that quick adapter can be used only once and it will run
 clean-up tasks after it is executed. Use quick implementation when you just want to do a simple thing (e.g. inserting
@@ -49,7 +51,7 @@ finally query some other data).
 
 To insert data you can use any of these methods:
 
-**`store(object)`**
+####`store(object)`
 
 ```java
 // single insertion
@@ -61,7 +63,7 @@ Persistence.quick(context).store(foo);
 This will insert a simple object to the database. **Notice:** if you are inserting an object of type `Foo`, you must
 have already registered that class in the *Application class*.
 
-**`storeCollection(list, listener)`**
+####`storeCollection(list, listener)`
 
 ```java
 List<Foo> foos = new ArrayList();
