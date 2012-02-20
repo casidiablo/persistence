@@ -1,5 +1,33 @@
 Yet another persistence library for Android. This library works as a SQLite wrapper and allows you to easily create, query and work with schemas based on objects.
 
+###Maven integration
+
+In order to use this library from you Android project using maven your pom should look like this:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project ...>
+    ...
+
+    <dependencies>
+        <dependency>
+            <groupId>com.codeslap</groupId>
+            <artifactId>persistence</artifactId>
+            <version>0.9.7</version>
+            <scope>compile</scope>
+        </dependency>
+        ...
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>codeslap</id>
+            <url>http://casidiablo.github.com/codeslap-maven/repository/</url>
+        </repository>
+    </repositories>
+</project>
+```
+
 ###How it works?
 
 Create a class that extends `android.app.Application` like this:
