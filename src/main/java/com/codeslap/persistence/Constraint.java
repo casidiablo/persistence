@@ -30,15 +30,15 @@ public class Constraint {
         return this;
     }
 
-    public String getOrderBy() {
+    String getOrderBy() {
         return mOrderBy;
     }
 
-    public int getLimit() {
+    int getLimit() {
         return mLimit;
     }
 
-    public String getGroupBy() {
+    String getGroupBy() {
         return mGroupBy;
     }
 }

@@ -47,11 +47,9 @@ clean-up tasks after it is executed. Use quick implementation when you just want
 bean); use standard implementation if you want to do more things (e.g. inserting an object, then updating another and
 finally query some other data).
 
-### Inserting data
+### Inserting/updating data
 
-To insert data you can use any of these methods:
-
-####`store(object)`
+To insert a simple object to the database use the `store` method:
 
 ```java
 // single insertion
@@ -60,10 +58,10 @@ Foo foo = new Foo();
 Persistence.quick(context).store(foo);
 ```
 
-This will insert a simple object to the database. **Notice:** if you are inserting an object of type `Foo`, you must
-have already registered that class in the *Application class*.
+ **Notice:** if you are inserting an object of type `Foo`, you must have already registered that class in the
+ *`Application` class*.
 
-####`storeCollection(list, listener)`
+If you want to store a collection of beans use the `storeCollection(list, listener)` method:
 
 ```java
 List<Foo> foos = new ArrayList();
@@ -75,10 +73,74 @@ Persistence.quick(context).storeCollection(null, new ProgressListener() {
 });
 ```
 
-This will insert a collection of objects. This is much more efficient than implementing a loop manually since this will
-not insert items one-by-one but instead will create a bulk insert statement. There is another version of this method
-called `storeUniqueCollection` which basically inserts and updates objects that you pass in the list, and delete from
-the database those items that are not included in the list.
+This is much more efficient than implementing a loop manually since this will not insert items one-by-one but instead
+will create a bulk insert statement. There is another version of this method called `storeUniqueCollection` which
+basically inserts and updates objects that you pass in the list, and delete from the database those items that are not
+included in the list.
+
+When you insert an object whose primary key is not auto-increment, it will try to update it instead of inserting a new
+one. In other cases use the `update` method:
+
+```java
+City sample = new City();
+sample.setName("vogota");
+
+City newCity = new City();
+newCity.setName("Bogotá");
+
+Persistence.quick(context).update(newCity, sample);
+```
+
+Notice that `update` method can also be used with raw SQL statements and Android wildcards.
+
+### Querying data
+
+You can query single objects or a collection of objects:
+
+```java
+// query a single item by example
+City city = new City();
+city.setName("Bogotá");
+City bogota = Persistence.quick(context).findFirst(city);
+```
+
+You can also use raw SQL queries:
+
+```java
+City bogota = Persistence.quick(context).findFirst(City.class, "name LIKE 'Bogotá'", null);
+// although it is recommended to use Android's wildcards:
+City bogota = Persistence.quick(context).findFirst(City.class, "name LIKE ?", new String[]{"Bogotá"});
+```
+
+Use `findAll` to get a list of objects that matches some conditions:
+
+```java
+// Query all cities
+List<City> cities = Persistence.quick(context).findAll(City.class);
+
+// Query cities that match a sample
+City sample = new City();
+sample.setCountryCode("CO");
+List<City> colombianCities = Persistence.quick(context).findAll(sample);
+
+// You can set some constraints
+Constraint constraint = new Constraint().limit(3).groupBy("column").orderBy("name");
+List<City> someCities = Persistence.quick(context).findAll(sample, constraint);
+```
+
+### Deleting data
+
+Just use the `delete` method:
+
+```java
+// this will truncate the table...
+Persistence.quick(context).delete(City.class, null, null);
+
+// this will delete the items that match the sample
+City sample = new City();
+sample.setCountryCode("CO");
+Persistence.quick(context).delete(sample);
+```
 
   [1]: http://en.wikipedia.org/wiki/Plain_Old_Java_Object
   [2]: https://github.com/casidiablo/persistence/blob/master/src/main/java/com/codeslap/persistence/SqlAdapter.java
