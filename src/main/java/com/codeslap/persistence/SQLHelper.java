@@ -1,5 +1,7 @@
 package com.codeslap.persistence;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -288,7 +290,12 @@ class SQLHelper {
                         columns.add(normalize(field.getName()));
                     }
                     if (values != null) {
-                        values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                        if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            values.add(String.format("%d", intValue));
+                        } else {
+                            values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                        }
                     }
                 } catch (IllegalAccessException ignored) {
                 }

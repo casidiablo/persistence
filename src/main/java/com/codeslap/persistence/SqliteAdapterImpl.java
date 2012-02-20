@@ -342,7 +342,11 @@ class SqliteAdapterImpl implements SqlAdapter {
         if (sample != null || attachedTo != null) {
             ArrayList<String> args = new ArrayList<String>();
             where = SQLHelper.getWhere(mPersistence.getName(), clazz, sample, args, attachedTo);
-            selectionArgs = args.toArray(new String[args.size()]);
+            if (where == null || where.trim().isEmpty()) {
+                where = null;
+            } else {
+                selectionArgs = args.toArray(new String[args.size()]);
+            }
         }
         String orderBy = null;
         String limit = null;
@@ -495,7 +499,7 @@ class SqliteAdapterImpl implements SqlAdapter {
             Constructor<? extends T> constructor = theClass.getConstructor();
             bean = constructor.newInstance();
         } catch (Exception e) {
-            throw new RuntimeException("Could not initialize object of type " + theClass);
+            throw new RuntimeException("Could not initialize object of type " + theClass+", "+e.getMessage());
         }
 
         // get each field and put its value in a content values object
