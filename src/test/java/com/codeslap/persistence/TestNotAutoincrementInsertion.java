@@ -1,6 +1,8 @@
 package com.codeslap.persistence;
 
+import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +13,7 @@ import static org.junit.Assert.*;
 /**
  * @author cristian
  */
+@RunWith(RobolectricSimpleRunner.class)
 public class TestNotAutoincrementInsertion<T> extends TestSqlite {
 
     @Test

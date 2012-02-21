@@ -22,7 +22,7 @@ import java.util.Map;
 class SqliteAdapterImpl implements SqlAdapter {
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
-    private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s') == 0 THEN %s ELSE NULL END";
+    private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
 
     private final SQLiteDatabase mDb;
     private final SqlPersistence mPersistence;
@@ -108,18 +108,30 @@ class SqliteAdapterImpl implements SqlAdapter {
             }
             mDb.execSQL("COMMIT;");
         }
+        Field idField = null;
+        try {
+            idField = theClass.getDeclaredField(SQLHelper.ID);
+            idField.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
         if (mPersistence.getAutoIncrementList().contains(theClass)) {
             Cursor lastId = mDb.query("sqlite_sequence", new String[]{"seq"}, "name = ?",
                     new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
             if (lastId != null && lastId.moveToFirst()) {
                 long id = lastId.getLong(0);
                 lastId.close();
+                if (idField != null) {
+                    try {
+                        idField.set(bean, id);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
                 return id;
             }
         } else {
             try {
-                Field idField = theClass.getDeclaredField(SQLHelper.ID);
-                idField.setAccessible(true);
                 return idField.get(bean);
             } catch (Exception e) {
                 e.printStackTrace();

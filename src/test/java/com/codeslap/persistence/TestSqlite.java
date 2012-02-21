@@ -20,6 +20,7 @@ public class TestSqlite {
         SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
         database.match(ExampleAutoincrement.class);
         database.match(new HasMany(PolyTheist.class, God.class));
+        database.match(new ManyToMany(Book.class, Author.class));
         database.matchNotAutoIncrement(ExampleNotAutoincrement.class);
 
         mAdapter = Persistence.getSqliteAdapter(new Activity());
@@ -186,6 +187,97 @@ public class TestSqlite {
                     "id=" + id +
                     ", name='" + name + '\'' +
                     ", power=" + power +
+                    '}';
+        }
+    }
+
+    public static class Book {
+        long id;
+        String name;
+        List<Author> authors;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Book book = (Book) o;
+
+            if (authors != null ? !authors.equals(book.authors) : book.authors != null) return false;
+            if (name != null ? !name.equals(book.name) : book.name != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (authors != null ? authors.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            String authorString = "[";
+            if (authors != null) {
+                for (Author author : authors) {
+                    authorString += "Author{" +
+                            "id=" + author.id +
+                            ", name='" + author.name + '\'' +
+                            "},";
+                }
+            }
+            authorString += "]";
+
+            return "Book{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    ", authors=" + authorString +
+                    '}';
+        }
+    }
+
+    public static class Author {
+        long id;
+        String name;
+        List<Book> books;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Author author = (Author) o;
+
+            if (books != null ? !books.equals(author.books) : author.books != null) return false;
+            if (name != null ? !name.equals(author.name) : author.name != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (books != null ? books.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            String bookString = "[";
+            if (books != null) {
+                for (Book author : books) {
+                    bookString += "Author{" +
+                            "id=" + author.id +
+                            ", name='" + author.name + '\'' +
+                            "},";
+                }
+            }
+            bookString += "]";
+            return "Author{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    ", books=" + bookString +
                     '}';
         }
     }
