@@ -231,7 +231,7 @@ class SQLHelper {
         }
         if (type == boolean.class || type == Boolean.class) {
             if (value instanceof Boolean) {
-                return (Boolean)value;
+                return (Boolean) value;
             }
             if (value instanceof Integer) {
                 return ((Integer) value) != 0;
@@ -285,6 +285,10 @@ class SQLHelper {
         }
 
         // build insert statement for the main object
+        if (values.size() == 0 && persistence.getAutoIncrementList().contains(bean.getClass())) {
+            String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
+            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), ID, hack, STATEMENT_SEPARATOR);
+        }
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
 

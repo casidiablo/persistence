@@ -101,6 +101,9 @@ class SqliteAdapterImpl implements SqlAdapter {
             String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
             String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
             for (String statement : statements) {
+                if (statement.isEmpty()) {
+                    continue;
+                }
                 mDb.execSQL(statement);
             }
             mDb.execSQL("COMMIT;");

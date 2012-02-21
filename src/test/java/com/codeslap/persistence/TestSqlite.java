@@ -130,7 +130,6 @@ public class TestSqlite {
 
             PolyTheist that = (PolyTheist) o;
 
-            if (id != that.id) return false;
             if (gods != null ? !gods.equals(that.gods) : that.gods != null) return false;
 
             return true;
@@ -164,7 +163,6 @@ public class TestSqlite {
 
             God god = (God) o;
 
-            if (id != god.id) return false;
             if (Double.compare(god.power, power) != 0) return false;
             if (name != null ? !name.equals(god.name) : god.name != null) return false;
 
