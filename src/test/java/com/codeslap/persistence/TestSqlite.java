@@ -11,7 +11,7 @@ import java.util.List;
  * @author cristian
  */
 @RunWith(RobolectricSimpleRunner.class)
-public class TestSqlite {
+public abstract class TestSqlite {
 
     private SqlAdapter mAdapter;
 
@@ -24,6 +24,12 @@ public class TestSqlite {
         database.matchNotAutoIncrement(ExampleNotAutoincrement.class);
 
         mAdapter = Persistence.getSqliteAdapter(new Activity());
+        mAdapter.truncate(ExampleAutoincrement.class);
+        mAdapter.truncate(ExampleNotAutoincrement.class);
+        mAdapter.truncate(Book.class);
+        mAdapter.truncate(God.class);
+        mAdapter.truncate(PolyTheist.class);
+        mAdapter.truncate(Author.class);
     }
 
     SqlAdapter getAdapter() {

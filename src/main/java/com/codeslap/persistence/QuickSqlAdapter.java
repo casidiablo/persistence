@@ -146,6 +146,13 @@ class QuickSqlAdapter implements SqlAdapter {
     }
 
     @Override
+    public void truncate(Class<?>... classes) {
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        adapter.truncate(classes);
+        adapter.close();
+    }
+
+    @Override
     public <T> int count(T where) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
         int count = adapter.count(where);

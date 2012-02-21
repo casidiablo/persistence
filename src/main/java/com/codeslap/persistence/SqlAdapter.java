@@ -160,6 +160,13 @@ public interface SqlAdapter {
     <T> int delete(Class<T> clazz, String where, String[] whereArgs);
 
     /**
+     * Truncates a table. This will also remove the autoincrement counters
+     *
+     * @param classes the type of the object to delete
+     */
+    void truncate(Class<?>... classes);
+
+    /**
      * Counts how many items there are in the database and match the specified condition
      *
      * @param where the sample object

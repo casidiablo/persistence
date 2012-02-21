@@ -305,6 +305,15 @@ class SqliteAdapterImpl implements SqlAdapter {
     }
 
     @Override
+    public void truncate(Class<?>... classes) {
+        for (Class<?> theClass : classes) {
+            String tableName = SQLHelper.getTableName(theClass);
+            mDb.delete(tableName, null, null);
+            mDb.delete("sqlite_sequence", "name LIKE ?", new String[]{tableName});
+        }
+    }
+
+    @Override
     public <T> int count(T bean) {
         Cursor query = getCursorFindAllWhere(bean.getClass(), bean, null, null);
         int count = query.getCount();
