@@ -1,14 +1,17 @@
 package com.codeslap.persistence;
 
 import android.app.Activity;
+import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Before;
+import org.junit.runner.RunWith;
 
 import java.util.List;
 
 /**
  * @author cristian
  */
-public class SqliteTest {
+@RunWith(RobolectricSimpleRunner.class)
+public class TestSqlite {
 
     private SqlAdapter mAdapter;
 
