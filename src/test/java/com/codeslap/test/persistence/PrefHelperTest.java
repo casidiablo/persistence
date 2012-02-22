@@ -14,14 +14,25 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
+
+import android.app.Activity;
+import com.codeslap.persistence.Persistence;
+import com.codeslap.persistence.PreferencesAdapter;
+import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author cristian
  */
-public class QuickUpdateTest extends UpdateTest{
-    @Override
-    protected SqlAdapter getAdapter() {
-        return getQuickAdapter();
+public class PrefHelperTest extends PrefTest {
+    @Test
+    public void prefHelperTest() {
+        PreferencesAdapter adapter = Persistence.getPreferenceAdapter(new Activity());
+        assertNotNull(adapter);
+
+        adapter = Persistence.getPreferenceAdapter(new Activity(), "test.pref");
+        assertNotNull(adapter);
     }
 }

@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.SqlAdapter;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -75,13 +77,13 @@ public abstract class DeleteTest extends SqliteTest {
 
         getAdapter().store(dummy);
 
-        assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(2, getAdapter().findAll(God.class).size());
+        Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(God.class).size());
 
         getAdapter().delete(PolyTheist.class, null, null);
 
-        assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(2, getAdapter().findAll(God.class).size());
+        Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(God.class).size());
     }
 
     @Test
@@ -96,13 +98,13 @@ public abstract class DeleteTest extends SqliteTest {
 
         getAdapter().store(dummy);
 
-        assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(2, getAdapter().findAll(God.class).size());
+        Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(God.class).size());
 
         getAdapter().delete(PolyTheist.class, null, null, true);
 
-        assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(0, getAdapter().findAll(God.class).size());
+        Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
+        Assert.assertEquals(0, getAdapter().findAll(God.class).size());
     }
 
     @Test
@@ -126,18 +128,18 @@ public abstract class DeleteTest extends SqliteTest {
         getAdapter().store(author);
         getAdapter().store(william);
 
-        assertEquals(2, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
 
         getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
 
-        assertEquals(1, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
 
         getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
 
-        assertEquals(0, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
     }
 
     @Test
@@ -161,18 +163,18 @@ public abstract class DeleteTest extends SqliteTest {
         getAdapter().store(author);
         getAdapter().store(william);
 
-        assertEquals(2, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
+        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
 
         getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
 
-        assertEquals(1, getAdapter().findAll(Author.class).size());
-        assertEquals(1, getAdapter().findAll(Book.class).size());
+        Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
+        Assert.assertEquals(1, getAdapter().findAll(Book.class).size());
 
         getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
 
-        assertEquals(0, getAdapter().findAll(Author.class).size());
-        assertEquals(0, getAdapter().findAll(Book.class).size());
+        Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
+        Assert.assertEquals(0, getAdapter().findAll(Book.class).size());
     }
 
     protected abstract SqlAdapter getAdapter();

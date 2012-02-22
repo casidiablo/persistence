@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
 import android.app.Activity;
+import com.codeslap.persistence.Persistence;
+import com.codeslap.persistence.PreferencesAdapter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

@@ -17,6 +17,7 @@
 package com.codeslap.persistence;
 
 import android.app.Activity;
+import com.codeslap.test.persistence.SqliteTest;
 import org.junit.Test;
 
 import java.util.List;

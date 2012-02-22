@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
 import android.app.Activity;
+import com.codeslap.persistence.*;
 import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -51,15 +52,15 @@ public abstract class SqliteTest {
         mAdapter.truncate(Author.class);
     }
 
-    SqlAdapter getNormalAdapter() {
+    public SqlAdapter getNormalAdapter() {
         return mAdapter;
     }
 
-    SqlAdapter getQuickAdapter() {
+    public SqlAdapter getQuickAdapter() {
         return Persistence.quick(new Activity());
     }
 
-    SqlPersistence getDatabase() {
+    public SqlPersistence getDatabase() {
         return mDatabase;
     }
 

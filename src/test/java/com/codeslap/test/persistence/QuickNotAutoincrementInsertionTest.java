@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
+
+import com.codeslap.persistence.SqlAdapter;
 
 /**
  * @author cristian
  */
-public class QuickDeleteTest extends DeleteTest{
+public class QuickNotAutoincrementInsertionTest extends NotAutoincrementInsertionTest{
     @Override
     protected SqlAdapter getAdapter() {
         return getQuickAdapter();

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
+
+import com.codeslap.persistence.SqlAdapter;
 
 /**
  * @author cristian
  */
-public class QuickHasManyTest extends HasManyTest{
+public class NormalHasManyTest extends HasManyTest{
     @Override
     protected SqlAdapter getAdapter() {
-        return getQuickAdapter();
+        return getNormalAdapter();
     }
 }

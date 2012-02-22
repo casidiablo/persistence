@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.PersistenceConfig;
+import com.codeslap.persistence.PrefsPersistence;
 import com.codeslap.persistence.pref.Preference;
 import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Before;

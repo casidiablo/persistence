@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.Constraint;
+import com.codeslap.persistence.SqlAdapter;
 import org.junit.Test;
 
 import java.util.ArrayList;

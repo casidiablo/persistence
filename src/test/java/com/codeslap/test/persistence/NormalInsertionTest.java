@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
+
+import com.codeslap.persistence.SqlAdapter;
 
 /**
  * @author cristian
  */
-public class QuickNotAutoincrementInsertionTest extends NotAutoincrementInsertionTest{
+public class NormalInsertionTest extends InsertionTest{
     @Override
-    protected SqlAdapter getAdapter() {
-        return getQuickAdapter();
+    public SqlAdapter getAdapter() {
+        return getNormalAdapter();
     }
 }

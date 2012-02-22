@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.SqlAdapter;
 import com.codeslap.robolectric.RobolectricSimpleRunner;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -72,7 +74,7 @@ public abstract class NotAutoincrementInsertionTest extends SqliteTest {
         getAdapter().storeCollection(collection, null);
 
         // it should have stored all items
-        assertEquals(collection.size(), getAdapter().count(ExampleNotAutoincrement.class));
+        Assert.assertEquals(collection.size(), getAdapter().count(ExampleNotAutoincrement.class));
 
         // now let's see if it stored everything
         for (ExampleNotAutoincrement ExampleNotAutoincrement : collection) {
@@ -97,7 +99,7 @@ public abstract class NotAutoincrementInsertionTest extends SqliteTest {
         // now, using the store unique collection method there should be only 50 elements
         // it should have stored all items
         getAdapter().storeUniqueCollection(collection, null);
-        assertEquals(collection.size(), getAdapter().count(ExampleNotAutoincrement.class));
+        Assert.assertEquals(collection.size(), getAdapter().count(ExampleNotAutoincrement.class));
 
         // and everything must have been saved correctly
         for (ExampleNotAutoincrement ExampleNotAutoincrement : collection) {

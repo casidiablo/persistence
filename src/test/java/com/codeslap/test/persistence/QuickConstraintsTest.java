@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
-import com.codeslap.robolectric.RobolectricSimpleRunner;
-import org.junit.runner.RunWith;
+import com.codeslap.persistence.SqlAdapter;
 
 /**
  * @author cristian
  */
-@RunWith(RobolectricSimpleRunner.class)
-public class QuickInsertionTest extends InsertionTest{
+public class QuickConstraintsTest extends ConstraintsTest{
     @Override
-    public SqlAdapter getAdapter() {
+    protected SqlAdapter getAdapter() {
         return getQuickAdapter();
     }
 }

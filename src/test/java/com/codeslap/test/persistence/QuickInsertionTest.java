@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
-import android.app.Activity;
-import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
+import com.codeslap.persistence.SqlAdapter;
+import com.codeslap.robolectric.RobolectricSimpleRunner;
+import org.junit.runner.RunWith;
 
 /**
  * @author cristian
  */
-public class PrefHelperTest extends PrefTest {
-    @Test
-    public void prefHelperTest() {
-        PreferencesAdapter adapter = Persistence.getPreferenceAdapter(new Activity());
-        assertNotNull(adapter);
-
-        adapter = Persistence.getPreferenceAdapter(new Activity(), "test.pref");
-        assertNotNull(adapter);
+@RunWith(RobolectricSimpleRunner.class)
+public class QuickInsertionTest extends InsertionTest{
+    @Override
+    public SqlAdapter getAdapter() {
+        return getQuickAdapter();
     }
 }

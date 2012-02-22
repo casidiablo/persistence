@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.SuggestionInfo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

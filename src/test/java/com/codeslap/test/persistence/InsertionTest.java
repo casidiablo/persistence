@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.SqlAdapter;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -66,7 +68,7 @@ public abstract class InsertionTest extends SqliteTest {
         getAdapter().storeCollection(collection, null);
 
         // it should have stored all items
-        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
+        Assert.assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
 
         // now let's see if it stored everything
         for (ExampleAutoincrement exampleAutoincrement : collection) {
@@ -91,7 +93,7 @@ public abstract class InsertionTest extends SqliteTest {
         // now, using the store unique collection method there should be only 50 elements
         // it should have stored all items
         getAdapter().storeUniqueCollection(collection, null);
-        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
+        Assert.assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
 
         // and everything must have been saved correctly
         for (ExampleAutoincrement exampleAutoincrement : collection) {
