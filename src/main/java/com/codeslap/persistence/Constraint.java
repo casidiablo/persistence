@@ -11,10 +11,6 @@ public class Constraint {
     public Constraint() {
     }
 
-    public Constraint(int limit, String orderBy) {
-        limit(limit).orderBy(orderBy);
-    }
-
     public Constraint orderBy(String column) {
         mOrderBy = column;
         return this;

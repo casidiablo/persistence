@@ -57,7 +57,7 @@ class SqliteDb {
     private SqliteDb(Context context, String name, int version) {
         mDbHelper = new Helper(context, name, version);
         mSqLiteDatabase = mDbHelper.getWritableDatabase();
-        PersistenceLogManager.d(TAG, String.format("Opening '%s' database... Open: %s", name, mSqLiteDatabase.isOpen()));
+        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database... Open: %s", name, mSqLiteDatabase.isOpen()));
     }
 
     static SqliteDb getInstance(Context context, String name, int version) {

@@ -19,7 +19,7 @@ public class HasMany {
     public HasMany(Class<?> classA, Class<?> hasMany, String through, boolean artificial) {
         // do not accept recursive relations
         if (classA == hasMany) {
-            throw new IllegalStateException("Recursive has-many relations are not accepted");
+            throw new IllegalArgumentException("Recursive has-many relations are not accepted");
         }
         // make sure the 'through' exists
         try {

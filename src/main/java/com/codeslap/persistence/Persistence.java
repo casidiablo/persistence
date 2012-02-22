@@ -16,17 +16,17 @@ public class Persistence {
     private static final Map<String, SqlAdapter> QUICK_ADAPTERS = new HashMap<String, SqlAdapter>();
 
     public static SqlAdapter getSqliteAdapter(Context context, String dbName) {
-        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", dbName));
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for \"%s\" database", dbName));
         return new SqliteAdapterImpl(context, dbName);
     }
 
     public static SqlAdapter getSqliteAdapter(Context context) {
-        PersistenceLogManager.d(TAG, String.format("Getting database adapter for '%s' database", PersistenceConfig.sFirstDatabase));
+        PersistenceLogManager.d(TAG, String.format("Getting database adapter for \"%s\" database", PersistenceConfig.sFirstDatabase));
         return new SqliteAdapterImpl(context, PersistenceConfig.sFirstDatabase);
     }
 
     public static SqlAdapter getQuickAdapter(Context context, String name) {
-        PersistenceLogManager.d(TAG, String.format("Getting quick database adapter for '%s' database", name));
+        PersistenceLogManager.d(TAG, String.format("Getting quick database adapter for \"%s\" database", name));
         if (!QUICK_ADAPTERS.containsKey(name)) {
             QUICK_ADAPTERS.put(name, new QuickSqlAdapter(context, name));
         }

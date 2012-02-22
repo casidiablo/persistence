@@ -20,12 +20,12 @@ class PrefsAdapterImpl implements PreferencesAdapter {
     private final Context mContext;
     private final String mName;
 
-    public PrefsAdapterImpl(Context context, String name) {
+    PrefsAdapterImpl(Context context, String name) {
         mContext = context;
         mName = name;
     }
 
-    public PrefsAdapterImpl(Context context) {
+    PrefsAdapterImpl(Context context) {
         this(context, DEFAULT_PREFS);
     }
 
