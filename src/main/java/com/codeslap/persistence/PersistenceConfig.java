@@ -11,7 +11,7 @@ public class PersistenceConfig {
 
     public static SqlPersistence getDatabase(String name, int version) {
         if (name == null) {
-            throw new IllegalStateException("You must provide a valid database name");
+            throw new IllegalArgumentException("You must provide a valid database name");
         }
         if (sFirstDatabase == null) {
             sFirstDatabase = name;

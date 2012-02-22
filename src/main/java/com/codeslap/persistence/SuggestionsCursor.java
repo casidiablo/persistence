@@ -14,10 +14,10 @@ import java.util.List;
  */
 class SuggestionsCursor extends AbstractCursor {
 
-    private static final int COLUMN_INDEX_ID = 0;
-    private static final int COLUMN_INDEX_INTENT_ID = 1;
-    private static final int COLUMN_INDEX_TEXT = 2;
-    private static final int COLUMN_INDEX_DESCRIPTION = 3;
+    static final int COLUMN_INDEX_ID = 0;
+    static final int COLUMN_INDEX_INTENT_ID = 1;
+    static final int COLUMN_INDEX_TEXT = 2;
+    static final int COLUMN_INDEX_DESCRIPTION = 3;
 
     private final String[] COLUMNS;
     private final List<SuggestionInfo> mSuggestionInfos = new ArrayList<SuggestionInfo>();

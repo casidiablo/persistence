@@ -65,4 +65,14 @@ public class PersistenceHelpersTest extends SqliteTest {
         
         assertNull(getDatabase().has(God.class));
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldFailWithInvalidDatabaseName() {
+        PersistenceConfig.getDatabase(null, 1);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailWhenNoDatabaseIsAssociated() {
+        PersistenceConfig.getDatabase("foo");
+    }
 }
