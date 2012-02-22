@@ -2,6 +2,7 @@ package com.codeslap.persistence;
 
 import com.codeslap.robolectric.RobolectricSimpleRunner;
 import com.xtremelabs.robolectric.shadows.ShadowLog;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -12,6 +13,12 @@ import static org.junit.Assert.assertEquals;
  */
 @RunWith(RobolectricSimpleRunner.class)
 public class PersistenceLogManagerTest {
+
+    @Before
+    public void before() {
+        ShadowLog.getLogs().clear();
+    }
+    
     @Test
     public void testLogManagerWithLogger() {
         PersistenceLogManager.register(new PersistenceLogManager.Logger() {
@@ -53,8 +60,6 @@ public class PersistenceLogManagerTest {
                 return false;
             }
         });
-
-        ShadowLog.getLogs().clear();
 
         PersistenceLogManager.d("foo", "bar");
         assertEquals(0, ShadowLog.getLogs().size());
