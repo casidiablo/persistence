@@ -16,8 +16,6 @@
 
 package com.codeslap.persistence;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -141,7 +139,7 @@ class SQLHelper {
                         if (args == null) {
                             if (field.getType() == String.class) {
                                 conditions.add(String.format("%s LIKE '%s'", normalize(field.getName()), value));
-                            } else if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                            } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                                 int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                                 conditions.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
                             } else {
@@ -153,7 +151,7 @@ class SQLHelper {
                             } else {
                                 conditions.add(String.format("%s = ?", normalize(field.getName())));
                             }
-                            if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                            if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                                 value = ((Boolean) value).booleanValue() ? 1 : 0;
                             }
                             args.add(String.valueOf(value));
@@ -202,7 +200,7 @@ class SQLHelper {
                     }
                     field.setAccessible(true);
                     Object value = field.get(bean);
-                    boolean isBoolean = field.getType() == Bool.class || field.getType() == boolean.class;
+                    boolean isBoolean = field.getType() == Boolean.class || field.getType() == boolean.class;
                     if (isBoolean || hasData(type, value)) {
                         if (isBoolean) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
@@ -328,7 +326,7 @@ class SQLHelper {
                         columns.add(normalize(field.getName()));
                     }
                     if (values != null) {
-                        if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                        if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                             values.add(String.format("%d", intValue));
                         } else {
