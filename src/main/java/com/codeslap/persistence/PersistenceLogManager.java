@@ -8,7 +8,7 @@ import java.util.List;
 public class PersistenceLogManager {
     private static final List<Logger> loggers = new ArrayList<Logger>();
 
-    public static void register(final String tag, final boolean active) {
+    public static void register(final String tag) {
         register(new PersistenceLogManager.Logger() {
             @Override
             public String getTag() {
@@ -17,15 +17,17 @@ public class PersistenceLogManager {
 
             @Override
             public boolean active() {
-                return active;
+                return true;
             }
         });
     }
 
     static void register(Logger logger) {
-        if (!loggers.contains(logger)) {
-            loggers.add(logger);
-        }
+        loggers.add(logger);
+    }
+
+    public static void clear() {
+        loggers.clear();
     }
 
     interface Logger {
