@@ -15,6 +15,7 @@ public class TestInsertion extends TestSqlite {
 
     @Test
     public void testSingleInsertion() {
+        assertNull(getAdapter().store(null));
         // create a simple object
         ExampleAutoincrement foo = new ExampleAutoincrement();
         foo.name = "Foo Bar";

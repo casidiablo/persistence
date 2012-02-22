@@ -37,5 +37,23 @@ public class TestHasMany extends TestSqlite {
         assertNotNull(found);
         assertEquals(polyTheist, found);
     }
-    
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldFailWithDuplicatedClasses() {
+        new HasMany(ExampleAutoincrement.class, ExampleAutoincrement.class);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailWithDuplicatedRelations() {
+        HasMany hasMany1 = new HasMany(Author.class, Book.class);
+        HasMany hasMany2 = new HasMany(Book.class, Author.class);
+        SqlPersistence database = PersistenceConfig.getDatabase("foo.db", 1);
+        database.matchNotAutoIncrement(hasMany1);
+        database.matchNotAutoIncrement(hasMany2);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailWhenThroughDoesNotExist() {
+        new HasMany(Cow.class, Bug.class, "something", true);
+    }
 }

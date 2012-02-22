@@ -14,14 +14,17 @@ import java.util.List;
 public abstract class TestSqlite {
 
     private SqlAdapter mAdapter;
+    private final SqlPersistence mDatabase = PersistenceConfig.getDatabase("test.db", 1);
 
     @Before
     public void configure() {
-        SqlPersistence database = PersistenceConfig.getDatabase("test.db", 1);
-        database.match(ExampleAutoincrement.class);
-        database.match(new HasMany(PolyTheist.class, God.class));
-        database.match(new ManyToMany(Book.class, Author.class));
-        database.matchNotAutoIncrement(ExampleNotAutoincrement.class);
+        mDatabase.match(ExampleAutoincrement.class);
+        mDatabase.match(new HasMany(PolyTheist.class, God.class));
+        mDatabase.match(new HasMany(Cow.class, Bug.class, true));
+        mDatabase.match(new ManyToMany(Book.class, Author.class));
+        mDatabase.matchNotAutoIncrement(ExampleNotAutoincrement.class);
+        mDatabase.matchNotAutoIncrement(new ManyToMany(Cow.class, Bug.class));
+        mDatabase.matchNotAutoIncrement(new HasMany(Cow.class, Bug.class, true));
 
         mAdapter = Persistence.getSqliteAdapter(new Activity());
         mAdapter.truncate(ExampleAutoincrement.class);
@@ -34,6 +37,10 @@ public abstract class TestSqlite {
 
     SqlAdapter getAdapter() {
         return mAdapter;
+    }
+
+    SqlPersistence getDatabase() {
+        return mDatabase;
     }
 
     public static class ExampleAutoincrement {
@@ -284,6 +291,66 @@ public abstract class TestSqlite {
                     "id=" + id +
                     ", name='" + name + '\'' +
                     ", books=" + bookString +
+                    '}';
+        }
+    }
+
+    public static class Cow{
+        long id;
+        String name;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Cow cow = (Cow) o;
+
+            if (name != null ? !name.equals(cow.name) : cow.name != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return name != null ? name.hashCode() : 0;
+        }
+
+        @Override
+        public String toString() {
+            return "Cow{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
+    }
+
+    public static class Bug{
+        long id;
+        float itchFactor;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Bug bug = (Bug) o;
+
+            if (Float.compare(bug.itchFactor, itchFactor) != 0) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return (itchFactor != +0.0f ? Float.floatToIntBits(itchFactor) : 0);
+        }
+
+        @Override
+        public String toString() {
+            return "Bug{" +
+                    "id=" + id +
+                    ", itchFactor=" + itchFactor +
                     '}';
         }
     }

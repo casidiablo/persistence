@@ -65,8 +65,8 @@ public class SqlPersistence {
         match(classes);
         // make sure there are no inverted has many relations
         for (HasMany hasManyRelation : HAS_MANY_LIST) {
-            Class<?>[] clazzes = hasManyRelation.getClasses();
-            if (clazzes[0] == classes[1] && clazzes[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
+            Class<?>[] relationClasses = hasManyRelation.getClasses();
+            if (relationClasses[0] == classes[1] && relationClasses[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
                 throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
             }
         }
@@ -193,5 +193,36 @@ public class SqlPersistence {
 
     List<ManyToMany> getSqliteManyToMany() {
         return MANY_TO_MANY_LIST;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SqlPersistence that = (SqlPersistence) o;
+
+        if (mVersion != that.mVersion) return false;
+        if (AUTO_INCREMENT_LIST != null ? !AUTO_INCREMENT_LIST.equals(that.AUTO_INCREMENT_LIST) : that.AUTO_INCREMENT_LIST != null)
+            return false;
+        if (HAS_MANY_LIST != null ? !HAS_MANY_LIST.equals(that.HAS_MANY_LIST) : that.HAS_MANY_LIST != null)
+            return false;
+        if (MANY_TO_MANY_LIST != null ? !MANY_TO_MANY_LIST.equals(that.MANY_TO_MANY_LIST) : that.MANY_TO_MANY_LIST != null)
+            return false;
+        if (SQLITE_LIST != null ? !SQLITE_LIST.equals(that.SQLITE_LIST) : that.SQLITE_LIST != null) return false;
+        if (mName != null ? !mName.equals(that.mName) : that.mName != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = SQLITE_LIST != null ? SQLITE_LIST.hashCode() : 0;
+        result = 31 * result + (AUTO_INCREMENT_LIST != null ? AUTO_INCREMENT_LIST.hashCode() : 0);
+        result = 31 * result + (MANY_TO_MANY_LIST != null ? MANY_TO_MANY_LIST.hashCode() : 0);
+        result = 31 * result + (HAS_MANY_LIST != null ? HAS_MANY_LIST.hashCode() : 0);
+        result = 31 * result + (mName != null ? mName.hashCode() : 0);
+        result = 31 * result + mVersion;
+        return result;
     }
 }

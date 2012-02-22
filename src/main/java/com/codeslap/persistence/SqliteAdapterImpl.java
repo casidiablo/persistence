@@ -55,9 +55,7 @@ class SqliteAdapterImpl implements SqlAdapter {
         T emptySample = null;
         try {
             emptySample = clazz.newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return findAll(emptySample, null);
@@ -281,17 +279,43 @@ class SqliteAdapterImpl implements SqlAdapter {
                         for (ManyToMany manyToMany : manyToManyList) {
                             Class<?>[] classes = manyToMany.getClasses();
                             String foreignKey;
+                            String foreignCurrentKey;
+                            Class<?> relationTable;
                             if (classes[0] == theClass) {
                                 foreignKey = manyToMany.getMainKey();
+                                foreignCurrentKey = manyToMany.getSecondaryKey();
+                                relationTable = classes[1];
                             } else {
                                 foreignKey = manyToMany.getSecondaryKey();
+                                foreignCurrentKey = manyToMany.getMainKey();
+                                relationTable = classes[0];
                             }
                             List<T> toRemove = findAll(theClass, where, whereArgs);
                             for (T object : toRemove) {
                                 try {
                                     Object objectId = idField.get(object);
                                     String whereForeign = String.format("%s = '%s'", foreignKey, String.valueOf(objectId));
+
+                                    Cursor deletionCursor = mDb.query(manyToMany.getTableName(), null, whereForeign, null, null, null, null);
+                                    List<String> ids = new ArrayList<String>();
+                                    if (deletionCursor.moveToFirst()) {
+                                        do {
+                                            int index = deletionCursor.getColumnIndex(foreignCurrentKey);
+                                            ids.add(deletionCursor.getString(index));
+                                        } while (deletionCursor.moveToNext());
+                                    }
+                                    deletionCursor.close();
+
                                     mDb.delete(manyToMany.getTableName(), whereForeign, null);
+
+                                    for (String id : ids) {
+                                        String whereRest = String.format("%s = '%s'", foreignCurrentKey, id);
+                                        Cursor cursorRest = mDb.query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
+                                        // this means there is no other relation with this object, so we can delete it on cascade :)
+                                        if (cursorRest.getCount() == 0) {
+                                            mDb.delete(SQLHelper.getTableName(relationTable), SQLHelper.ID + " = ?", new String[]{id});
+                                        }
+                                    }
                                 } catch (IllegalAccessException ignored) {
                                 }
                             }
@@ -629,5 +653,28 @@ class SqliteAdapterImpl implements SqlAdapter {
             value = query.getString(columnIndex);
         }
         return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SqliteAdapterImpl that = (SqliteAdapterImpl) o;
+
+        if (mDb != null ? !mDb.equals(that.mDb) : that.mDb != null) return false;
+        if (mInsertHelperMap != null ? !mInsertHelperMap.equals(that.mInsertHelperMap) : that.mInsertHelperMap != null)
+            return false;
+        if (mPersistence != null ? !mPersistence.equals(that.mPersistence) : that.mPersistence != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mDb != null ? mDb.hashCode() : 0;
+        result = 31 * result + (mPersistence != null ? mPersistence.hashCode() : 0);
+        result = 31 * result + (mInsertHelperMap != null ? mInsertHelperMap.hashCode() : 0);
+        return result;
     }
 }
