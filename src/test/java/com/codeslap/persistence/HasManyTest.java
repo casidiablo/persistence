@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author cristian
  */
-public class TestHasMany extends TestSqlite {
+public class HasManyTest extends SqliteTest {
     @Test
     public void testHasMany() {
         // let's create some gods. We men have a lot of practice creating gods

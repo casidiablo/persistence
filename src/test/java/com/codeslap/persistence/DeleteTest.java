@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author cristian
  */
-public class TestDelete extends TestSqlite {
+public class DeleteTest extends SqliteTest {
     @Test
     public void testDelete() {
         // let's first insert a collection of data

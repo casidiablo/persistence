@@ -11,7 +11,7 @@ import java.util.List;
  * @author cristian
  */
 @RunWith(RobolectricSimpleRunner.class)
-public abstract class TestSqlite {
+public abstract class SqliteTest {
 
     private SqlAdapter mAdapter;
     private final SqlPersistence mDatabase = PersistenceConfig.getDatabase("test.db", 1);

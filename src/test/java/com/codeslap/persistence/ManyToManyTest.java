@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author cristian
  */
-public class TestManyToMany extends TestSqlite {
+public class ManyToManyTest extends SqliteTest {
     @Test
     public void testManyToMany() {
         // let's create some dummy data

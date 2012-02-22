@@ -12,7 +12,7 @@ import static org.junit.Assert.assertNull;
 /**
  * @author cristian
  */
-public class TestPersistenceHelpers extends TestSqlite {
+public class PersistenceHelpersTest extends SqliteTest {
     @Test
     public void testHelpers() {
         SqlAdapter sqliteAdapter = Persistence.getSqliteAdapter(new Activity());

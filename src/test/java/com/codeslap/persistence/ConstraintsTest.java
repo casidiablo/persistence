@@ -12,7 +12,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author cristian
  */
-public class TestConstraints extends TestSqlite {
+public class ConstraintsTest extends SqliteTest {
     @Test
     public void testConstraints() {
         List<ExampleAutoincrement> list = new ArrayList<ExampleAutoincrement>();

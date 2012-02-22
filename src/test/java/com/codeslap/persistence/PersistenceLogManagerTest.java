@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
  * @author cristian
  */
 @RunWith(RobolectricSimpleRunner.class)
-public class TestPersistenceLogManager {
+public class PersistenceLogManagerTest {
     @Test
     public void testLogManagerWithLogger() {
         PersistenceLogManager.register(new PersistenceLogManager.Logger() {
