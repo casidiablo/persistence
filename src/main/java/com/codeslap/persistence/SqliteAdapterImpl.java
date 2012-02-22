@@ -238,6 +238,11 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> int delete(T sample) {
+        return delete(sample, false);
+    }
+
+    @Override
+    public <T> int delete(T sample, boolean onCascade) {
         if (sample == null) {
             return -1;
         }
@@ -249,6 +254,11 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> int delete(Class<T> theClass, String where, String[] whereArgs) {
+        return delete(theClass, where, whereArgs, false);
+    }
+
+    @Override
+    public <T> int delete(Class<T> theClass, String where, String[] whereArgs, boolean onCascade) {
         SqlPersistence.Relationship relationship = mPersistence.getRelationship(theClass);
         if (!relationship.equals(SqlPersistence.Relationship.UNKNOWN)) {
             Field idField = null;
@@ -261,16 +271,18 @@ class SqliteAdapterImpl implements SqlAdapter {
             if (idField != null) {
                 switch (relationship) {
                     case HAS_MANY:
-                        HasMany hasMany = mPersistence.has(theClass);
-                        List<T> toDelete = findAll(theClass, where, whereArgs);
-                        for (T object : toDelete) {
-                            try {
-                                Object objectId = idField.get(object);
-                                Class<?>[] classes = hasMany.getClasses();
-                                Class<?> containedClass = classes[1];
-                                String whereForeign = String.format("%s = '%s'", hasMany.getForeignKey(), String.valueOf(objectId));
-                                delete(containedClass, whereForeign, null);
-                            } catch (IllegalAccessException ignored) {
+                        if (onCascade) {
+                            HasMany hasMany = mPersistence.has(theClass);
+                            List<T> toDelete = findAll(theClass, where, whereArgs);
+                            for (T object : toDelete) {
+                                try {
+                                    Object objectId = idField.get(object);
+                                    Class<?>[] classes = hasMany.getClasses();
+                                    Class<?> containedClass = classes[1];
+                                    String whereForeign = String.format("%s = '%s'", hasMany.getForeignKey(), String.valueOf(objectId));
+                                    delete(containedClass, whereForeign, null);
+                                } catch (IllegalAccessException ignored) {
+                                }
                             }
                         }
                         break;
@@ -296,15 +308,17 @@ class SqliteAdapterImpl implements SqlAdapter {
                                     Object objectId = idField.get(object);
                                     String whereForeign = String.format("%s = '%s'", foreignKey, String.valueOf(objectId));
 
-                                    Cursor deletionCursor = mDb.query(manyToMany.getTableName(), null, whereForeign, null, null, null, null);
                                     List<String> ids = new ArrayList<String>();
-                                    if (deletionCursor.moveToFirst()) {
-                                        do {
-                                            int index = deletionCursor.getColumnIndex(foreignCurrentKey);
-                                            ids.add(deletionCursor.getString(index));
-                                        } while (deletionCursor.moveToNext());
+                                    if (onCascade) {
+                                        Cursor deletionCursor = mDb.query(manyToMany.getTableName(), null, whereForeign, null, null, null, null);
+                                        if (deletionCursor.moveToFirst()) {
+                                            do {
+                                                int index = deletionCursor.getColumnIndex(foreignCurrentKey);
+                                                ids.add(deletionCursor.getString(index));
+                                            } while (deletionCursor.moveToNext());
+                                        }
+                                        deletionCursor.close();
                                     }
-                                    deletionCursor.close();
 
                                     mDb.delete(manyToMany.getTableName(), whereForeign, null);
 

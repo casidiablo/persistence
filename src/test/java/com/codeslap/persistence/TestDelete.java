@@ -65,6 +65,27 @@ public class TestDelete extends TestSqlite {
         getAdapter().delete(PolyTheist.class, null, null);
 
         assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
+        assertEquals(2, getAdapter().findAll(God.class).size());
+    }
+
+    @Test
+    public void testDeleteHasManyOnCascade() {
+        God jesus = new God();
+        jesus.name = "Jesus";
+        God thor = new God();
+        thor.name = "Thor";
+
+        PolyTheist dummy = new PolyTheist();
+        dummy.gods = Arrays.asList(thor, jesus);
+
+        getAdapter().store(dummy);
+
+        assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
+        assertEquals(2, getAdapter().findAll(God.class).size());
+
+        getAdapter().delete(PolyTheist.class, null, null, true);
+
+        assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
         assertEquals(0, getAdapter().findAll(God.class).size());
     }
 
@@ -73,7 +94,7 @@ public class TestDelete extends TestSqlite {
         Book puta = new Book();
         puta.id = 1;
         puta.name = "La puta de Babilonia";
-        
+
         Book vida = new Book();
         vida.id = 2;
         vida.name = "El Don de la Vida";
@@ -95,9 +116,44 @@ public class TestDelete extends TestSqlite {
         getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
 
         assertEquals(1, getAdapter().findAll(Author.class).size());
-        assertEquals(1, getAdapter().findAll(Book.class).size());
+        assertEquals(2, getAdapter().findAll(Book.class).size());
 
         getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
+
+        assertEquals(0, getAdapter().findAll(Author.class).size());
+        assertEquals(2, getAdapter().findAll(Book.class).size());
+    }
+
+    @Test
+    public void testDeleteManyToManyOnCascade() {
+        Book puta = new Book();
+        puta.id = 1;
+        puta.name = "La puta de Babilonia";
+
+        Book vida = new Book();
+        vida.id = 2;
+        vida.name = "El Don de la Vida";
+
+        Author author = new Author();
+        author.name = "Fernando Vallejo";
+        author.books = Arrays.asList(puta, vida);
+
+        Author william = new Author();
+        william.name = "William Ospina";
+        william.books = Arrays.asList(puta);
+
+        getAdapter().store(author);
+        getAdapter().store(william);
+
+        assertEquals(2, getAdapter().findAll(Author.class).size());
+        assertEquals(2, getAdapter().findAll(Book.class).size());
+
+        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
+
+        assertEquals(1, getAdapter().findAll(Author.class).size());
+        assertEquals(1, getAdapter().findAll(Book.class).size());
+
+        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
 
         assertEquals(0, getAdapter().findAll(Author.class).size());
         assertEquals(0, getAdapter().findAll(Book.class).size());
