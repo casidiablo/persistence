@@ -19,7 +19,7 @@ public class UpdateTest extends SqliteTest {
         foo.number = random.nextInt();
         foo.decimal = random.nextFloat();
         foo.bool = random.nextBoolean();
-        getAdapter().store(foo);
+        getNormalAdapter().store(foo);
 
         // now, let's create a new object with different data
         ExampleAutoincrement bar = new ExampleAutoincrement();
@@ -29,8 +29,8 @@ public class UpdateTest extends SqliteTest {
         boolean bool = bar.bool = random.nextBoolean();
 
         // after updating this record, all its data should have changed...
-        getAdapter().update(bar, foo);
-        ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
+        getNormalAdapter().update(bar, foo);
+        ExampleAutoincrement baz = getNormalAdapter().findAll(ExampleAutoincrement.class).get(0);
         assertEquals(name, baz.name);
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);
@@ -45,7 +45,7 @@ public class UpdateTest extends SqliteTest {
         foo.number = random.nextInt();
         foo.decimal = random.nextFloat();
         foo.bool = random.nextBoolean();
-        getAdapter().store(foo);
+        getNormalAdapter().store(foo);
 
         // now, let's create a new object with different data
         ExampleAutoincrement bar = new ExampleAutoincrement();
@@ -55,8 +55,8 @@ public class UpdateTest extends SqliteTest {
         boolean bool = bar.bool = random.nextBoolean();
 
         // after updating this record, all its data should have changed...
-        getAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
-        ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
+        getNormalAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
+        ExampleAutoincrement baz = getNormalAdapter().findAll(ExampleAutoincrement.class).get(0);
         assertEquals(name, baz.name);
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);

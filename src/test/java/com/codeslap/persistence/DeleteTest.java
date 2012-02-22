@@ -27,23 +27,23 @@ public class DeleteTest extends SqliteTest {
             foo.bool = random.nextBoolean();
             collection.add(foo);
         }
-        getAdapter().storeCollection(collection, null);
+        getNormalAdapter().storeCollection(collection, null);
 
         // now let's delete some data!
-        int deleted = getAdapter().delete(collection.get(0));
+        int deleted = getNormalAdapter().delete(collection.get(0));
         assertEquals(1, deleted);
 
         ExampleAutoincrement foo = collection.get(1);
         foo.name = null;
-        assertTrue(getAdapter().delete(foo) > 0);
+        assertTrue(getNormalAdapter().delete(foo) > 0);
 
-        int count = getAdapter().count(ExampleAutoincrement.class);
+        int count = getNormalAdapter().count(ExampleAutoincrement.class);
         assertTrue(count > 0);
 
-        deleted = getAdapter().delete(ExampleAutoincrement.class, "name LIKE ?", new String[]{"Foo%"});
+        deleted = getNormalAdapter().delete(ExampleAutoincrement.class, "name LIKE ?", new String[]{"Foo%"});
         assertTrue(deleted > 0);
 
-        count = getAdapter().count(ExampleAutoincrement.class);
+        count = getNormalAdapter().count(ExampleAutoincrement.class);
         assertEquals(0, count);
     }
 
@@ -57,15 +57,15 @@ public class DeleteTest extends SqliteTest {
         PolyTheist dummy = new PolyTheist();
         dummy.gods = Arrays.asList(thor, jesus);
 
-        getAdapter().store(dummy);
+        getNormalAdapter().store(dummy);
 
-        assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(2, getAdapter().findAll(God.class).size());
+        assertEquals(1, getNormalAdapter().findAll(PolyTheist.class).size());
+        assertEquals(2, getNormalAdapter().findAll(God.class).size());
 
-        getAdapter().delete(PolyTheist.class, null, null);
+        getNormalAdapter().delete(PolyTheist.class, null, null);
 
-        assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(2, getAdapter().findAll(God.class).size());
+        assertEquals(0, getNormalAdapter().findAll(PolyTheist.class).size());
+        assertEquals(2, getNormalAdapter().findAll(God.class).size());
     }
 
     @Test
@@ -78,15 +78,15 @@ public class DeleteTest extends SqliteTest {
         PolyTheist dummy = new PolyTheist();
         dummy.gods = Arrays.asList(thor, jesus);
 
-        getAdapter().store(dummy);
+        getNormalAdapter().store(dummy);
 
-        assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(2, getAdapter().findAll(God.class).size());
+        assertEquals(1, getNormalAdapter().findAll(PolyTheist.class).size());
+        assertEquals(2, getNormalAdapter().findAll(God.class).size());
 
-        getAdapter().delete(PolyTheist.class, null, null, true);
+        getNormalAdapter().delete(PolyTheist.class, null, null, true);
 
-        assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-        assertEquals(0, getAdapter().findAll(God.class).size());
+        assertEquals(0, getNormalAdapter().findAll(PolyTheist.class).size());
+        assertEquals(0, getNormalAdapter().findAll(God.class).size());
     }
 
     @Test
@@ -107,21 +107,21 @@ public class DeleteTest extends SqliteTest {
         william.name = "William Ospina";
         william.books = Arrays.asList(puta);
 
-        getAdapter().store(author);
-        getAdapter().store(william);
+        getNormalAdapter().store(author);
+        getNormalAdapter().store(william);
 
-        assertEquals(2, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        assertEquals(2, getNormalAdapter().findAll(Author.class).size());
+        assertEquals(2, getNormalAdapter().findAll(Book.class).size());
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
+        getNormalAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
 
-        assertEquals(1, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        assertEquals(1, getNormalAdapter().findAll(Author.class).size());
+        assertEquals(2, getNormalAdapter().findAll(Book.class).size());
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
+        getNormalAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
 
-        assertEquals(0, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        assertEquals(0, getNormalAdapter().findAll(Author.class).size());
+        assertEquals(2, getNormalAdapter().findAll(Book.class).size());
     }
 
     @Test
@@ -142,20 +142,20 @@ public class DeleteTest extends SqliteTest {
         william.name = "William Ospina";
         william.books = Arrays.asList(puta);
 
-        getAdapter().store(author);
-        getAdapter().store(william);
+        getNormalAdapter().store(author);
+        getNormalAdapter().store(william);
 
-        assertEquals(2, getAdapter().findAll(Author.class).size());
-        assertEquals(2, getAdapter().findAll(Book.class).size());
+        assertEquals(2, getNormalAdapter().findAll(Author.class).size());
+        assertEquals(2, getNormalAdapter().findAll(Book.class).size());
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
+        getNormalAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
 
-        assertEquals(1, getAdapter().findAll(Author.class).size());
-        assertEquals(1, getAdapter().findAll(Book.class).size());
+        assertEquals(1, getNormalAdapter().findAll(Author.class).size());
+        assertEquals(1, getNormalAdapter().findAll(Book.class).size());
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
+        getNormalAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
 
-        assertEquals(0, getAdapter().findAll(Author.class).size());
-        assertEquals(0, getAdapter().findAll(Book.class).size());
+        assertEquals(0, getNormalAdapter().findAll(Author.class).size());
+        assertEquals(0, getNormalAdapter().findAll(Book.class).size());
     }
 }

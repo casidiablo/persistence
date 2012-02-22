@@ -35,7 +35,7 @@ public abstract class SqliteTest {
         mAdapter.truncate(Author.class);
     }
 
-    SqlAdapter getAdapter() {
+    SqlAdapter getNormalAdapter() {
         return mAdapter;
     }
 
