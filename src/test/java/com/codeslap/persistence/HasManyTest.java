@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author cristian
  */
-public class HasManyTest extends SqliteTest {
+public abstract class HasManyTest extends SqliteTest {
     @Test
     public void testHasMany() {
         // let's create some gods. We men have a lot of practice creating gods
@@ -30,10 +30,10 @@ public class HasManyTest extends SqliteTest {
         polyTheist.gods = gods;
 
         // let's save our polytheist friend...
-        Object store = getNormalAdapter().store(polyTheist);
+        Object store = getAdapter().store(polyTheist);
         assertTrue(store instanceof Long);
 
-        PolyTheist found = getNormalAdapter().findFirst(PolyTheist.class, "id = ?", new String[]{String.valueOf(store)});
+        PolyTheist found = getAdapter().findFirst(PolyTheist.class, "id = ?", new String[]{String.valueOf(store)});
         assertNotNull(found);
         assertEquals(polyTheist, found);
     }
@@ -56,4 +56,6 @@ public class HasManyTest extends SqliteTest {
     public void shouldFailWhenThroughDoesNotExist() {
         new HasMany(Cow.class, Bug.class, "something", true);
     }
+
+    protected abstract SqlAdapter getAdapter();
 }

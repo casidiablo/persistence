@@ -1,8 +1,6 @@
 package com.codeslap.persistence;
 
-import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +11,10 @@ import static org.junit.Assert.*;
 /**
  * @author cristian
  */
-@RunWith(RobolectricSimpleRunner.class)
-public class InsertionTest extends SqliteTest {
-
+public abstract class InsertionTest extends SqliteTest {
     @Test
     public void testSingleInsertion() {
-        assertNull(getNormalAdapter().store(null));
+        assertNull(getAdapter().store(null));
         // create a simple object
         ExampleAutoincrement foo = new ExampleAutoincrement();
         foo.name = "Foo Bar";
@@ -27,14 +23,14 @@ public class InsertionTest extends SqliteTest {
         foo.bool = true;
 
         // insert it into the database
-        Object id = getNormalAdapter().store(foo);
+        Object id = getAdapter().store(foo);
 
         // it should have inserted in the first record
         assertTrue(id instanceof Long);
         assertEquals(1L, ((Long) id).longValue());
 
         // if we retrieve all elements, it should be there in the first record
-        List<ExampleAutoincrement> all = getNormalAdapter().findAll(ExampleAutoincrement.class);
+        List<ExampleAutoincrement> all = getAdapter().findAll(ExampleAutoincrement.class);
         assertEquals(1, all.size());
         assertEquals(foo, all.get(0));
     }
@@ -51,14 +47,14 @@ public class InsertionTest extends SqliteTest {
             foo.bool = random.nextBoolean();
             collection.add(foo);
         }
-        getNormalAdapter().storeCollection(collection, null);
+        getAdapter().storeCollection(collection, null);
 
         // it should have stored all items
-        assertEquals(collection.size(), getNormalAdapter().count(ExampleAutoincrement.class));
+        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
 
         // now let's see if it stored everything
         for (ExampleAutoincrement exampleAutoincrement : collection) {
-            ExampleAutoincrement found = getNormalAdapter().findFirst(exampleAutoincrement);
+            ExampleAutoincrement found = getAdapter().findFirst(exampleAutoincrement);
             assertNotNull(found);
             exampleAutoincrement.id = found.id;
             assertEquals(exampleAutoincrement, found);
@@ -66,7 +62,7 @@ public class InsertionTest extends SqliteTest {
 
         // now let's test test unique collection. In order to do so, we will remove half elements from
         // the original collection, and modify half elements of that sub-collection
-        collection = getNormalAdapter().findAll(ExampleAutoincrement.class);
+        collection = getAdapter().findAll(ExampleAutoincrement.class);
         collection = collection.subList(0, collection.size() / 2);
         for (int i = 0, halfCollectionSize = collection.size() / 2; i < halfCollectionSize; i++) {
             ExampleAutoincrement foo = collection.get(i);
@@ -78,15 +74,17 @@ public class InsertionTest extends SqliteTest {
 
         // now, using the store unique collection method there should be only 50 elements
         // it should have stored all items
-        getNormalAdapter().storeUniqueCollection(collection, null);
-        assertEquals(collection.size(), getNormalAdapter().count(ExampleAutoincrement.class));
+        getAdapter().storeUniqueCollection(collection, null);
+        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
 
         // and everything must have been saved correctly
         for (ExampleAutoincrement exampleAutoincrement : collection) {
-            ExampleAutoincrement found = getNormalAdapter().findFirst(exampleAutoincrement);
+            ExampleAutoincrement found = getAdapter().findFirst(exampleAutoincrement);
             assertNotNull(found);
             exampleAutoincrement.id = found.id;
             assertEquals(exampleAutoincrement, found);
         }
     }
+
+    public abstract SqlAdapter getAdapter();
 }

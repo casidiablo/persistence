@@ -3,9 +3,9 @@ package com.codeslap.persistence;
 /**
  * @author cristian
  */
-public class QuickConstraintsTest extends ConstraintsTest{
+public class NormalUpdateTest extends UpdateTest{
     @Override
     protected SqlAdapter getAdapter() {
-        return getQuickAdapter();
+        return getNormalAdapter();
     }
 }

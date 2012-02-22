@@ -150,7 +150,7 @@ class QuickSqlAdapter implements SqlAdapter {
     @Override
     public <T> int delete(Class<T> theClass, String where, String[] whereArgs, boolean onCascade) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        int delete = adapter.delete(theClass, where, whereArgs);
+        int delete = adapter.delete(theClass, where, whereArgs, onCascade);
         adapter.close();
         return delete;
     }

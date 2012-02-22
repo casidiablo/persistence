@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author cristian
  */
-public class UpdateTest extends SqliteTest {
+public abstract class UpdateTest extends SqliteTest {
     @Test
     public void updateTest() {
         // let's insert a record
@@ -19,7 +19,7 @@ public class UpdateTest extends SqliteTest {
         foo.number = random.nextInt();
         foo.decimal = random.nextFloat();
         foo.bool = random.nextBoolean();
-        getNormalAdapter().store(foo);
+        getAdapter().store(foo);
 
         // now, let's create a new object with different data
         ExampleAutoincrement bar = new ExampleAutoincrement();
@@ -29,8 +29,8 @@ public class UpdateTest extends SqliteTest {
         boolean bool = bar.bool = random.nextBoolean();
 
         // after updating this record, all its data should have changed...
-        getNormalAdapter().update(bar, foo);
-        ExampleAutoincrement baz = getNormalAdapter().findAll(ExampleAutoincrement.class).get(0);
+        getAdapter().update(bar, foo);
+        ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
         assertEquals(name, baz.name);
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);
@@ -45,7 +45,7 @@ public class UpdateTest extends SqliteTest {
         foo.number = random.nextInt();
         foo.decimal = random.nextFloat();
         foo.bool = random.nextBoolean();
-        getNormalAdapter().store(foo);
+        getAdapter().store(foo);
 
         // now, let's create a new object with different data
         ExampleAutoincrement bar = new ExampleAutoincrement();
@@ -55,11 +55,13 @@ public class UpdateTest extends SqliteTest {
         boolean bool = bar.bool = random.nextBoolean();
 
         // after updating this record, all its data should have changed...
-        getNormalAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
-        ExampleAutoincrement baz = getNormalAdapter().findAll(ExampleAutoincrement.class).get(0);
+        getAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
+        ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
         assertEquals(name, baz.name);
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);
         assertEquals(bool, baz.bool);
     }
+
+    protected abstract SqlAdapter getAdapter();
 }

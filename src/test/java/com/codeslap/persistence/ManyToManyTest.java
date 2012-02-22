@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author cristian
  */
-public class ManyToManyTest extends SqliteTest {
+public abstract class ManyToManyTest extends SqliteTest {
     @Test
     public void testManyToMany() {
         // let's create some dummy data
@@ -35,12 +35,14 @@ public class ManyToManyTest extends SqliteTest {
         fernando.books = Arrays.asList(tautologia, imposturologia, puta);
         william.books = Arrays.asList(tautologia, foo);
 
-        getNormalAdapter().storeCollection(Arrays.asList(william, fernando), null);
+        getAdapter().storeCollection(Arrays.asList(william, fernando), null);
 
-        Author vallejo = getNormalAdapter().findFirst(Author.class, "name LIKE 'Vallejo'", null);
-        Author ospina = getNormalAdapter().findFirst(Author.class, "name LIKE 'Ospinas'", null);
+        Author vallejo = getAdapter().findFirst(Author.class, "name LIKE 'Vallejo'", null);
+        Author ospina = getAdapter().findFirst(Author.class, "name LIKE 'Ospinas'", null);
 
         assertEquals(fernando, vallejo);
         assertEquals(william, ospina);
     }
+
+    protected abstract SqlAdapter getAdapter();
 }

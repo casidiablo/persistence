@@ -3,7 +3,7 @@ package com.codeslap.persistence;
 /**
  * @author cristian
  */
-public class QuickConstraintsTest extends ConstraintsTest{
+public class QuickHasManyTest extends HasManyTest{
     @Override
     protected SqlAdapter getAdapter() {
         return getQuickAdapter();
