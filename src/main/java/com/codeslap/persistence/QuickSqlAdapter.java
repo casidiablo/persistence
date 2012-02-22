@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012 CodeSlap
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.codeslap.persistence;
 
 import android.content.Context;
@@ -131,18 +147,35 @@ class QuickSqlAdapter implements SqlAdapter {
 
     @Override
     public <T> int delete(T where) {
+        return delete(where, false);
+    }
+
+    @Override
+    public <T> int delete(T where, boolean onCascade) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        int delete = adapter.delete(where);
+        int delete = adapter.delete(where, onCascade);
         adapter.close();
         return delete;
     }
 
     @Override
     public <T> int delete(Class<T> clazz, String where, String[] whereArgs) {
+        return delete(clazz, where, whereArgs, false);
+    }
+
+    @Override
+    public <T> int delete(Class<T> theClass, String where, String[] whereArgs, boolean onCascade) {
         SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
-        int delete = adapter.delete(clazz, where, whereArgs);
+        int delete = adapter.delete(theClass, where, whereArgs, onCascade);
         adapter.close();
         return delete;
+    }
+
+    @Override
+    public void truncate(Class<?>... classes) {
+        SqlAdapter adapter = Persistence.getSqliteAdapter(mContext, mDbName);
+        adapter.truncate(classes);
+        adapter.close();
     }
 
     @Override

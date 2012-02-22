@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012 CodeSlap
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.codeslap.persistence;
 
 import android.content.Context;
@@ -20,12 +36,12 @@ class PrefsAdapterImpl implements PreferencesAdapter {
     private final Context mContext;
     private final String mName;
 
-    public PrefsAdapterImpl(Context context, String name) {
+    PrefsAdapterImpl(Context context, String name) {
         mContext = context;
         mName = name;
     }
 
-    public PrefsAdapterImpl(Context context) {
+    PrefsAdapterImpl(Context context) {
         this(context, DEFAULT_PREFS);
     }
 
@@ -77,25 +93,34 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 } else if (type == String.class) {
                     String def = defaultEnabled ? annotation.defaultValue() : null;
                     value = getSharedPreferences(clazz).getString(keyName, def);
+                } else {
+                    String msg = String.format("Current object (%s) has incompatible fields (%s of type %s)", bean, field, type);
+                    PersistenceLogManager.e("pref", msg);
                 }
                 field.set(bean, value);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return bean;
     }
 
     @Override
-    public <T> void delete(Class<T> clazz) {
+    public <T> boolean delete(Class<T> clazz) {
         SharedPreferences.Editor editor = getSharedPreferences(clazz).edit();
         for (Field field : clazz.getDeclaredFields()) {
-            editor.remove(field.getName());
+            Preference preferenceAnnotation = field.getAnnotation(Preference.class);
+            String keyName;
+            if (preferenceAnnotation == null) {
+                keyName = field.getName();
+            } else {
+                keyName = preferenceAnnotation.key();
+            }
+            editor.remove(keyName);
         }
-        editor.commit();
+        return editor.commit();
     }
 
-    protected <T> void fillEditor(SharedPreferences.Editor editor, T bean) {
+    <T> void fillEditor(SharedPreferences.Editor editor, T bean) {
         for (Field field : bean.getClass().getDeclaredFields()) {
             field.setAccessible(true);
             Preference preferenceAnnotation = field.getAnnotation(Preference.class);
@@ -109,8 +134,9 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 }
                 if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                     editor.putBoolean(keyName, (Boolean) value);
-                } else if (field.getType() == float.class || field.getType() == Float.class
-                        || field.getType() == double.class || field.getType() == Double.class) {
+                } else if (field.getType() == float.class || field.getType() == Float.class) {
+                    editor.putFloat(keyName, (Float) value);
+                } else if (field.getType() == double.class || field.getType() == Double.class) {
                     editor.putFloat(keyName, ((Double) value).floatValue());
                 } else if (field.getType() == Integer.class || field.getType() == int.class) {
                     editor.putInt(keyName, (Integer) value);
@@ -120,7 +146,6 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                     editor.putString(keyName, String.valueOf(value));
                 }
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
             }
         }
     }

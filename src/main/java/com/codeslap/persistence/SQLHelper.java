@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012 CodeSlap
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.codeslap.persistence;
 
 import com.sun.org.apache.xpath.internal.operations.Bool;
@@ -125,6 +141,9 @@ class SQLHelper {
                         if (args == null) {
                             if (field.getType() == String.class) {
                                 conditions.add(String.format("%s LIKE '%s'", normalize(field.getName()), value));
+                            } else if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                                int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                                conditions.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
                             } else {
                                 conditions.add(String.format("%s = '%s'", normalize(field.getName()), value));
                             }
@@ -133,6 +152,9 @@ class SQLHelper {
                                 conditions.add(String.format("%s LIKE ?", normalize(field.getName())));
                             } else {
                                 conditions.add(String.format("%s = ?", normalize(field.getName())));
+                            }
+                            if (field.getType() == Bool.class || field.getType() == boolean.class) {
+                                value = ((Boolean) value).booleanValue() ? 1 : 0;
                             }
                             args.add(String.valueOf(value));
                         }
@@ -180,8 +202,14 @@ class SQLHelper {
                     }
                     field.setAccessible(true);
                     Object value = field.get(bean);
-                    if (hasData(type, value)) {
-                        sets.add(String.format("%s = '%s'", normalize(field.getName()), String.valueOf(value).replace("'", "''")));
+                    boolean isBoolean = field.getType() == Bool.class || field.getType() == boolean.class;
+                    if (isBoolean || hasData(type, value)) {
+                        if (isBoolean) {
+                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            sets.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
+                        } else {
+                            sets.add(String.format("%s = '%s'", normalize(field.getName()), String.valueOf(value).replace("'", "''")));
+                        }
                     }
                 } catch (IllegalAccessException ignored) {
                 }
@@ -204,7 +232,7 @@ class SQLHelper {
         return builder.toString();
     }
 
-    private static boolean hasData(Class<?> type, Object value) {
+    static boolean hasData(Class<?> type, Object value) {
         if (type == long.class || type == Long.class) {
             return value != null && ((Long) value) != 0L;
         }
@@ -218,6 +246,12 @@ class SQLHelper {
             return value != null && ((Double) value) != 0.0;
         }
         if (type == boolean.class || type == Boolean.class) {
+            if (value instanceof Boolean) {
+                return (Boolean) value;
+            }
+            if (value instanceof Integer) {
+                return ((Integer) value) != 0;
+            }
             return false;
         }
         return value != null;
@@ -225,7 +259,7 @@ class SQLHelper {
 
     /**
      * @param name string to normalize
-     * @return converts a camelcase string into a lowercase, _ separated string
+     * @return converts a camel-case string into a lowercase, _ separated string
      */
     static String normalize(String name) {
         StringBuilder newName = new StringBuilder();
@@ -267,6 +301,10 @@ class SQLHelper {
         }
 
         // build insert statement for the main object
+        if (values.size() == 0 && persistence.getAutoIncrementList().contains(bean.getClass())) {
+            String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
+            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), ID, hack, STATEMENT_SEPARATOR);
+        }
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
 

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012 CodeSlap
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.codeslap.persistence;
 
 import android.content.Context;
@@ -22,7 +38,7 @@ import java.util.Map;
 class SqliteAdapterImpl implements SqlAdapter {
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
-    private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = '%s' AND %s = '%s') == 0 THEN %s ELSE NULL END";
+    private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
 
     private final SQLiteDatabase mDb;
     private final SqlPersistence mPersistence;
@@ -55,9 +71,7 @@ class SqliteAdapterImpl implements SqlAdapter {
         T emptySample = null;
         try {
             emptySample = clazz.newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return findAll(emptySample, null);
@@ -101,9 +115,19 @@ class SqliteAdapterImpl implements SqlAdapter {
             String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
             String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
             for (String statement : statements) {
+                if (statement.isEmpty()) {
+                    continue;
+                }
                 mDb.execSQL(statement);
             }
             mDb.execSQL("COMMIT;");
+        }
+        Field idField = null;
+        try {
+            idField = theClass.getDeclaredField(SQLHelper.ID);
+            idField.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
         }
         if (mPersistence.getAutoIncrementList().contains(theClass)) {
             Cursor lastId = mDb.query("sqlite_sequence", new String[]{"seq"}, "name = ?",
@@ -111,12 +135,17 @@ class SqliteAdapterImpl implements SqlAdapter {
             if (lastId != null && lastId.moveToFirst()) {
                 long id = lastId.getLong(0);
                 lastId.close();
+                if (idField != null) {
+                    try {
+                        idField.set(bean, id);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
                 return id;
             }
         } else {
             try {
-                Field idField = theClass.getDeclaredField(SQLHelper.ID);
-                idField.setAccessible(true);
                 return idField.get(bean);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -176,6 +205,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                         Object storedObject = id.get(object);
                         if (storedId != null && storedObject != null && storedId.equals(storedObject)) {
                             contained = true;
+                            break;
                         }
                     }
                     if (!contained) {
@@ -224,6 +254,11 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> int delete(T sample) {
+        return delete(sample, false);
+    }
+
+    @Override
+    public <T> int delete(T sample, boolean onCascade) {
         if (sample == null) {
             return -1;
         }
@@ -235,6 +270,11 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> int delete(Class<T> theClass, String where, String[] whereArgs) {
+        return delete(theClass, where, whereArgs, false);
+    }
+
+    @Override
+    public <T> int delete(Class<T> theClass, String where, String[] whereArgs, boolean onCascade) {
         SqlPersistence.Relationship relationship = mPersistence.getRelationship(theClass);
         if (!relationship.equals(SqlPersistence.Relationship.UNKNOWN)) {
             Field idField = null;
@@ -247,16 +287,18 @@ class SqliteAdapterImpl implements SqlAdapter {
             if (idField != null) {
                 switch (relationship) {
                     case HAS_MANY:
-                        HasMany hasMany = mPersistence.has(theClass);
-                        List<T> toDelete = findAll(theClass, where, whereArgs);
-                        for (T object : toDelete) {
-                            try {
-                                Object objectId = idField.get(object);
-                                Class<?>[] classes = hasMany.getClasses();
-                                Class<?> containedClass = classes[1];
-                                String whereForeign = String.format("%s = '%s'", hasMany.getForeignKey(), String.valueOf(objectId));
-                                delete(containedClass, whereForeign, null);
-                            } catch (IllegalAccessException ignored) {
+                        if (onCascade) {
+                            HasMany hasMany = mPersistence.has(theClass);
+                            List<T> toDelete = findAll(theClass, where, whereArgs);
+                            for (T object : toDelete) {
+                                try {
+                                    Object objectId = idField.get(object);
+                                    Class<?>[] classes = hasMany.getClasses();
+                                    Class<?> containedClass = classes[1];
+                                    String whereForeign = String.format("%s = '%s'", hasMany.getForeignKey(), String.valueOf(objectId));
+                                    delete(containedClass, whereForeign, null);
+                                } catch (IllegalAccessException ignored) {
+                                }
                             }
                         }
                         break;
@@ -265,17 +307,45 @@ class SqliteAdapterImpl implements SqlAdapter {
                         for (ManyToMany manyToMany : manyToManyList) {
                             Class<?>[] classes = manyToMany.getClasses();
                             String foreignKey;
+                            String foreignCurrentKey;
+                            Class<?> relationTable;
                             if (classes[0] == theClass) {
                                 foreignKey = manyToMany.getMainKey();
+                                foreignCurrentKey = manyToMany.getSecondaryKey();
+                                relationTable = classes[1];
                             } else {
                                 foreignKey = manyToMany.getSecondaryKey();
+                                foreignCurrentKey = manyToMany.getMainKey();
+                                relationTable = classes[0];
                             }
                             List<T> toRemove = findAll(theClass, where, whereArgs);
                             for (T object : toRemove) {
                                 try {
                                     Object objectId = idField.get(object);
                                     String whereForeign = String.format("%s = '%s'", foreignKey, String.valueOf(objectId));
+
+                                    List<String> ids = new ArrayList<String>();
+                                    if (onCascade) {
+                                        Cursor deletionCursor = mDb.query(manyToMany.getTableName(), null, whereForeign, null, null, null, null);
+                                        if (deletionCursor.moveToFirst()) {
+                                            do {
+                                                int index = deletionCursor.getColumnIndex(foreignCurrentKey);
+                                                ids.add(deletionCursor.getString(index));
+                                            } while (deletionCursor.moveToNext());
+                                        }
+                                        deletionCursor.close();
+                                    }
+
                                     mDb.delete(manyToMany.getTableName(), whereForeign, null);
+
+                                    for (String id : ids) {
+                                        String whereRest = String.format("%s = '%s'", foreignCurrentKey, id);
+                                        Cursor cursorRest = mDb.query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
+                                        // this means there is no other relation with this object, so we can delete it on cascade :)
+                                        if (cursorRest.getCount() == 0) {
+                                            mDb.delete(SQLHelper.getTableName(relationTable), SQLHelper.ID + " = ?", new String[]{id});
+                                        }
+                                    }
                                 } catch (IllegalAccessException ignored) {
                                 }
                             }
@@ -286,6 +356,15 @@ class SqliteAdapterImpl implements SqlAdapter {
         }
 
         return mDb.delete(SQLHelper.getTableName(theClass), where, whereArgs);
+    }
+
+    @Override
+    public void truncate(Class<?>... classes) {
+        for (Class<?> theClass : classes) {
+            String tableName = SQLHelper.getTableName(theClass);
+            mDb.delete(tableName, null, null);
+            mDb.delete("sqlite_sequence", "name LIKE ?", new String[]{tableName});
+        }
     }
 
     @Override
@@ -367,13 +446,12 @@ class SqliteAdapterImpl implements SqlAdapter {
         // first try to find the bean by id (if its id is not autoincrement)
         // and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
-        if (!mPersistence.getAutoIncrementList().contains(theClass)) {
-            try {
-                // get its ID
-                Field theId = theClass.getDeclaredField(SQLHelper.ID);
-                theId.setAccessible(true);
-                Object beanId = theId.get(bean);
-
+        try {
+            // get its ID
+            Field theId = theClass.getDeclaredField(SQLHelper.ID);
+            theId.setAccessible(true);
+            Object beanId = theId.get(bean);
+            if (SQLHelper.hasData(theId.getType(), beanId)) {
                 // create an object of the same type of the bean with the same id to search of it
                 Constructor<?> constructor = theClass.getConstructor();
                 Object sample = constructor.newInstance();
@@ -388,8 +466,9 @@ class SqliteAdapterImpl implements SqlAdapter {
                     // update the bean using the just create sample
                     return SQLHelper.getUpdateStatement(bean, sample);// TODO update children
                 }
-            } catch (Exception ignored) {
             }
+
+        } catch (Exception ignored) {
         }
 
         String mainInsertStatement = SQLHelper.getInsertStatement(bean, attachedTo, mPersistence);
@@ -499,7 +578,7 @@ class SqliteAdapterImpl implements SqlAdapter {
             Constructor<? extends T> constructor = theClass.getConstructor();
             bean = constructor.newInstance();
         } catch (Exception e) {
-            throw new RuntimeException("Could not initialize object of type " + theClass+", "+e.getMessage());
+            throw new RuntimeException("Could not initialize object of type " + theClass + ", " + e.getMessage());
         }
 
         // get each field and put its value in a content values object
@@ -580,7 +659,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                     field.set(bean, value);
                 }
             } catch (Exception e) {
-                throw new RuntimeException(String.format("An error occurred setting value to '%s', (%s): %s%n", field, value, e.getMessage()));
+                throw new RuntimeException(String.format("An error occurred setting value to \"%s\", (%s): %s%n", field, value, e.getMessage()));
             }
         }
         return bean;
@@ -604,5 +683,28 @@ class SqliteAdapterImpl implements SqlAdapter {
             value = query.getString(columnIndex);
         }
         return value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SqliteAdapterImpl that = (SqliteAdapterImpl) o;
+
+        if (mDb != null ? !mDb.equals(that.mDb) : that.mDb != null) return false;
+        if (mInsertHelperMap != null ? !mInsertHelperMap.equals(that.mInsertHelperMap) : that.mInsertHelperMap != null)
+            return false;
+        if (mPersistence != null ? !mPersistence.equals(that.mPersistence) : that.mPersistence != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mDb != null ? mDb.hashCode() : 0;
+        result = 31 * result + (mPersistence != null ? mPersistence.hashCode() : 0);
+        result = 31 * result + (mInsertHelperMap != null ? mInsertHelperMap.hashCode() : 0);
+        return result;
     }
 }

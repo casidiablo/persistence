@@ -1,3 +1,19 @@
+/*
+ * Copyright 2012 CodeSlap
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.codeslap.persistence;
 
 import java.util.List;
@@ -82,22 +98,22 @@ public interface SqlAdapter {
     /**
      * Retrieves an object from the database
      *
-     * @param clazz     the type of the object to retrieve
+     * @param theClass     the type of the object to retrieve
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return the first found element using the raw query parameters
      */
-    <T> T findFirst(Class<T> clazz, String where, String[] whereArgs);
+    <T> T findFirst(Class<T> theClass, String where, String[] whereArgs);
 
     /**
      * Retrieves all elements from the database of the specified type
      *
-     * @param clazz the class of the object that we want to retrieve
+     * @param theClass the class of the object that we want to retrieve
      * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return a list of {@link T} objects
      */
-    <T> List<T> findAll(Class<T> clazz);
+    <T> List<T> findAll(Class<T> theClass);
 
     /**
      * Retrieves all elements from the database that matches the specified sample
@@ -131,13 +147,13 @@ public interface SqlAdapter {
     /**
      * Retrieves all elements from the database that matches the specified sample
      *
-     * @param clazz     the class to find all items
+     * @param theClass     the class to find all items
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return a list of {@link T} objects
      */
-    <T> List<T> findAll(Class<T> clazz, String where, String[] whereArgs);
+    <T> List<T> findAll(Class<T> theClass, String where, String[] whereArgs);
 
     /**
      * Deletes one or more elements from the database
@@ -151,13 +167,42 @@ public interface SqlAdapter {
     /**
      * Deletes one or more elements from the database
      *
-     * @param clazz     the type of the object to delete
+     * @param where     sample object
+     * @param onCascade true if it must delete relations on cascade
+     * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @return how many items were deleted
+     */
+    <T> int delete(T where, boolean onCascade);
+
+    /**
+     * Deletes one or more elements from the database
+     *
+     * @param theClass     the type of the object to delete
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return how many items were deleted
      */
-    <T> int delete(Class<T> clazz, String where, String[] whereArgs);
+    <T> int delete(Class<T> theClass, String where, String[] whereArgs);
+
+    /**
+     * Deletes one or more elements from the database
+     *
+     * @param theClass     the type of the object to delete
+     * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+     * @param onCascade true if it must delete relations on cascade
+     * @param whereArgs the list of values used in the wildcards
+     * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @return how many items were deleted
+     */
+    <T> int delete(Class<T> theClass, String where, String[] whereArgs, boolean onCascade);
+
+    /**
+     * Truncates a table. This will also remove the autoincrement counters
+     *
+     * @param classes the type of the object to delete
+     */
+    void truncate(Class<?>... classes);
 
     /**
      * Counts how many items there are in the database and match the specified condition
@@ -171,22 +216,22 @@ public interface SqlAdapter {
     /**
      * Counts how many items there are in the database and match the specified condition
      *
-     * @param clazz     the class of the object that we want to count
+     * @param theClass     the class of the object that we want to count
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return number of elements in the table of the specified object
      */
-    <T> int count(Class<T> clazz, String where, String[] whereArgs);
+    <T> int count(Class<T> theClass, String where, String[] whereArgs);
 
     /**
      * Counts how many items there are in the database
      *
-     * @param clazz the class of the object that we want to count
+     * @param theClass the class of the object that we want to count
      * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return number of elements in the table of the specified object
      */
-    <T> int count(Class<T> clazz);
+    <T> int count(Class<T> theClass);
 
     /**
      * Closes the database

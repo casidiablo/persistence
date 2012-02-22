@@ -14,30 +14,25 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.test.persistence;
 
-import java.util.ArrayList;
-import java.util.List;
+import android.app.Activity;
+import com.codeslap.persistence.Persistence;
+import com.codeslap.persistence.PreferencesAdapter;
+import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * @author cristian
  */
-@SuppressWarnings("UnusedDeclaration")
-public class PrefsPersistence {
-    private final List<Class<?>> PREFS_MAP = new ArrayList<Class<?>>();
+public class PrefHelperTest extends PrefTest {
+    @Test
+    public void prefHelperTest() {
+        PreferencesAdapter adapter = Persistence.getPreferenceAdapter(new Activity());
+        assertNotNull(adapter);
 
-    public PrefsPersistence() {
-    }
-
-    public void match(Class<?>... types) {
-        for (Class<?> type : types) {
-            if (!PREFS_MAP.contains(type)) {
-                PREFS_MAP.add(type);
-            }
-        }
-    }
-
-    boolean belongsToPreferences(Class<?> clazz) {
-        return PREFS_MAP.contains(clazz);
+        adapter = Persistence.getPreferenceAdapter(new Activity(), "test.pref");
+        assertNotNull(adapter);
     }
 }
