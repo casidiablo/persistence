@@ -259,7 +259,7 @@ class SQLHelper {
 
     /**
      * @param name string to normalize
-     * @return converts a camelcase string into a lowercase, _ separated string
+     * @return converts a camel-case string into a lowercase, _ separated string
      */
     static String normalize(String name) {
         StringBuilder newName = new StringBuilder();

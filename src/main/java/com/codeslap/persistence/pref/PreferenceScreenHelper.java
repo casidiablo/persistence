@@ -166,9 +166,9 @@ public class PreferenceScreenHelper {
 
     private static class CategoryMetadata {
 
-        int categoryTitle;
+        final int categoryTitle;
 
-        int categoryOrder;
+        final int categoryOrder;
 
         private CategoryMetadata(int categoryTitle, int categoryOrder) {
             this.categoryTitle = categoryTitle;

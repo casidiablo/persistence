@@ -28,7 +28,7 @@ import java.lang.reflect.Method;
 */
 class SmartEditTextPreference extends EditTextPreference implements android.preference.Preference.OnPreferenceClickListener {
     private final Class<?> mType;
-    private String mDefVal;
+    private final String mDefVal;
 
     public SmartEditTextPreference(Context context, Class<?> type, String defVal) {
         super(context);

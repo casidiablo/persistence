@@ -120,7 +120,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
         return editor.commit();
     }
 
-    protected <T> void fillEditor(SharedPreferences.Editor editor, T bean) {
+    <T> void fillEditor(SharedPreferences.Editor editor, T bean) {
         for (Field field : bean.getClass().getDeclaredFields()) {
             field.setAccessible(true);
             Preference preferenceAnnotation = field.getAnnotation(Preference.class);

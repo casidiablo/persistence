@@ -88,7 +88,7 @@ class Node {
         return mParent;
     }
 
-    public void setParent(Node parent) {
+    void setParent(Node parent) {
         mParent = parent;
     }
 

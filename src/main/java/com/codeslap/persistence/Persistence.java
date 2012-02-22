@@ -27,7 +27,7 @@ import java.util.Map;
  * @author cristian
  */
 public class Persistence {
-    public static final String TAG = Persistence.class.getSimpleName();
+    private static final String TAG = Persistence.class.getSimpleName();
 
     private static final Map<String, SqlAdapter> QUICK_ADAPTERS = new HashMap<String, SqlAdapter>();
 

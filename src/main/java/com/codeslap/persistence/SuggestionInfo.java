@@ -21,9 +21,9 @@ package com.codeslap.persistence;
  * @author cristian
  */
 public class SuggestionInfo {
-    private long mId;
-    private String mText;
-    private String mDescription;
+    private final long mId;
+    private final String mText;
+    private final String mDescription;
 
     private SuggestionInfo(long id, String text, String description) {
         mId = id;

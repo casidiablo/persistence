@@ -37,7 +37,7 @@ public abstract class PrefTest {
     }
 
     public static class PrefImpossibleBean {
-        private String mData;
+        private final String mData;
 
         public PrefImpossibleBean(String data) {
             mData = data;

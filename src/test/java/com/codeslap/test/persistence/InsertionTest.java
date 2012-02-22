@@ -104,5 +104,5 @@ public abstract class InsertionTest extends SqliteTest {
         }
     }
 
-    public abstract SqlAdapter getAdapter();
+    protected abstract SqlAdapter getAdapter();
 }
