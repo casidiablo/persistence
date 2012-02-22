@@ -7,5 +7,5 @@ public interface PreferencesAdapter {
 
     public <T> T retrieve(Class<T> clazz);
 
-    public <T> void delete(Class<T> clazz);
+    public <T> boolean delete(Class<T> clazz);
 }

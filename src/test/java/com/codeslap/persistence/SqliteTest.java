@@ -39,6 +39,10 @@ public abstract class SqliteTest {
         return mAdapter;
     }
 
+    SqlAdapter getQuickAdapter() {
+        return Persistence.quick(new Activity());
+    }
+
     SqlPersistence getDatabase() {
         return mDatabase;
     }
