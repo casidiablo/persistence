@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.persistence.suggestions;
 
 import android.database.Cursor;
 import com.codeslap.robolectric.RobolectricSimpleRunner;
@@ -23,9 +23,7 @@ import org.junit.runner.RunWith;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author cristian

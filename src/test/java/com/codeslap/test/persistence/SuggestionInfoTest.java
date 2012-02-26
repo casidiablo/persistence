@@ -16,7 +16,7 @@
 
 package com.codeslap.test.persistence;
 
-import com.codeslap.persistence.SuggestionInfo;
+import com.codeslap.persistence.suggestions.SuggestionInfo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
