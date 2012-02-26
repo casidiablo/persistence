@@ -104,5 +104,47 @@ public abstract class InsertionTest extends SqliteTest {
         }
     }
 
+    @Test
+    public void testAnnotationInsertion() {
+        assertNull(getAdapter().store(null));
+        // create a simple object
+        AnnotationAutoincrement foo = new AnnotationAutoincrement();
+        foo.name = "Foo Bar";
+        foo.number = 111;
+        foo.decimal = 222f;
+        foo.bool = true;
+
+        // insert it into the database
+        Object id = getAdapter().store(foo);
+
+        // it should have inserted in the first record
+        assertTrue(id instanceof Long);
+        assertEquals(1L, ((Long) id).longValue());
+
+        // if we retrieve one element by ID it should be equal to the one inserted
+        AnnotationAutoincrement bar = getAdapter().findFirst(AnnotationAutoincrement.class, "id = 1", null);
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by name it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo Bar"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by number it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "signed = ?", new String[]{"111"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by decimal it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "value = ?", new String[]{"222"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by bool it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "active = ?", new String[]{"1"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by bool but false, it it should be null
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "active = ?", new String[]{"0"});
+        assertNull(bar);
+    }
+
     protected abstract SqlAdapter getAdapter();
 }

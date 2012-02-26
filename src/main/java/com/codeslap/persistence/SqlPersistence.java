@@ -167,6 +167,14 @@ public class SqlPersistence {
     }
 
     /**
+     * @param theClass the class to check
+     * @return true if the class is registered as autoincrement
+     */
+    boolean isAutoincrement(Class<?> theClass) {
+        return AUTO_INCREMENT_LIST.contains(theClass);
+    }
+
+    /**
      * @param theClass the table to search for
      * @return a list with the many-to-many relations of this table
      */
@@ -201,10 +209,6 @@ public class SqlPersistence {
 
     List<Class<?>> getSqliteClasses() {
         return SQLITE_LIST;
-    }
-
-    List<Class<?>> getAutoIncrementList() {
-        return AUTO_INCREMENT_LIST;
     }
 
     List<ManyToMany> getSqliteManyToMany() {

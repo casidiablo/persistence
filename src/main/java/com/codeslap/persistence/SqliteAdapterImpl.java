@@ -36,6 +36,8 @@ import java.util.Map;
  * paradigm), use PreferencesAdapter.
  */
 class SqliteAdapterImpl implements SqlAdapter {
+    private static final String TAG = SqliteAdapterImpl.class.getSimpleName();
+
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
     private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
@@ -125,17 +127,26 @@ class SqliteAdapterImpl implements SqlAdapter {
         Field idField = null;
         try {
             idField = theClass.getDeclaredField(SQLHelper.ID);
-            idField.setAccessible(true);
         } catch (NoSuchFieldException e) {
-            e.printStackTrace();
+            PersistenceLogManager.e(TAG, "Could not find a normal ID... let's try to find by annotation...");
+            for (Field field : theClass.getDeclaredFields()) {
+                PrimaryKey current = field.getAnnotation(PrimaryKey.class);
+                if (current != null && idField != null) {
+                    throw new IllegalStateException("Cannot have two primary keys");
+                } else if (current != null) {
+                    idField = field;
+                }
+            }
         }
-        if (mPersistence.getAutoIncrementList().contains(theClass)) {
+        // if it is autoincrement, we will try to populate the id field with the inserted id
+        if (mPersistence.isAutoincrement(theClass)) {
             Cursor lastId = mDb.query("sqlite_sequence", new String[]{"seq"}, "name = ?",
                     new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
             if (lastId != null && lastId.moveToFirst()) {
                 long id = lastId.getLong(0);
                 lastId.close();
                 if (idField != null) {
+                    idField.setAccessible(true);
                     try {
                         idField.set(bean, id);
                     } catch (IllegalAccessException e) {
@@ -143,9 +154,12 @@ class SqliteAdapterImpl implements SqlAdapter {
                     }
                 }
                 return id;
+            } else {
+                lastId.close();
             }
         } else {
             try {
+                idField.setAccessible(true);
                 return idField.get(bean);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -517,7 +531,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
                                 // get the value for the main bean ID
                                 Object beanId;
-                                if (mPersistence.getAutoIncrementList().contains(theClass)) {
+                                if (mPersistence.isAutoincrement(theClass)) {
                                     beanId = String.format(SQLHelper.SELECT_AUTOINCREMENT_FORMAT, SQLHelper.getTableName(theClass));
                                 } else {
                                     Field mainId = theClass.getDeclaredField(SQLHelper.ID);
@@ -527,7 +541,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
                                 // get the value for the secondary bean ID
                                 Object secondaryId;
-                                if (mPersistence.getAutoIncrementList().contains(collectionClass)) {
+                                if (mPersistence.isAutoincrement(collectionClass)) {
                                     secondaryId = String.format(SQLHelper.SELECT_AUTOINCREMENT_FORMAT, SQLHelper.getTableName(collectionClass));
                                 } else {
                                     Field secondaryIdField = collectionClass.getDeclaredField(SQLHelper.ID);
@@ -585,7 +599,7 @@ class SqliteAdapterImpl implements SqlAdapter {
         Field[] fields = theClass.getDeclaredFields();
         for (Field field : fields) {
             // get the column index
-            String normalize = SQLHelper.normalize(field.getName());
+            String normalize = SQLHelper.getColumnName(field);
             int columnIndex = query.getColumnIndex(normalize);
             // get an object value depending on the type
             Class type = field.getType();
@@ -625,12 +639,13 @@ class SqliteAdapterImpl implements SqlAdapter {
                             HasMany belongsTo = mPersistence.belongsTo(collectionClass);
                             Class<?> containerClass = belongsTo.getClasses()[0];
                             Field throughField;
+                            String through = SQLHelper.normalize(belongsTo.getThrough());
                             try {
-                                throughField = containerClass.getDeclaredField(belongsTo.getThrough());
+                                throughField = containerClass.getDeclaredField(through);
                             } catch (NoSuchFieldException e) {
                                 break;
                             }
-                            Object foreignValue = getValueFromCursor(throughField.getType(), belongsTo.getThrough(), query);
+                            Object foreignValue = getValueFromCursor(throughField.getType(), through, query);
                             if (foreignValue != null) {
                                 String sql = "SELECT * FROM " + SQLHelper.getTableName(collectionClass) +
                                         " WHERE " + belongsTo.getForeignKey() + " = '" + foreignValue + "'";
@@ -651,7 +666,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                     tree.removeChild(node);
                 }
             } else {// do not process collections here
-                value = getValueFromCursor(type, field.getName(), query);
+                value = getValueFromCursor(type, SQLHelper.getColumnName(field), query);
             }
             try {
                 if (value != null) {
@@ -667,8 +682,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     private Object getValueFromCursor(Class<?> type, String name, Cursor query) {
         // get the column index
-        String normalize = SQLHelper.normalize(name);
-        int columnIndex = query.getColumnIndex(normalize);
+        int columnIndex = query.getColumnIndex(name);
         // get an object value depending on the type
         Object value = null;
         if (type == int.class || type == Integer.class) {

@@ -66,6 +66,39 @@ public abstract class DeleteTest extends SqliteTest {
     }
 
     @Test
+    public void testDeleteAnnotations() {
+        // let's first insert a collection of data
+        List<AnnotationAutoincrement> collection = new ArrayList<AnnotationAutoincrement>();
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            AnnotationAutoincrement foo = new AnnotationAutoincrement();
+            foo.name = "Foo Bar " + random.nextInt();
+            foo.number = random.nextInt();
+            foo.decimal = random.nextFloat();
+            foo.bool = random.nextBoolean();
+            collection.add(foo);
+        }
+        getAdapter().storeCollection(collection, null);
+
+        // now let's delete some data!
+        int deleted = getAdapter().delete(collection.get(0));
+        assertEquals(1, deleted);
+
+        AnnotationAutoincrement foo = collection.get(1);
+        foo.name = null;
+        assertTrue(getAdapter().delete(foo) > 0);
+
+        int count = getAdapter().count(AnnotationAutoincrement.class);
+        assertTrue(count > 0);
+
+        deleted = getAdapter().delete(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo%"});
+        assertTrue(deleted > 0);
+
+        count = getAdapter().count(AnnotationAutoincrement.class);
+        assertEquals(0, count);
+    }
+
+    @Test
     public void testDeleteHasMany() {
         God jesus = new God();
         jesus.name = "Jesus";
