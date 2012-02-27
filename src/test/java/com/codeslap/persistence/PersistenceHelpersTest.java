@@ -48,6 +48,20 @@ public class PersistenceHelpersTest extends SqliteTest {
     }
 
     @Test(expected = IllegalStateException.class)
+    public void shouldFailWithMultipleManyToManyRelationships() {
+        SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
+        database.match(new ManyToMany(Author.class, Book.class));
+        database.match(new ManyToMany(Book.class, Author.class));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailWithRepeatedManyToManyRelationships() {
+        SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
+        database.match(new ManyToMany(Author.class, Book.class));
+        database.match(new ManyToMany(Author.class, Book.class));
+    }
+
+    @Test(expected = IllegalStateException.class)
     public void shouldFailWithWhenHasManyRelationDoesNotExist() {
         SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
         database.match(new HasMany(ExampleAutoincrement.class, ExampleNotAutoincrement.class));

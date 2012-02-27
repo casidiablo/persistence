@@ -22,7 +22,7 @@ import java.util.*;
 class SQLHelper {
 
     static final String ID = "id";
-    static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
+    static final String PRIMARY_KEY = "_id INTEGER PRIMARY KEY";
     private static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
@@ -354,7 +354,7 @@ class SQLHelper {
             Class<?> theClass = bean.getClass();
             Field[] fields = theClass.getDeclaredFields();
             for (Field field : fields) {
-                // if the class has an autoincrement, remove the ID
+                // if the class has an autoincrement, ignore the ID
                 if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
                     continue;
                 }
