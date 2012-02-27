@@ -113,16 +113,19 @@ class SqliteAdapterImpl implements SqlAdapter {
         }
         Class<?> theClass = bean.getClass();
         synchronized (mDb) {
-            mDb.execSQL("BEGIN TRANSACTION;");
-            String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
-            String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-            for (String statement : statements) {
-                if (statement.isEmpty()) {
-                    continue;
+            try {
+                mDb.execSQL("BEGIN TRANSACTION;");
+                String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
+                String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+                for (String statement : statements) {
+                    if (statement.isEmpty()) {
+                        continue;
+                    }
+                    mDb.execSQL(statement);
                 }
-                mDb.execSQL(statement);
+            } finally{
+                mDb.execSQL("COMMIT;");
             }
-            mDb.execSQL("COMMIT;");
         }
         Field idField = null;
         try {
@@ -699,26 +702,4 @@ class SqliteAdapterImpl implements SqlAdapter {
         return value;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SqliteAdapterImpl that = (SqliteAdapterImpl) o;
-
-        if (mDb != null ? !mDb.equals(that.mDb) : that.mDb != null) return false;
-        if (mInsertHelperMap != null ? !mInsertHelperMap.equals(that.mInsertHelperMap) : that.mInsertHelperMap != null)
-            return false;
-        if (mPersistence != null ? !mPersistence.equals(that.mPersistence) : that.mPersistence != null) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = mDb != null ? mDb.hashCode() : 0;
-        result = 31 * result + (mPersistence != null ? mPersistence.hashCode() : 0);
-        result = 31 * result + (mInsertHelperMap != null ? mInsertHelperMap.hashCode() : 0);
-        return result;
-    }
 }

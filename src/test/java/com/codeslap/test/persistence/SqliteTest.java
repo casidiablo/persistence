@@ -113,8 +113,10 @@ public abstract class SqliteTest {
     public static class AnnotationAutoincrement {
         @PrimaryKey
         long something;
-        @Column("char_sequence")
+        @Column(value = "char_sequence", notNull = true)
         String name;
+        @Column(value = "the_last_name", notNull = true, defaultValue = "Castiblanco")
+        String lastName;
         @Column("signed")
         int number;
         @Column("value")
@@ -132,7 +134,7 @@ public abstract class SqliteTest {
             if (bool != that.bool) return false;
             if (Float.compare(that.decimal, decimal) != 0) return false;
             if (number != that.number) return false;
-            if (something != that.something) return false;
+            if (lastName != null ? !lastName.equals(that.lastName) : that.lastName != null) return false;
             if (name != null ? !name.equals(that.name) : that.name != null) return false;
 
             return true;
@@ -140,8 +142,8 @@ public abstract class SqliteTest {
 
         @Override
         public int hashCode() {
-            int result = (int) (something ^ (something >>> 32));
-            result = 31 * result + (name != null ? name.hashCode() : 0);
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
             result = 31 * result + number;
             result = 31 * result + (decimal != +0.0f ? Float.floatToIntBits(decimal) : 0);
             result = 31 * result + (bool ? 1 : 0);
@@ -151,8 +153,9 @@ public abstract class SqliteTest {
         @Override
         public String toString() {
             return "AnnotationAutoincrement{" +
-                    "id=" + something +
+                    "something=" + something +
                     ", name='" + name + '\'' +
+                    ", lastName='" + lastName + '\'' +
                     ", number=" + number +
                     ", decimal=" + decimal +
                     ", bool=" + bool +

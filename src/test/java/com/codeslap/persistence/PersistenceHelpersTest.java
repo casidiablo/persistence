@@ -38,8 +38,6 @@ public class PersistenceHelpersTest extends SqliteTest {
         assertNotNull(test);
         SqlAdapter quick = Persistence.getQuickAdapter(new Activity(), "test.db");
         assertNotNull(quick);
-
-        assertEquals(test, sqliteAdapter);
     }
 
     @Test(expected = IllegalStateException.class)

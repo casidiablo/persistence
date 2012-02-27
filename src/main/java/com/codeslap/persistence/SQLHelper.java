@@ -56,7 +56,12 @@ class SQLHelper {
             } else if (field.getType() != List.class) {
                 if (!columns.contains(columnName)) {
                     columns.add(columnName);
-                    fieldSentences.add(getFieldSentence(columnName, field.getType()));
+                    boolean notNull = false;
+                    Column columnAnnotation = field.getAnnotation(Column.class);
+                    if (columnAnnotation != null) {
+                        notNull = columnAnnotation.notNull();
+                    }
+                    fieldSentences.add(getFieldSentence(columnName, field.getType(), notNull));
                 }
             }
         }
@@ -70,7 +75,7 @@ class SQLHelper {
                 Field field = containerClass.getDeclaredField(belongsTo.getThrough());
                 String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThrough()));
                 if (!columns.contains(columnName)) {
-                    fieldSentences.add(getFieldSentence(columnName, field.getType()));
+                    fieldSentences.add(getFieldSentence(columnName, field.getType(), true));
                     columns.add(getColumnName(field));
                 }
             } catch (NoSuchFieldException ignored) {
@@ -107,22 +112,27 @@ class SQLHelper {
     }
 
     /**
-     * @param name the name of the field
-     * @param type the type
+     * @param name    the name of the field
+     * @param type    the type
+     * @param notNull
      * @return the sql statement to create that kind of field
      */
-    private static String getFieldSentence(String name, Class<?> type) {
+    private static String getFieldSentence(String name, Class<?> type, boolean notNull) {
         name = normalize(name);
+        String notNullSentence = "";
+        if (notNull) {
+            notNullSentence = " NOT NULL";
+        }
         if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
-            return String.format("%s INTEGER", name);
+            return String.format("%s INTEGER%s", name, notNullSentence);
         }
         if (type == boolean.class || type == Boolean.class) {
-            return String.format("%s BOOLEAN", name);
+            return String.format("%s BOOLEAN%s", name, notNullSentence);
         }
         if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-            return String.format("%s REAL", name);
+            return String.format("%s REAL%s", name, notNullSentence);
         }
-        return String.format("%s TEXT", name);
+        return String.format("%s TEXT%s", name, notNullSentence);
     }
 
     static <T, G> String getWhere(String dbName, Class<?> theClass, T bean, List<String> args, G attachedTo) {
@@ -278,7 +288,6 @@ class SQLHelper {
     /**
      * @param field field to get the column name from
      * @return gets the column name version of the specified field
-     *         // TODO cache this
      */
     static String getColumnName(Field field) {
         if (COLUMN_NAMES_CACHE.containsKey(field)) {
@@ -342,11 +351,11 @@ class SQLHelper {
 
     private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, SqlPersistence persistence) {
         if (bean != null) {
-            Class<?> clazz = bean.getClass();
-            Field[] fields = clazz.getDeclaredFields();
+            Class<?> theClass = bean.getClass();
+            Field[] fields = theClass.getDeclaredFields();
             for (Field field : fields) {
                 // if the class has an autoincrement, remove the ID
-                if (persistence.isAutoincrement(clazz) && isPrimaryKey(field)) {
+                if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
                     continue;
                 }
                 try {
@@ -363,6 +372,18 @@ class SQLHelper {
                         if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                             values.add(String.format("%d", intValue));
+                        } else if (value == null) {
+                            Column columnAnnotation = field.getAnnotation(Column.class);
+                            boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                            if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
+                                String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
+                                throw new IllegalStateException(msg);
+                            }
+                            if (hasDefault) {
+                                values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
+                            } else {
+                                values.add("NULL");
+                            }
                         } else {
                             values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
                         }
@@ -382,7 +403,7 @@ class SQLHelper {
                                 columns.add(hasMany.getForeignKey());
                             }
                             if (values != null) {
-                                if (persistence.isAutoincrement(clazz)) {
+                                if (persistence.isAutoincrement(theClass)) {
                                     values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
                                 } else {
                                     values.add(String.valueOf(foreignValue));

@@ -16,8 +16,10 @@
 
 package com.codeslap.persistence.pref;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Annotation used by the preference adapters to get the preference's metadata
@@ -25,6 +27,7 @@ import java.lang.annotation.RetentionPolicy;
  * @author cristian
  */
 @Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
 public @interface Preference {
     /**
      * @return the key to use in this preference
