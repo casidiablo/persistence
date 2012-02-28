@@ -28,9 +28,11 @@ import java.util.List;
  */
 public class HasMany {
 
-    private final Class<?> mClassA;
-    private final Class<?> mClassB;
+    private final Class<?> mContainerClass;
+    private final Class<?> mContainedClass;
     private final String mThrough;
+    private final String mThroughColumnName;
+    private final Field mThroughField;
 
     public HasMany(Class<?> classA, Class<?> hasMany, String through, boolean artificial) {
         // do not accept recursive relations
@@ -39,7 +41,8 @@ public class HasMany {
         }
         // make sure the 'through' exists
         try {
-            classA.getDeclaredField(through);
+            mThroughField = classA.getDeclaredField(through);
+            mThroughColumnName = SQLHelper.getColumnName(mThroughField);
         } catch (NoSuchFieldException e) {
             throw new IllegalStateException(e);
         }
@@ -58,12 +61,13 @@ public class HasMany {
             }
             // if relation does not exist, do not continue
             if (!relationExists) {
-                throw new IllegalStateException("Relation does not exist (" + classA + " has many " + hasMany + ")");
+                String msg = String.format("Relation does not exist (%s has many %s)", classA, hasMany);
+                throw new IllegalStateException(msg);
             }
         }
         // if it does exist, set the fields
-        mClassA = classA;
-        mClassB = hasMany;
+        mContainerClass = classA;
+        mContainedClass = hasMany;
         mThrough = through;
     }
 
@@ -78,25 +82,26 @@ public class HasMany {
      * @param hasMany the class contained in classA
      */
     public HasMany(Class<?> classA, Class<?> hasMany) {
-        this(classA, hasMany, SQLHelper.ID);
+        this(classA, hasMany, SQLHelper.getPrimaryKey(hasMany));
     }
 
     /**
      * Creates a has-many relation
      *
-     * @param classA  the class that has many objects...
-     * @param hasMany the class contained in classA
+     * @param classA     the class that has many objects...
+     * @param hasMany    the class contained in classA
      * @param artificial must be true if the relation does not actually exists and you will force it
      */
     public HasMany(Class<?> classA, Class<?> hasMany, boolean artificial) {
         this(classA, hasMany, SQLHelper.ID, artificial);
     }
 
-    Class<?>[] getClasses() {
-        Class<?>[] classes = new Class<?>[2];
-        classes[0] = mClassA;
-        classes[1] = mClassB;
-        return classes;
+    Class<?> getContainerClass() {
+        return mContainerClass;
+    }
+
+    Class<?> getContainedClass() {
+        return mContainedClass;
     }
 
     @Override
@@ -106,8 +111,10 @@ public class HasMany {
 
         HasMany hasMany = (HasMany) o;
 
-        if (mClassA != null ? !mClassA.equals(hasMany.mClassA) : hasMany.mClassA != null) return false;
-        if (mClassB != null ? !mClassB.equals(hasMany.mClassB) : hasMany.mClassB != null) return false;
+        if (mContainerClass != null ? !mContainerClass.equals(hasMany.mContainerClass) : hasMany.mContainerClass != null)
+            return false;
+        if (mContainedClass != null ? !mContainedClass.equals(hasMany.mContainedClass) : hasMany.mContainedClass != null)
+            return false;
         if (mThrough != null ? !mThrough.equals(hasMany.mThrough) : hasMany.mThrough != null) return false;
 
         return true;
@@ -115,22 +122,26 @@ public class HasMany {
 
     @Override
     public int hashCode() {
-        int result = mClassA != null ? mClassA.hashCode() : 0;
-        result = 31 * result + (mClassB != null ? mClassB.hashCode() : 0);
+        int result = mContainerClass != null ? mContainerClass.hashCode() : 0;
+        result = 31 * result + (mContainedClass != null ? mContainedClass.hashCode() : 0);
         result = 31 * result + (mThrough != null ? mThrough.hashCode() : 0);
         return result;
     }
 
-    String getThrough() {
-        return mThrough;
+    String getThroughColumnName() {
+        return mThroughColumnName;
+    }
+
+    Field getThroughField() {
+        return mThroughField;
     }
 
     String getForeignKey() {
-        return String.format("%s_%s", SQLHelper.normalize(mClassA.getSimpleName()), SQLHelper.normalize(mThrough));
+        return String.format("%s_%s", SQLHelper.normalize(mContainerClass.getSimpleName()), SQLHelper.normalize(mThrough));
     }
 
     @Override
     public String toString() {
-        return mClassA + " has many " + mClassB + " through " + mThrough;
+        return mContainerClass + " has many " + mContainedClass + " through " + mThrough;
     }
 }

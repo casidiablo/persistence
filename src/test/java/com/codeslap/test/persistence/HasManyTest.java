@@ -53,7 +53,7 @@ public abstract class HasManyTest extends SqliteTest {
         Object store = getAdapter().store(polyTheist);
         assertTrue(store instanceof Long);
 
-        PolyTheist found = getAdapter().findFirst(PolyTheist.class, "id = ?", new String[]{String.valueOf(store)});
+        PolyTheist found = getAdapter().findFirst(PolyTheist.class, "_id = ?", new String[]{String.valueOf(store)});
         assertNotNull(found);
         assertEquals(polyTheist, found);
     }

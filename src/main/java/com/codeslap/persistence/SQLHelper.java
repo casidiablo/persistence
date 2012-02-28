@@ -22,7 +22,8 @@ import java.util.*;
 class SQLHelper {
 
     static final String ID = "id";
-    static final String PRIMARY_KEY = "_id INTEGER PRIMARY KEY";
+    static final String _ID = "_id";
+    static final String PRIMARY_KEY = _ID + " INTEGER PRIMARY KEY";
     private static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
@@ -70,15 +71,12 @@ class SQLHelper {
         HasMany belongsTo = PersistenceConfig.getDatabase(dbName).belongsTo(clazz);
         if (belongsTo != null) {
             // if so, add a new field to the table creation statement to create the relation
-            Class<?> containerClass = belongsTo.getClasses()[0];
-            try {
-                Field field = containerClass.getDeclaredField(belongsTo.getThrough());
-                String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThrough()));
-                if (!columns.contains(columnName)) {
-                    fieldSentences.add(getFieldSentence(columnName, field.getType(), true));
-                    columns.add(getColumnName(field));
-                }
-            } catch (NoSuchFieldException ignored) {
+            Class<?> containerClass = belongsTo.getContainerClass();
+            Field field = belongsTo.getThroughField();
+            String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThroughField().getName()));
+            if (!columns.contains(columnName)) {
+                fieldSentences.add(getFieldSentence(columnName, field.getType(), true));
+                columns.add(getColumnName(field));
             }
         }
 
@@ -114,7 +112,7 @@ class SQLHelper {
     /**
      * @param name    the name of the field
      * @param type    the type
-     * @param notNull
+     * @param notNull true if the column should be not null
      * @return the sql statement to create that kind of field
      */
     private static String getFieldSentence(String name, Class<?> type, boolean notNull) {
@@ -182,7 +180,7 @@ class SQLHelper {
                 case HAS_MANY: {
                     try {
                         HasMany hasMany = PersistenceConfig.getDatabase(dbName).belongsTo(theClass);
-                        Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
+                        Field primaryForeignKey = hasMany.getThroughField();
                         primaryForeignKey.setAccessible(true);
                         Object foreignValue = primaryForeignKey.get(attachedTo);
                         if (foreignValue != null) {
@@ -294,7 +292,7 @@ class SQLHelper {
             return COLUMN_NAMES_CACHE.get(field);
         }
         if (isPrimaryKey(field)) {
-            return ID;
+            return _ID;
         }
         Column column = field.getAnnotation(Column.class);
         if (column != null) {
@@ -344,7 +342,7 @@ class SQLHelper {
         // build insert statement for the main object
         if (values.size() == 0 && persistence.isAutoincrement(bean.getClass())) {
             String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
-            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), ID, hack, STATEMENT_SEPARATOR);
+            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), _ID, hack, STATEMENT_SEPARATOR);
         }
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
@@ -396,7 +394,7 @@ class SQLHelper {
                     case HAS_MANY: {
                         try {
                             HasMany hasMany = persistence.belongsTo(bean.getClass());
-                            Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
+                            Field primaryForeignKey = hasMany.getThroughField();
                             primaryForeignKey.setAccessible(true);
                             Object foreignValue = primaryForeignKey.get(attachedTo);
                             if (columns != null) {
@@ -422,7 +420,7 @@ class SQLHelper {
         if (annotation != null) {
             return true;
         }
-        return field.getName().equals(SQLHelper.ID);
+        return field.getName().equals(ID) || field.getName().equals(_ID);
     }
 
     static String getTableName(Class<?> clazz) {
@@ -442,5 +440,31 @@ class SQLHelper {
 
     private static <T> String getTableName(T bean) {
         return getTableName(bean.getClass());
+    }
+
+    /**
+     * @param theClass the class to the get primary key from
+     * @return the primary key from a class
+     */
+    public static String getPrimaryKey(Class<?> theClass) {
+        for (Field field : theClass.getDeclaredFields()) {
+            if (isPrimaryKey(field)) {
+                return field.getName();
+            }
+        }
+        throw new IllegalStateException("Class " + theClass + " does not have a primary key");
+    }
+
+    /**
+     * @param theClass the class to the get primary key from
+     * @return the primary key field from a class
+     */
+    public static Field getPrimaryKeyField(Class<?> theClass) {
+        for (Field field : theClass.getDeclaredFields()) {
+            if (isPrimaryKey(field)) {
+                return field;
+            }
+        }
+        throw new IllegalStateException("Class " + theClass + " does not have a primary key");
     }
 }

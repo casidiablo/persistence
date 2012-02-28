@@ -59,4 +59,9 @@ public class PersistenceConfig {
     public static PrefsPersistence getPreference() {
         return getPreference(PreferencesAdapter.DEFAULT_PREFS);
     }
+
+    public static void clear() {
+        SQL.clear();
+        PREFS.clear();
+    }
 }

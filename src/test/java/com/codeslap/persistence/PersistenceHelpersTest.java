@@ -67,6 +67,11 @@ public class PersistenceHelpersTest extends SqliteTest {
         database.match(new HasMany(ExampleAutoincrement.class, ExampleNotAutoincrement.class));
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailWithInvalidHasManyRelation() {
+        assertNotNull(new HasMany(Book.class, Cow.class));
+    }
+
     @Test
     public void testGetRelationship() {
         SqlPersistence.Relationship unknown = getDatabase().getRelationship(ExampleAutoincrement.class, ExampleNotAutoincrement.class);
@@ -82,16 +87,16 @@ public class PersistenceHelpersTest extends SqliteTest {
         List<ManyToMany> manyToMany = getDatabase().getManyToMany(Book.class);
         assertNotNull(manyToMany);
         assertEquals(1, manyToMany.size());
-        assertEquals(Book.class, manyToMany.get(0).getClasses()[0]);
-        assertEquals(Author.class, manyToMany.get(0).getClasses()[1]);
+        assertEquals(Book.class, manyToMany.get(0).getFirstRelation());
+        assertEquals(Author.class, manyToMany.get(0).getSecondRelation());
     }
 
     @Test
     public void testHas() {
         HasMany hasMany = getDatabase().has(PolyTheist.class);
-        assertEquals(PolyTheist.class, hasMany.getClasses()[0]);
-        assertEquals(God.class, hasMany.getClasses()[1]);
-        
+        assertEquals(PolyTheist.class, hasMany.getContainerClass());
+        assertEquals(God.class, hasMany.getContainedClass());
+
         assertNull(getDatabase().has(God.class));
     }
 
@@ -103,5 +108,12 @@ public class PersistenceHelpersTest extends SqliteTest {
     @Test(expected = IllegalStateException.class)
     public void shouldFailWhenNoDatabaseIsAssociated() {
         PersistenceConfig.getDatabase("foo");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void shouldFailWhenClosingAQuickAdapter() {
+        SqlAdapter quick = Persistence.getQuickAdapter(new Activity(), "test.db");
+        assertNotNull(quick);
+        quick.close();
     }
 }
