@@ -36,17 +36,15 @@ public class ManyToMany {
     }
 
     public ManyToMany(Class<?> classA, Class<?> classB) {
-        mClassA = classA;
-        mClassAPrimaryKey = SQLHelper.ID;
-        mClassB = classB;
-        mClassBPrimaryKey = SQLHelper.ID;
+        this(classA, SQLHelper.ID, classB, SQLHelper.ID);
     }
 
-    Class<?>[] getClasses() {
-        Class<?>[] classes = new Class<?>[2];
-        classes[0] = mClassA;
-        classes[1] = mClassB;
-        return classes;
+    Class<?> getFirstRelation() {
+        return mClassA;
+    }
+
+    Class<?> getSecondRelation() {
+        return mClassB;
     }
 
     /**
@@ -120,7 +118,8 @@ public class ManyToMany {
 
     @Override
     public String toString() {
-        return "ManyToMany relation between {" + mClassA +
-                " and " + mClassB + ", using " + mClassAPrimaryKey + " and " + mClassBPrimaryKey + " respectively}";
+        return "ManyToMany relation between " + mClassA.getSimpleName() +
+                " and " + mClassB.getSimpleName() + ", using " + mClassAPrimaryKey +
+                " and " + mClassBPrimaryKey + " respectively";
     }
 }

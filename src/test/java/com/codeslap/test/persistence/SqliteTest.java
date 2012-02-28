@@ -31,11 +31,13 @@ import java.util.List;
 public abstract class SqliteTest {
 
     private SqlAdapter mAdapter;
-    private final SqlPersistence mDatabase = PersistenceConfig.getDatabase("test.db", 1);
+    private SqlPersistence mDatabase;
 
     @Before
     public void configure() {
-        mDatabase.match(ExampleAutoincrement.class);
+        PersistenceConfig.clear();
+        mDatabase = PersistenceConfig.getDatabase("test.db", 1);
+        mDatabase.match(ExampleAutoincrement.class, AnnotationAutoincrement.class, AnnotationNotAutoincrement.class);
         mDatabase.match(new HasMany(PolyTheist.class, God.class));
         mDatabase.match(new HasMany(Cow.class, Bug.class, true));
         mDatabase.match(new ManyToMany(Book.class, Author.class));
@@ -46,6 +48,7 @@ public abstract class SqliteTest {
         mAdapter = Persistence.getSqliteAdapter(new Activity());
         mAdapter.truncate(ExampleAutoincrement.class);
         mAdapter.truncate(ExampleNotAutoincrement.class);
+        mAdapter.truncate(AnnotationAutoincrement.class);
         mAdapter.truncate(Book.class);
         mAdapter.truncate(God.class);
         mAdapter.truncate(PolyTheist.class);
@@ -102,6 +105,111 @@ public abstract class SqliteTest {
             return "ExampleAutoincrement{" +
                     "id=" + id +
                     ", name='" + name + '\'' +
+                    ", number=" + number +
+                    ", decimal=" + decimal +
+                    ", bool=" + bool +
+                    '}';
+        }
+    }
+
+    public static class AnnotationAutoincrement {
+        @PrimaryKey
+        long something;
+        @Column(value = "char_sequence", notNull = true)
+        String name;
+        @Column(value = "the_last_name", notNull = true, defaultValue = "Castiblanco")
+        String lastName;
+        @Column("signed")
+        int number;
+        @Column("value")
+        float decimal;
+        @Column("active")
+        boolean bool;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof AnnotationAutoincrement)) return false;
+
+            AnnotationAutoincrement that = (AnnotationAutoincrement) o;
+
+            if (bool != that.bool) return false;
+            if (Float.compare(that.decimal, decimal) != 0) return false;
+            if (number != that.number) return false;
+            if (lastName != null ? !lastName.equals(that.lastName) : that.lastName != null) return false;
+            if (name != null ? !name.equals(that.name) : that.name != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
+            result = 31 * result + number;
+            result = 31 * result + (decimal != +0.0f ? Float.floatToIntBits(decimal) : 0);
+            result = 31 * result + (bool ? 1 : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "AnnotationAutoincrement{" +
+                    "something=" + something +
+                    ", name='" + name + '\'' +
+                    ", lastName='" + lastName + '\'' +
+                    ", number=" + number +
+                    ", decimal=" + decimal +
+                    ", bool=" + bool +
+                    '}';
+        }
+    }
+    public static class AnnotationNotAutoincrement {
+        @PrimaryKey(autoincrement = false)
+        long something;
+        @Column(value = "char_sequence", notNull = true)
+        String name;
+        @Column(value = "the_last_name", notNull = true, defaultValue = "Castiblanco")
+        String lastName;
+        @Column("signed")
+        int number;
+        @Column("value")
+        float decimal;
+        @Column("active")
+        boolean bool;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof AnnotationAutoincrement)) return false;
+
+            AnnotationNotAutoincrement that = (AnnotationNotAutoincrement) o;
+
+            if (bool != that.bool) return false;
+            if (Float.compare(that.decimal, decimal) != 0) return false;
+            if (number != that.number) return false;
+            if (lastName != null ? !lastName.equals(that.lastName) : that.lastName != null) return false;
+            if (name != null ? !name.equals(that.name) : that.name != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (lastName != null ? lastName.hashCode() : 0);
+            result = 31 * result + number;
+            result = 31 * result + (decimal != +0.0f ? Float.floatToIntBits(decimal) : 0);
+            result = 31 * result + (bool ? 1 : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "AnnotationAutoincrement{" +
+                    "something=" + something +
+                    ", name='" + name + '\'' +
+                    ", lastName='" + lastName + '\'' +
                     ", number=" + number +
                     ", decimal=" + decimal +
                     ", bool=" + bool +
@@ -316,7 +424,7 @@ public abstract class SqliteTest {
         }
     }
 
-    public static class Cow{
+    public static class Cow {
         long id;
         String name;
 
@@ -346,7 +454,7 @@ public abstract class SqliteTest {
         }
     }
 
-    public static class Bug{
+    public static class Bug {
         long id;
         float itchFactor;
 

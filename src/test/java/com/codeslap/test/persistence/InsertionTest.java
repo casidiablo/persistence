@@ -51,6 +51,9 @@ public abstract class InsertionTest extends SqliteTest {
         List<ExampleAutoincrement> all = getAdapter().findAll(ExampleAutoincrement.class);
         assertEquals(1, all.size());
         assertEquals(foo, all.get(0));
+        assertEquals(1, getAdapter().count(ExampleAutoincrement.class));
+        assertEquals(1, getAdapter().count(ExampleAutoincrement.class, null, null));
+        assertEquals(1, getAdapter().count(foo));
     }
 
     @Test
@@ -68,7 +71,9 @@ public abstract class InsertionTest extends SqliteTest {
         getAdapter().storeCollection(collection, null);
 
         // it should have stored all items
-        Assert.assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
+        assertEquals(collection.size(), getAdapter().findAll(ExampleAutoincrement.class, null, null).size());
+        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
+        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class, null, null));
 
         // now let's see if it stored everything
         for (ExampleAutoincrement exampleAutoincrement : collection) {
@@ -102,6 +107,96 @@ public abstract class InsertionTest extends SqliteTest {
             exampleAutoincrement.id = found.id;
             assertEquals(exampleAutoincrement, found);
         }
+        
+        getAdapter().truncate(ExampleAutoincrement.class);
+        assertEquals(0, getAdapter().findAll(ExampleAutoincrement.class, null, null).size());
+        assertEquals(0, getAdapter().count(ExampleAutoincrement.class));
+        assertEquals(0, getAdapter().count(ExampleAutoincrement.class, null, null));
+    }
+
+    @Test
+    public void testAnnotationInsertion() {
+        assertNull(getAdapter().store(null));
+        // create a simple object
+        AnnotationAutoincrement foo = new AnnotationAutoincrement();
+        foo.name = "Foo Bar";
+        foo.lastName = "Darwin";
+        foo.number = 111;
+        foo.decimal = 222f;
+        foo.bool = true;
+
+        // insert it into the database
+        Object id = getAdapter().store(foo);
+
+        // it should have inserted in the first record
+        assertTrue(id instanceof Long);
+        assertEquals(1L, ((Long) id).longValue());
+
+        // if we retrieve one element by ID it should be equal to the one inserted
+        AnnotationAutoincrement bar = getAdapter().findFirst(AnnotationAutoincrement.class, "_id = 1", null);
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by name it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo Bar"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by number it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "signed = ?", new String[]{"111"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by decimal it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "value = ?", new String[]{"222"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by bool it should be equal to the one inserted
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "active = ?", new String[]{"1"});
+        assertEquals(foo, bar);
+
+        // if we retrieve one element by bool but false, it it should be null
+        bar = getAdapter().findFirst(AnnotationAutoincrement.class, "active = ?", new String[]{"0"});
+        assertNull(bar);
+    }
+
+    @Test
+    public void testAnnotationNotAutoincrementInsertion() {
+        assertNull(getAdapter().store(null));
+        // create a simple object
+        AnnotationNotAutoincrement foo = new AnnotationNotAutoincrement();
+        foo.something = 3;
+        foo.name = "Foo Bar";
+        foo.lastName = "Darwin";
+        foo.number = 111;
+        foo.decimal = 222f;
+        foo.bool = true;
+
+        // insert it into the database
+        Object id = getAdapter().store(foo);
+
+        // it should have inserted in the first record
+        assertTrue(id instanceof Long);
+        assertEquals(3L, ((Long) id).longValue());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testNotNullWithoutDefaultValue() {
+        AnnotationAutoincrement foo = new AnnotationAutoincrement();
+        foo.decimal = 222f;
+        foo.bool = true;
+        getAdapter().store(foo);
+    }
+
+    @Test
+    public void testNotNull() {
+        configure();
+        AnnotationAutoincrement foo = new AnnotationAutoincrement();
+        foo.name = "Blackened";
+        foo.number = 111;
+        foo.decimal = 222f;
+        foo.bool = true;
+        getAdapter().store(foo);
+
+        AnnotationAutoincrement bar = getAdapter().findFirst(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Blackened"});
+        assertEquals("Castiblanco", bar.lastName);
     }
 
     protected abstract SqlAdapter getAdapter();

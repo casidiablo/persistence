@@ -16,13 +16,13 @@
 
 package com.codeslap.persistence;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @author cristian
  */
-@SuppressWarnings("UnusedDeclaration")
 public class SqlPersistence {
     private final List<Class<?>> SQLITE_LIST = new ArrayList<Class<?>>();
     private final List<Class<?>> AUTO_INCREMENT_LIST = new ArrayList<Class<?>>();
@@ -45,60 +45,133 @@ public class SqlPersistence {
         return mVersion;
     }
 
-    public void match(Class<?>... types) {
-        for (Class<?> type : types) {
-            if (!SQLITE_LIST.contains(type)) {
-                SQLITE_LIST.add(type);
-                AUTO_INCREMENT_LIST.add(type);
+    /**
+     * Register one or more classes to be added to the Sqlite model. All classes should have an ID which will be treated
+     * as autoincrement if possible. If your class has a field called <code>id</code> then it will be automatically
+     * taken as an autoincrement primary key; if your primary key field has another name, use the {@link PrimaryKey}
+     * which will also allow you to specify whether the field is autoincrement or not.
+     *
+     * @param classes a list of classes to register
+     */
+    public void match(Class<?>... classes) {
+        for (Class<?> theClass : classes) {
+            if (!SQLITE_LIST.contains(theClass)) {
+                SQLITE_LIST.add(theClass);
+                boolean isAutoincrement = true;
+                for (Field field : theClass.getDeclaredFields()) {
+                    PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
+                    if (primaryKey != null && !primaryKey.autoincrement()) {
+                        isAutoincrement = false;
+                        break;
+                    }
+                }
+                if (isAutoincrement && !AUTO_INCREMENT_LIST.contains(theClass)) {
+                    AUTO_INCREMENT_LIST.add(theClass);
+                }
             }
         }
     }
 
-    public void matchNotAutoIncrement(Class<?>... types) {
-        for (Class<?> type : types) {
+    /**
+     * Use this to register classes that shall no have an autoincrement primary key. Use it only when you have
+     * no control over that kind of class. If you do have control over the class, you shall use the normal
+     * {@link SqlPersistence#match(Class[])} method and the annotation {@link PrimaryKey} with the autoincrement
+     * argument set to <code>false</code>.
+     *
+     * @param classes the classes to register
+     */
+    public void matchNotAutoIncrement(Class<?>... classes) {
+        for (Class<?> type : classes) {
             if (!SQLITE_LIST.contains(type)) {
                 SQLITE_LIST.add(type);
             }
         }
     }
 
+    /**
+     * Use this to register many-to-many relationships. You shall no pass repeated relations (including those that
+     * has the same classes but in different order). Classes in the relation will be passed to the
+     * {@link SqlPersistence#match(Class[])} method, which means that, by default, they will be
+     * treated as tables with an autoincrement primary key; if you want to avoid this behavior, use the
+     * {@link PrimaryKey} annotation and customize your primary key. If you do not have control over the classes and
+     * want to avoid the autoincrement, use the alternative method {@link SqlPersistence#matchNotAutoIncrement(ManyToMany)}.
+     *
+     * @param manyToMany an instance containing the many-to-many relation
+     */
     public void match(ManyToMany manyToMany) {
-        match(manyToMany.getClasses());
+        // make sure there are no inverted many-to-many relations
+        for (ManyToMany mtm : MANY_TO_MANY_LIST) {
+            if ((mtm.getFirstRelation() == manyToMany.getSecondRelation() && mtm.getSecondRelation() == manyToMany.getFirstRelation()) ||
+                    (mtm.getFirstRelation() == manyToMany.getFirstRelation() && mtm.getSecondRelation() == manyToMany.getSecondRelation())) {
+                throw new IllegalStateException(String.format("Error adding '%s': there should not be two many-to-many relations with the same classes.", manyToMany));
+            }
+        }
+        match(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
         if (!MANY_TO_MANY_LIST.contains(manyToMany)) {
             MANY_TO_MANY_LIST.add(manyToMany);
         }
     }
 
+    /**
+     * Use this to register many-to-many relationships. You shall no pass repeated relations (including those that
+     * has the same classes but in different order). Classes in the relation will be passed to the
+     * {@link SqlPersistence#matchNotAutoIncrement(Class[])} method. I recommend to use the
+     * {@link SqlPersistence#match(ManyToMany)} and {@link PrimaryKey} annotation if you have control over the
+     * classes to be registered.
+     *
+     * @param manyToMany an instance containing the many-to-many relation
+     */
     public void matchNotAutoIncrement(ManyToMany manyToMany) {
-        matchNotAutoIncrement(manyToMany.getClasses());
+        matchNotAutoIncrement(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
         if (!MANY_TO_MANY_LIST.contains(manyToMany)) {
             MANY_TO_MANY_LIST.add(manyToMany);
         }
     }
 
+    /**
+     * Registers a has-many relation. This will register the individual classes using the
+     * {@link SqlPersistence#match(Class[])} method which means that those classes will be treated as autoincrement.
+     * If you want to avoid this behavior, use the {@link PrimaryKey} annotation; if you do not have control
+     * over the registered classes, use the {@link SqlPersistence#matchNotAutoIncrement(ManyToMany)}
+     *
+     * @param hasMany the has-many relationship to register.
+     */
     public void match(HasMany hasMany) {
-        Class<?>[] classes = hasMany.getClasses();
-        match(classes);
+        Class<?> containerClass = hasMany.getContainerClass();
+        Class<?> containedClass = hasMany.getContainedClass();
         // make sure there are no inverted has many relations
         for (HasMany hasManyRelation : HAS_MANY_LIST) {
-            Class<?>[] relationClasses = hasManyRelation.getClasses();
-            if (relationClasses[0] == classes[1] && relationClasses[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
+            Class<?> currentContainerClass = hasManyRelation.getContainerClass();
+            Class<?> currentContainedClass = hasManyRelation.getContainedClass();
+            if (currentContainerClass == containedClass && currentContainedClass == containerClass) {
                 throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
             }
         }
+        match(containedClass, containerClass);
         // add the has many relation to the list
         if (!HAS_MANY_LIST.contains(hasMany)) {
             HAS_MANY_LIST.add(hasMany);
         }
     }
 
+    /**
+     * Registers a has-many relation. This will register the individual classes using the
+     * {@link SqlPersistence#matchNotAutoIncrement(Class[])} method which means that those classes do not have an
+     * autoincrement primary key. If you have control over the classes to register, I recommend to use the
+     * {@link SqlPersistence#match(HasMany)} method and the {@link PrimaryKey} annotation.
+     *
+     * @param hasMany the has-many relationship to register.
+     */
     public void matchNotAutoIncrement(HasMany hasMany) {
-        Class<?>[] classes = hasMany.getClasses();
-        matchNotAutoIncrement(classes);
+        Class<?> containerClass = hasMany.getContainerClass();
+        Class<?> containedClass = hasMany.getContainedClass();
+        matchNotAutoIncrement(containerClass, containedClass);
         // make sure there are no inverted has many relations
         for (HasMany hasManyRelation : HAS_MANY_LIST) {
-            Class<?>[] relationClasses = hasManyRelation.getClasses();
-            if (relationClasses[0] == classes[1] && relationClasses[1] == classes[0] && hasMany.getThrough().equals(hasManyRelation.getThrough())) {
+            Class<?> currentContainerClass = hasManyRelation.getContainerClass();
+            Class<?> currentContainedClass = hasManyRelation.getContainedClass();
+            if (currentContainerClass == containedClass &&
+                    currentContainedClass == containerClass) {
                 throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
             }
         }
@@ -109,22 +182,24 @@ public class SqlPersistence {
     }
 
     /**
+     * Returns the relationship of the specified classes
+     *
      * @param theClass        a class
      * @param collectionClass another class
      * @return the type of relationship between two classes
      */
     Relationship getRelationship(Class<?> theClass, Class<?> collectionClass) {
         for (HasMany hasMany : HAS_MANY_LIST) {
-            Class<?>[] classes = hasMany.getClasses();
-            if (classes[0] == theClass && classes[1] == collectionClass) {
+            Class<?> containerClass = hasMany.getContainerClass();
+            Class<?> containedClass = hasMany.getContainedClass();
+            if (containerClass == theClass && containedClass == collectionClass) {
                 return Relationship.HAS_MANY;
             }
         }
 
         for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
-            Class<?>[] classes = manyToMany.getClasses();
-            if ((classes[0] == theClass && classes[1] == collectionClass) ||
-                    (classes[1] == theClass && classes[0] == collectionClass)) {
+            if ((manyToMany.getFirstRelation() == theClass && manyToMany.getSecondRelation() == collectionClass) ||
+                    (manyToMany.getSecondRelation() == theClass && manyToMany.getFirstRelation() == collectionClass)) {
                 return Relationship.MANY_TO_MANY;
             }
         }
@@ -132,20 +207,22 @@ public class SqlPersistence {
     }
 
     /**
+     * Returns a relationship of the specified class. If it has two relations, it will return the
+     * {@link Relationship#HAS_MANY}
+     *
      * @param theClass a class
      * @return the type of relationship between this class and any other
      */
     Relationship getRelationship(Class<?> theClass) {
         for (HasMany hasMany : HAS_MANY_LIST) {
-            Class<?>[] classes = hasMany.getClasses();
-            if (classes[0] == theClass) {
+            Class<?> containerClass = hasMany.getContainerClass();
+            if (containerClass == theClass) {
                 return Relationship.HAS_MANY;
             }
         }
 
         for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
-            Class<?>[] classes = manyToMany.getClasses();
-            if (classes[0] == theClass || classes[1] == theClass) {
+            if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
                 return Relationship.MANY_TO_MANY;
             }
         }
@@ -158,12 +235,20 @@ public class SqlPersistence {
      */
     HasMany belongsTo(Class clazz) {
         for (HasMany hasMany : HAS_MANY_LIST) {
-            Class<?>[] classes = hasMany.getClasses();
-            if (classes[1] == clazz) {
+            Class<?> containedClass = hasMany.getContainedClass();
+            if (containedClass == clazz) {
                 return hasMany;
             }
         }
         return null;
+    }
+
+    /**
+     * @param theClass the class to check
+     * @return true if the class is registered as autoincrement
+     */
+    boolean isAutoincrement(Class<?> theClass) {
+        return AUTO_INCREMENT_LIST.contains(theClass);
     }
 
     /**
@@ -173,8 +258,7 @@ public class SqlPersistence {
     List<ManyToMany> getManyToMany(Class<?> theClass) {
         List<ManyToMany> manyToManyList = new ArrayList<ManyToMany>();
         for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
-            Class<?>[] classes = manyToMany.getClasses();
-            if (classes[0] == theClass || classes[1] == theClass) {
+            if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
                 manyToManyList.add(manyToMany);
             }
         }
@@ -187,8 +271,8 @@ public class SqlPersistence {
      */
     HasMany has(Class clazz) {
         for (HasMany hasMany : HAS_MANY_LIST) {
-            Class<?>[] classes = hasMany.getClasses();
-            if (classes[0] == clazz) {
+            Class<?> containerClass = hasMany.getContainerClass();
+            if (containerClass == clazz) {
                 return hasMany;
             }
         }
@@ -201,10 +285,6 @@ public class SqlPersistence {
 
     List<Class<?>> getSqliteClasses() {
         return SQLITE_LIST;
-    }
-
-    List<Class<?>> getAutoIncrementList() {
-        return AUTO_INCREMENT_LIST;
     }
 
     List<ManyToMany> getSqliteManyToMany() {
@@ -240,5 +320,13 @@ public class SqlPersistence {
         result = 31 * result + (mName != null ? mName.hashCode() : 0);
         result = 31 * result + mVersion;
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "SqlPersistence{" +
+                "name='" + mName + '\'' +
+                ", version=" + mVersion +
+                '}';
     }
 }

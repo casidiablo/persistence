@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.persistence.suggestions;
 
 /**
  * Keeps the suggestion information

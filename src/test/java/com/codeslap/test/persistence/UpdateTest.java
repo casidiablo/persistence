@@ -17,7 +17,6 @@
 package com.codeslap.test.persistence;
 
 import com.codeslap.persistence.SqlAdapter;
-import com.codeslap.test.persistence.SqliteTest;
 import org.junit.Test;
 
 import java.util.Random;
@@ -47,13 +46,42 @@ public abstract class UpdateTest extends SqliteTest {
         boolean bool = bar.bool = random.nextBoolean();
 
         // after updating this record, all its data should have changed...
-        getAdapter().update(bar, foo);
+        int update = getAdapter().update(bar, foo);
+        assertEquals(1, update);
         ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
         assertEquals(name, baz.name);
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);
         assertEquals(bool, baz.bool);
     }
+    @Test
+    public void updateTestAnnotations() {
+        // let's insert a record
+        Random random = new Random();
+        AnnotationAutoincrement foo = new AnnotationAutoincrement();
+        foo.name = "Cristo Loco";
+        foo.number = random.nextInt();
+        foo.decimal = random.nextFloat();
+        foo.bool = random.nextBoolean();
+        getAdapter().store(foo);
+
+        // now, let's create a new object with different data
+        AnnotationAutoincrement bar = new AnnotationAutoincrement();
+        String name = bar.name = "Cristo Loco";
+        int number = bar.number = random.nextInt();
+        float decimal = bar.decimal = random.nextFloat();
+        boolean bool = bar.bool = random.nextBoolean();
+
+        // after updating this record, all its data should have changed...
+        int update = getAdapter().update(bar, foo);
+        assertEquals(1, update);
+        AnnotationAutoincrement baz = getAdapter().findAll(AnnotationAutoincrement.class).get(0);
+        assertEquals(name, baz.name);
+        assertEquals(number, baz.number);
+        assertEquals(decimal, baz.decimal, 0.0);
+        assertEquals(bool, baz.bool);
+    }
+
     @Test
     public void manualUpdateTest() {
         // let's insert a record
@@ -73,8 +101,37 @@ public abstract class UpdateTest extends SqliteTest {
         boolean bool = bar.bool = random.nextBoolean();
 
         // after updating this record, all its data should have changed...
-        getAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
+        int update = getAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
+        assertEquals(1, update);
         ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
+        assertEquals(name, baz.name);
+        assertEquals(number, baz.number);
+        assertEquals(decimal, baz.decimal, 0.0);
+        assertEquals(bool, baz.bool);
+    }
+
+    @Test
+    public void manualUpdateTestAnnotation() {
+        // let's insert a record
+        Random random = new Random();
+        AnnotationAutoincrement foo = new AnnotationAutoincrement();
+        foo.name = "Cristo Loco";
+        foo.number = random.nextInt();
+        foo.decimal = random.nextFloat();
+        foo.bool = random.nextBoolean();
+        getAdapter().store(foo);
+
+        // now, let's create a new object with different data
+        AnnotationAutoincrement bar = new AnnotationAutoincrement();
+        String name = bar.name = "Cristo Loco";
+        int number = bar.number = random.nextInt();
+        float decimal = bar.decimal = random.nextFloat();
+        boolean bool = bar.bool = random.nextBoolean();
+
+        // after updating this record, all its data should have changed...
+        int update = getAdapter().update(bar, "char_sequence LIKE ?", new String[]{foo.name});
+        assertEquals(1, update);
+        AnnotationAutoincrement baz = getAdapter().findAll(AnnotationAutoincrement.class).get(0);
         assertEquals(name, baz.name);
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);

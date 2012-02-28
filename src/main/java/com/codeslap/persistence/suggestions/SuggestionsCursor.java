@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence;
+package com.codeslap.persistence.suggestions;
 
 import android.app.SearchManager;
 import android.database.AbstractCursor;

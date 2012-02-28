@@ -22,11 +22,13 @@ import java.util.*;
 class SQLHelper {
 
     static final String ID = "id";
-    static final String PRIMARY_KEY = "id INTEGER PRIMARY KEY";
+    static final String _ID = "_id";
+    static final String PRIMARY_KEY = _ID + " INTEGER PRIMARY KEY";
     private static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Class<?>, String> TABLE_NAMES_CACHE = new HashMap<Class<?>, String>();
+    private static final Map<Field, String> COLUMN_NAMES_CACHE = new HashMap<Field, String>();
     static final String SELECT_AUTOINCREMENT_FORMAT = "(SELECT seq FROM sqlite_sequence WHERE name = '%s')";
 
     static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
@@ -39,22 +41,28 @@ class SQLHelper {
         // loop through all the fields and add sql statements
         Field[] declaredFields = clazz.getDeclaredFields();
         List<String> columns = new ArrayList<String>();
-        for (Field declaredField : declaredFields) {
-            if (declaredField.getName().equals(ID)) {
+        for (Field field : declaredFields) {
+            String columnName = getColumnName(field);
+            if (isPrimaryKey(field)) {
                 String primaryKeySentence = PRIMARY_KEY;
-                if (declaredField.getType() == String.class) {
+                if (field.getType() == String.class) {// what types are supported
                     primaryKeySentence = PRIMARY_KEY_TEXT;
-                } else if (PersistenceConfig.getDatabase(dbName).getAutoIncrementList().contains(clazz)) {
+                } else if (PersistenceConfig.getDatabase(dbName).isAutoincrement(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
-                if (!columns.contains(normalize(declaredField.getName()))) {
+                if (!columns.contains(columnName)) {
                     fieldSentences.add(primaryKeySentence);
-                    columns.add(normalize(declaredField.getName()));
+                    columns.add(columnName);
                 }
-            } else if (declaredField.getType() != List.class) {
-                if (!columns.contains(normalize(declaredField.getName()))) {
-                    fieldSentences.add(getFieldSentence(declaredField.getName(), declaredField.getType()));
-                    columns.add(normalize(declaredField.getName()));
+            } else if (field.getType() != List.class) {
+                if (!columns.contains(columnName)) {
+                    columns.add(columnName);
+                    boolean notNull = false;
+                    Column columnAnnotation = field.getAnnotation(Column.class);
+                    if (columnAnnotation != null) {
+                        notNull = columnAnnotation.notNull();
+                    }
+                    fieldSentences.add(getFieldSentence(columnName, field.getType(), notNull));
                 }
             }
         }
@@ -63,15 +71,12 @@ class SQLHelper {
         HasMany belongsTo = PersistenceConfig.getDatabase(dbName).belongsTo(clazz);
         if (belongsTo != null) {
             // if so, add a new field to the table creation statement to create the relation
-            Class<?> containerClass = belongsTo.getClasses()[0];
-            try {
-                Field field = containerClass.getDeclaredField(belongsTo.getThrough());
-                String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThrough()));
-                if (!columns.contains(columnName)) {
-                    fieldSentences.add(getFieldSentence(columnName, field.getType()));
-                    columns.add(normalize(columnName));
-                }
-            } catch (NoSuchFieldException ignored) {
+            Class<?> containerClass = belongsTo.getContainerClass();
+            Field field = belongsTo.getThroughField();
+            String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThroughField().getName()));
+            if (!columns.contains(columnName)) {
+                fieldSentences.add(getFieldSentence(columnName, field.getType(), true));
+                columns.add(getColumnName(field));
             }
         }
 
@@ -105,21 +110,27 @@ class SQLHelper {
     }
 
     /**
-     * @param name the name of the field
-     * @param type the type
+     * @param name    the name of the field
+     * @param type    the type
+     * @param notNull true if the column should be not null
      * @return the sql statement to create that kind of field
      */
-    private static String getFieldSentence(String name, Class<?> type) {
+    private static String getFieldSentence(String name, Class<?> type, boolean notNull) {
+        name = normalize(name);
+        String notNullSentence = "";
+        if (notNull) {
+            notNullSentence = " NOT NULL";
+        }
         if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
-            return String.format("%s INTEGER", normalize(name));
+            return String.format("%s INTEGER%s", name, notNullSentence);
         }
         if (type == boolean.class || type == Boolean.class) {
-            return String.format("%s BOOLEAN", normalize(name));
+            return String.format("%s BOOLEAN%s", name, notNullSentence);
         }
         if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-            return String.format("%s REAL", normalize(name));
+            return String.format("%s REAL%s", name, notNullSentence);
         }
-        return String.format("%s TEXT", normalize(name));
+        return String.format("%s TEXT%s", name, notNullSentence);
     }
 
     static <T, G> String getWhere(String dbName, Class<?> theClass, T bean, List<String> args, G attachedTo) {
@@ -136,20 +147,21 @@ class SQLHelper {
                     field.setAccessible(true);
                     Object value = field.get(bean);
                     if (hasData(type, value)) {
+                        String columnName = getColumnName(field);
                         if (args == null) {
                             if (field.getType() == String.class) {
-                                conditions.add(String.format("%s LIKE '%s'", normalize(field.getName()), value));
+                                conditions.add(String.format("%s LIKE '%s'", columnName, value));
                             } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                                 int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
-                                conditions.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
+                                conditions.add(String.format("%s = '%d'", columnName, intValue));
                             } else {
-                                conditions.add(String.format("%s = '%s'", normalize(field.getName()), value));
+                                conditions.add(String.format("%s = '%s'", columnName, value));
                             }
                         } else {
                             if (field.getType() == String.class) {
-                                conditions.add(String.format("%s LIKE ?", normalize(field.getName())));
+                                conditions.add(String.format("%s LIKE ?", columnName));
                             } else {
-                                conditions.add(String.format("%s = ?", normalize(field.getName())));
+                                conditions.add(String.format("%s = ?", columnName));
                             }
                             if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                                 value = ((Boolean) value).booleanValue() ? 1 : 0;
@@ -168,7 +180,7 @@ class SQLHelper {
                 case HAS_MANY: {
                     try {
                         HasMany hasMany = PersistenceConfig.getDatabase(dbName).belongsTo(theClass);
-                        Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
+                        Field primaryForeignKey = hasMany.getThroughField();
                         primaryForeignKey.setAccessible(true);
                         Object foreignValue = primaryForeignKey.get(attachedTo);
                         if (foreignValue != null) {
@@ -204,9 +216,9 @@ class SQLHelper {
                     if (isBoolean || hasData(type, value)) {
                         if (isBoolean) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
-                            sets.add(String.format("%s = '%d'", normalize(field.getName()), intValue));
+                            sets.add(String.format("%s = '%d'", getColumnName(field), intValue));
                         } else {
-                            sets.add(String.format("%s = '%s'", normalize(field.getName()), String.valueOf(value).replace("'", "''")));
+                            sets.add(String.format("%s = '%s'", getColumnName(field), String.valueOf(value).replace("'", "''")));
                         }
                     }
                 } catch (IllegalAccessException ignored) {
@@ -271,6 +283,35 @@ class SQLHelper {
         return newName.toString().toLowerCase();
     }
 
+    /**
+     * @param field field to get the column name from
+     * @return gets the column name version of the specified field
+     */
+    static String getColumnName(Field field) {
+        if (COLUMN_NAMES_CACHE.containsKey(field)) {
+            return COLUMN_NAMES_CACHE.get(field);
+        }
+        if (isPrimaryKey(field)) {
+            return _ID;
+        }
+        Column column = field.getAnnotation(Column.class);
+        if (column != null) {
+            return column.value();
+        }
+        String name = field.getName();
+        StringBuilder newName = new StringBuilder();
+        newName.append(name.charAt(0));
+        for (int i = 1; i < name.length(); i++) {
+            if (Character.isUpperCase(name.charAt(i))) {
+                newName.append("_");
+            }
+            newName.append(name.charAt(i));
+        }
+        String columnName = newName.toString().toLowerCase();
+        COLUMN_NAMES_CACHE.put(field, columnName);
+        return columnName;
+    }
+
     public static <T> String getUpdateStatement(T bean, Object sample) {
         String where = getWhere(PersistenceConfig.sFirstDatabase, bean.getClass(), sample, null, null);
         String set = getSet(bean);
@@ -299,20 +340,20 @@ class SQLHelper {
         }
 
         // build insert statement for the main object
-        if (values.size() == 0 && persistence.getAutoIncrementList().contains(bean.getClass())) {
+        if (values.size() == 0 && persistence.isAutoincrement(bean.getClass())) {
             String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
-            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), ID, hack, STATEMENT_SEPARATOR);
+            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), _ID, hack, STATEMENT_SEPARATOR);
         }
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
 
     private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, SqlPersistence persistence) {
         if (bean != null) {
-            Class<?> clazz = bean.getClass();
-            Field[] fields = clazz.getDeclaredFields();
+            Class<?> theClass = bean.getClass();
+            Field[] fields = theClass.getDeclaredFields();
             for (Field field : fields) {
-                // if the class has an autoincrement, remove the ID
-                if (persistence.getAutoIncrementList().contains(clazz) && field.getName().equals(SQLHelper.ID)) {
+                // if the class has an autoincrement, ignore the ID
+                if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
                     continue;
                 }
                 try {
@@ -323,12 +364,24 @@ class SQLHelper {
                     field.setAccessible(true);
                     Object value = field.get(bean);
                     if (columns != null) {
-                        columns.add(normalize(field.getName()));
+                        columns.add(getColumnName(field));
                     }
                     if (values != null) {
                         if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                             values.add(String.format("%d", intValue));
+                        } else if (value == null) {
+                            Column columnAnnotation = field.getAnnotation(Column.class);
+                            boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                            if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
+                                String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
+                                throw new IllegalStateException(msg);
+                            }
+                            if (hasDefault) {
+                                values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
+                            } else {
+                                values.add("NULL");
+                            }
                         } else {
                             values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
                         }
@@ -341,14 +394,14 @@ class SQLHelper {
                     case HAS_MANY: {
                         try {
                             HasMany hasMany = persistence.belongsTo(bean.getClass());
-                            Field primaryForeignKey = attachedTo.getClass().getDeclaredField(hasMany.getThrough());
+                            Field primaryForeignKey = hasMany.getThroughField();
                             primaryForeignKey.setAccessible(true);
                             Object foreignValue = primaryForeignKey.get(attachedTo);
                             if (columns != null) {
                                 columns.add(hasMany.getForeignKey());
                             }
                             if (values != null) {
-                                if (persistence.getAutoIncrementList().contains(clazz)) {
+                                if (persistence.isAutoincrement(theClass)) {
                                     values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
                                 } else {
                                     values.add(String.valueOf(foreignValue));
@@ -360,6 +413,14 @@ class SQLHelper {
                 }
             }
         }
+    }
+
+    private static boolean isPrimaryKey(Field field) {
+        PrimaryKey annotation = field.getAnnotation(PrimaryKey.class);
+        if (annotation != null) {
+            return true;
+        }
+        return field.getName().equals(ID) || field.getName().equals(_ID);
     }
 
     static String getTableName(Class<?> clazz) {
@@ -379,5 +440,31 @@ class SQLHelper {
 
     private static <T> String getTableName(T bean) {
         return getTableName(bean.getClass());
+    }
+
+    /**
+     * @param theClass the class to the get primary key from
+     * @return the primary key from a class
+     */
+    public static String getPrimaryKey(Class<?> theClass) {
+        for (Field field : theClass.getDeclaredFields()) {
+            if (isPrimaryKey(field)) {
+                return field.getName();
+            }
+        }
+        throw new IllegalStateException("Class " + theClass + " does not have a primary key");
+    }
+
+    /**
+     * @param theClass the class to the get primary key from
+     * @return the primary key field from a class
+     */
+    public static Field getPrimaryKeyField(Class<?> theClass) {
+        for (Field field : theClass.getDeclaredFields()) {
+            if (isPrimaryKey(field)) {
+                return field;
+            }
+        }
+        throw new IllegalStateException("Class " + theClass + " does not have a primary key");
     }
 }

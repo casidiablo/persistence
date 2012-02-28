@@ -111,7 +111,7 @@ public interface SqlAdapter {
      *
      * @param theClass the class of the object that we want to retrieve
      * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
-     * @return a list of {@link T} objects
+     * @return a list of T objects
      */
     <T> List<T> findAll(Class<T> theClass);
 
@@ -120,7 +120,7 @@ public interface SqlAdapter {
      *
      * @param where sample object
      * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
-     * @return a list of {@link T} objects
+     * @return a list of T objects
      */
     <T> List<T> findAll(T where);
 
@@ -130,7 +130,7 @@ public interface SqlAdapter {
      * @param where      sample object
      * @param constraint constrains for this query
      * @param <T>        object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
-     * @return a list of {@link T} objects
+     * @return a list of T objects
      */
     <T> List<T> findAll(T where, Constraint constraint);
 
@@ -140,7 +140,7 @@ public interface SqlAdapter {
      * @param where      the sample object
      * @param attachedTo the object that is attached to the sample object
      * @param <T>        object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
-     * @return a list of {@link T} objects
+     * @return a list of T objects
      */
     <T, G> List<T> findAll(T where, G attachedTo);
 
@@ -151,7 +151,7 @@ public interface SqlAdapter {
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
-     * @return a list of {@link T} objects
+     * @return a list of T objects
      */
     <T> List<T> findAll(Class<T> theClass, String where, String[] whereArgs);
 
