@@ -47,7 +47,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     SqliteAdapterImpl(Context context, String name) {
         mPersistence = PersistenceConfig.getDatabase(name);
-        SqliteDb helper = SqliteDb.getInstance(context, mPersistence.getName(), mPersistence.getVersion());
+        SqliteDb helper = SqliteDb.getInstance(context, mPersistence);
         mDb = helper.getDatabase();
         mInsertHelperMap = new HashMap<String, DatabaseUtils.InsertHelper>();
     }

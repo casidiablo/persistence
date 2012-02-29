@@ -18,7 +18,6 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,29 +29,50 @@ import java.util.Map;
  * created yet, or update it in case the version number changes.
  */
 class SqliteDb {
-
     private static final String TAG = SqliteDb.class.getSimpleName();
-
+    private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
     private SQLiteDatabase mSqLiteDatabase;
-    private final Helper mDbHelper;
+    private final DbOpenHelper mDbHelper;
 
-    private static class Helper extends SQLiteOpenHelper {
+    private SqliteDb(Context context, SqlPersistence sqlPersistence) {
+        String name = sqlPersistence.getName();
+        if (sqlPersistence.getOpenHelper() == null) {
+            mDbHelper = new Helper(context, name, sqlPersistence.getVersion());
+        } else {
+            mDbHelper = sqlPersistence.getOpenHelper();
+        }
+        mSqLiteDatabase = mDbHelper.getWritableDatabase();
+        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database... Open: %s", name, mSqLiteDatabase.isOpen()));
+    }
 
-        private final String mName;
+    static SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
+        String key = sqlPersistence.getName() + sqlPersistence.getVersion();
+        if (!instances.containsKey(key)) {
+            instances.put(key, new SqliteDb(context, sqlPersistence));
+        }
+        return instances.get(key);
+    }
 
+    public SQLiteDatabase getDatabase() {
+        if (mSqLiteDatabase.isOpen()) {
+            return mSqLiteDatabase;
+        }
+        return mSqLiteDatabase = mDbHelper.getWritableDatabase();
+    }
+
+    private static class Helper extends DbOpenHelper {
         public Helper(Context context, String name, int version) {
-            super(context, name, null, version);
-            mName = name;
+            super(context, name, version);
         }
 
         @Override
         public void onCreate(SQLiteDatabase db) {
             // create all tables for registered classes
-            SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(mName);
+            SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(getName());
 
             List<Class<?>> objects = sqlPersistence.getSqliteClasses();
             for (Class<?> clazz : objects) {
-                db.execSQL(SQLHelper.getCreateTableSentence(mName, clazz));
+                db.execSQL(SQLHelper.getCreateTableSentence(getName(), clazz));
             }
             // create all extra table for many to many relations
             List<ManyToMany> sqliteManyToMany = sqlPersistence.getSqliteManyToMany();
@@ -66,28 +86,5 @@ class SqliteDb {
             // TODO define a way to migrate data
         }
 
-    }
-
-    private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
-
-    private SqliteDb(Context context, String name, int version) {
-        mDbHelper = new Helper(context, name, version);
-        mSqLiteDatabase = mDbHelper.getWritableDatabase();
-        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database... Open: %s", name, mSqLiteDatabase.isOpen()));
-    }
-
-    static SqliteDb getInstance(Context context, String name, int version) {
-        String key = name + version;
-        if (!instances.containsKey(key)) {
-            instances.put(key, new SqliteDb(context, name, version));
-        }
-        return instances.get(key);
-    }
-
-    public SQLiteDatabase getDatabase() {
-        if (mSqLiteDatabase.isOpen()) {
-            return mSqLiteDatabase;
-        }
-        return mSqLiteDatabase = mDbHelper.getWritableDatabase();
     }
 }
