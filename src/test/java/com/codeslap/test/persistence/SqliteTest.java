@@ -40,10 +40,9 @@ public abstract class SqliteTest {
         mDatabase.match(ExampleAutoincrement.class, AnnotationAutoincrement.class, AnnotationNotAutoincrement.class);
         mDatabase.match(new HasMany(PolyTheist.class, God.class));
         mDatabase.match(new HasMany(Cow.class, Bug.class, true));
-        mDatabase.match(new ManyToMany(Book.class, Author.class));
+        mDatabase.match(new ManyToMany(Author.class, Book.class));
+        mDatabase.match(new ManyToMany(Pet.class, Owner.class));
         mDatabase.matchNotAutoIncrement(ExampleNotAutoincrement.class);
-        mDatabase.matchNotAutoIncrement(new ManyToMany(Cow.class, Bug.class));
-        mDatabase.matchNotAutoIncrement(new HasMany(Cow.class, Bug.class, true));
 
         mAdapter = Persistence.getSqliteAdapter(new Activity());
         mAdapter.truncate(ExampleAutoincrement.class);
@@ -329,6 +328,79 @@ public abstract class SqliteTest {
                     "id=" + id +
                     ", name='" + name + '\'' +
                     ", power=" + power +
+                    '}';
+        }
+    }
+    
+    public static class Owner{
+        long id;
+        @Column("full_name")
+        String name;
+        List<Pet> pets;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Owner owner = (Owner) o;
+
+            if (name != null ? !name.equals(owner.name) : owner.name != null) return false;
+            if (pets != null ? !pets.equals(owner.pets) : owner.pets != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (pets != null ? pets.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Owner{" +
+                    "id=" + id +
+                    ", name='" + name + '\'' +
+                    ", pets=" + pets +
+                    '}';
+        }
+    }
+    
+    public static class Pet{
+        @PrimaryKey
+        long petId;
+        @Column("nickname")
+        String nick;
+        List<Owner> owners;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Pet pet = (Pet) o;
+
+            if (nick != null ? !nick.equals(pet.nick) : pet.nick != null) return false;
+            if (owners != null ? !owners.equals(pet.owners) : pet.owners != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = nick != null ? nick.hashCode() : 0;
+            result = 31 * result + (owners != null ? owners.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Pet{" +
+                    "petId=" + petId +
+                    ", nick='" + nick + '\'' +
+                    ", owners=" + owners +
                     '}';
         }
     }

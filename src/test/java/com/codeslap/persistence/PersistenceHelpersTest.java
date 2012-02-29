@@ -87,8 +87,8 @@ public class PersistenceHelpersTest extends SqliteTest {
         List<ManyToMany> manyToMany = getDatabase().getManyToMany(Book.class);
         assertNotNull(manyToMany);
         assertEquals(1, manyToMany.size());
-        assertEquals(Book.class, manyToMany.get(0).getFirstRelation());
-        assertEquals(Author.class, manyToMany.get(0).getSecondRelation());
+        assertEquals(Author.class, manyToMany.get(0).getFirstRelation());
+        assertEquals(Book.class, manyToMany.get(0).getSecondRelation());
     }
 
     @Test

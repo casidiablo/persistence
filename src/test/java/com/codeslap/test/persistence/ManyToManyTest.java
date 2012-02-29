@@ -32,7 +32,7 @@ public abstract class ManyToManyTest extends SqliteTest {
         // let's create some dummy data
         Author fernando = new Author();
         fernando.name = "Vallejo";
-        
+
         Author william = new Author();
         william.name = "Ospinas";
 
@@ -59,6 +59,47 @@ public abstract class ManyToManyTest extends SqliteTest {
 
         assertEquals(fernando, vallejo);
         assertEquals(william, ospina);
+
+        getAdapter().delete(tautologia);
+    }
+
+    @Test
+    public void testManyToManyWithAnnotations() {
+        // let's create some dummy data
+        Owner fernando = new Owner();
+        fernando.name = "Fernando Vallejo";
+
+        Owner william = new Owner();
+        william.name = "William Ospina";
+
+        Pet witch = new Pet();
+        witch.nick = "Bruja";
+
+        Pet tobby = new Pet();
+        tobby.nick = "Tobby";
+
+        Pet lazzy = new Pet();
+        lazzy.nick = "Lazzy";
+
+        Pet foo = new Pet();
+        foo.nick = "Bar";
+
+        // let's create some relations
+        fernando.pets = Arrays.asList(witch, tobby);
+        william.pets = Arrays.asList(witch, foo, lazzy);
+
+        getAdapter().storeCollection(Arrays.asList(william, fernando), null);
+
+        Owner vallejo = getAdapter().findFirst(Owner.class, "full_name LIKE ?", new String[]{"Fernando%"});
+        Owner ospina = getAdapter().findFirst(Owner.class, "full_name LIKE '%Ospina%'", null);
+
+        assertEquals(fernando, vallejo);
+        assertEquals(william, ospina);
+
+        getAdapter().delete(witch);
+        getAdapter().delete(fernando);
+        getAdapter().delete(ospina);
+        getAdapter().delete(tobby);
     }
 
     protected abstract SqlAdapter getAdapter();
