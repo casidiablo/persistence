@@ -54,6 +54,8 @@ public abstract class DeleteTest extends SqliteTest {
         ExampleAutoincrement foo = collection.get(1);
         foo.name = null;
         assertTrue(getAdapter().delete(foo) > 0);
+        foo.name = "Something";
+        assertTrue(getAdapter().delete(foo) == 0);
 
         int count = getAdapter().count(ExampleAutoincrement.class);
         assertTrue(count > 0);

@@ -24,7 +24,7 @@ class SQLHelper {
     static final String ID = "id";
     static final String _ID = "_id";
     static final String PRIMARY_KEY = _ID + " INTEGER PRIMARY KEY";
-    private static final String PRIMARY_KEY_TEXT = "id TEXT PRIMARY KEY";
+    private static final String PRIMARY_KEY_TEXT = "_id TEXT PRIMARY KEY";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Class<?>, String> TABLE_NAMES_CACHE = new HashMap<Class<?>, String>();
@@ -34,9 +34,6 @@ class SQLHelper {
     static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
 
     static String getCreateTableSentence(String dbName, Class clazz) {
-        if (clazz == Object.class) {
-            throw new IllegalArgumentException("You cannot pass an Object type");
-        }
         List<String> fieldSentences = new ArrayList<String>();
         // loop through all the fields and add sql statements
         Field[] declaredFields = clazz.getDeclaredFields();
@@ -146,28 +143,29 @@ class SQLHelper {
                     }
                     field.setAccessible(true);
                     Object value = field.get(bean);
-                    if (hasData(type, value)) {
-                        String columnName = getColumnName(field);
-                        if (args == null) {
-                            if (field.getType() == String.class) {
-                                conditions.add(String.format("%s LIKE '%s'", columnName, value));
-                            } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                                int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
-                                conditions.add(String.format("%s = '%d'", columnName, intValue));
-                            } else {
-                                conditions.add(String.format("%s = '%s'", columnName, value));
-                            }
+                    if (!hasData(type, value)) {
+                        continue;
+                    }
+                    String columnName = getColumnName(field);
+                    if (args == null) {
+                        if (field.getType() == String.class) {
+                            conditions.add(String.format("%s LIKE '%s'", columnName, value));
+                        } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            conditions.add(String.format("%s = '%d'", columnName, intValue));
                         } else {
-                            if (field.getType() == String.class) {
-                                conditions.add(String.format("%s LIKE ?", columnName));
-                            } else {
-                                conditions.add(String.format("%s = ?", columnName));
-                            }
-                            if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                                value = ((Boolean) value).booleanValue() ? 1 : 0;
-                            }
-                            args.add(String.valueOf(value));
+                            conditions.add(String.format("%s = '%s'", columnName, value));
                         }
+                    } else {
+                        if (field.getType() == String.class) {
+                            conditions.add(String.format("%s LIKE ?", columnName));
+                        } else {
+                            conditions.add(String.format("%s = ?", columnName));
+                        }
+                        if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+                            value = ((Boolean) value).booleanValue() ? 1 : 0;
+                        }
+                        args.add(String.valueOf(value));
                     }
                 } catch (IllegalAccessException ignored) {
                 }
@@ -312,13 +310,13 @@ class SQLHelper {
         return columnName;
     }
 
-    public static <T> String getUpdateStatement(T bean, Object sample) {
+    public static <T> String buildUpdateStatement(T bean, Object sample) {
         String where = getWhere(PersistenceConfig.sFirstDatabase, bean.getClass(), sample, null, null);
         String set = getSet(bean);
         return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
     }
 
-    public static <T> String getUpdateStatement(T bean, String where) {
+    public static <T> String buildUpdateStatement(T bean, String where) {
         String set = getSet(bean);
         return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
     }
@@ -348,67 +346,68 @@ class SQLHelper {
     }
 
     private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, SqlPersistence persistence) {
-        if (bean != null) {
-            Class<?> theClass = bean.getClass();
-            Field[] fields = theClass.getDeclaredFields();
-            for (Field field : fields) {
-                // if the class has an autoincrement, ignore the ID
-                if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
+        if (bean == null) {
+            return;
+        }
+        Class<?> theClass = bean.getClass();
+        Field[] fields = theClass.getDeclaredFields();
+        for (Field field : fields) {
+            // if the class has an autoincrement, ignore the ID
+            if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
+                continue;
+            }
+            try {
+                Class<?> type = field.getType();
+                if (type == List.class) {
                     continue;
                 }
-                try {
-                    Class<?> type = field.getType();
-                    if (type == List.class) {
-                        continue;
-                    }
-                    field.setAccessible(true);
-                    Object value = field.get(bean);
-                    if (columns != null) {
-                        columns.add(getColumnName(field));
-                    }
-                    if (values != null) {
-                        if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
-                            values.add(String.format("%d", intValue));
-                        } else if (value == null) {
-                            Column columnAnnotation = field.getAnnotation(Column.class);
-                            boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
-                            if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
-                                String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
-                                throw new IllegalStateException(msg);
-                            }
-                            if (hasDefault) {
-                                values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
-                            } else {
-                                values.add("NULL");
-                            }
-                        } else {
-                            values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
-                        }
-                    }
-                } catch (IllegalAccessException ignored) {
+                field.setAccessible(true);
+                Object value = field.get(bean);
+                if (columns != null) {
+                    columns.add(getColumnName(field));
                 }
-            }
-            if (attachedTo != null) {
-                switch (persistence.getRelationship(attachedTo.getClass(), bean.getClass())) {
-                    case HAS_MANY: {
-                        try {
-                            HasMany hasMany = persistence.belongsTo(bean.getClass());
-                            Field primaryForeignKey = hasMany.getThroughField();
-                            primaryForeignKey.setAccessible(true);
-                            Object foreignValue = primaryForeignKey.get(attachedTo);
-                            if (columns != null) {
-                                columns.add(hasMany.getForeignKey());
-                            }
-                            if (values != null) {
-                                if (persistence.isAutoincrement(theClass)) {
-                                    values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
-                                } else {
-                                    values.add(String.valueOf(foreignValue));
-                                }
-                            }
-                        } catch (Exception ignored) {
+                if (values != null) {
+                    if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+                        int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                        values.add(String.format("%d", intValue));
+                    } else if (value == null) {
+                        Column columnAnnotation = field.getAnnotation(Column.class);
+                        boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                        if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
+                            String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
+                            throw new IllegalStateException(msg);
                         }
+                        if (hasDefault) {
+                            values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
+                        } else {
+                            values.add("NULL");
+                        }
+                    } else {
+                        values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                    }
+                }
+            } catch (IllegalAccessException ignored) {
+            }
+        }
+        if (attachedTo != null) {
+            switch (persistence.getRelationship(attachedTo.getClass(), bean.getClass())) {
+                case HAS_MANY: {
+                    try {
+                        HasMany hasMany = persistence.belongsTo(bean.getClass());
+                        Field primaryForeignKey = hasMany.getThroughField();
+                        primaryForeignKey.setAccessible(true);
+                        Object foreignValue = primaryForeignKey.get(attachedTo);
+                        if (columns != null) {
+                            columns.add(hasMany.getForeignKey());
+                        }
+                        if (values != null) {
+                            if (persistence.isAutoincrement(theClass)) {
+                                values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
+                            } else {
+                                values.add(String.valueOf(foreignValue));
+                            }
+                        }
+                    } catch (Exception ignored) {
                     }
                 }
             }

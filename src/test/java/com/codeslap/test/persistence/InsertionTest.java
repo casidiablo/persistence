@@ -21,10 +21,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author cristian
@@ -187,7 +189,6 @@ public abstract class InsertionTest extends SqliteTest {
 
     @Test
     public void testNotNull() {
-        configure();
         AnnotationAutoincrement foo = new AnnotationAutoincrement();
         foo.name = "Blackened";
         foo.number = 111;
@@ -197,6 +198,80 @@ public abstract class InsertionTest extends SqliteTest {
 
         AnnotationAutoincrement bar = getAdapter().findFirst(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Blackened"});
         assertEquals("Castiblanco", bar.lastName);
+    }
+
+    @Test
+    public void testAttachedTo() {
+        Cow cow = new Cow();
+        cow.name = "Super Cow";
+
+        Bug garrapata = new Bug();
+        garrapata.itchFactor = new Random().nextFloat();
+
+        Bug pulga = new Bug();
+        pulga.itchFactor = new Random().nextFloat();
+
+        Object store = getAdapter().store(cow);
+        assertNotNull(store);
+
+        cow.id = 1;
+        store = getAdapter().store(cow);
+        assertNotNull(store);
+        
+        cow.name = "Ugly Cow";
+        store = getAdapter().store(cow);
+        assertNotNull(store);
+
+        List<Cow> cows = getAdapter().findAll(Cow.class, "name = 'Ugly Cow'", null);
+        assertEquals(1, cows.size());
+        List<Cow> cowsEquals = getAdapter().findAll(cow);
+        assertEquals(cows, cowsEquals);
+
+        getAdapter().storeCollection(Arrays.asList(garrapata, pulga), cow, null);
+
+        List<Bug> bugs = getAdapter().findAll(Bug.class);
+        assertEquals(2, bugs.size());
+        List<Bug> sameBugs = getAdapter().findAll(Bug.class, "cow_id = ?", new String[]{"1"});
+        assertEquals(bugs, sameBugs);
+
+        getAdapter().truncate(Cow.class, Bug.class);
+        assertTrue(getAdapter().findAll(Bug.class).isEmpty());
+        assertTrue(getAdapter().findAll(Cow.class).isEmpty());
+
+        Object id = getAdapter().store(cow);
+        assertNotNull(id);
+        assertTrue(id instanceof Long);
+        assertEquals(1L, id);
+
+        getAdapter().store(garrapata, cow);
+        getAdapter().store(pulga, cow);
+
+        bugs = getAdapter().findAll(Bug.class);
+        assertEquals(2, bugs.size());
+        sameBugs = getAdapter().findAll(Bug.class, "cow_id = ?", new String[]{"1"});
+        assertEquals(bugs, sameBugs);
+        List<Bug> allAttached = getAdapter().findAll(new Bug(), cow);
+        assertEquals(bugs, allAttached);
+
+        getAdapter().truncate(Cow.class, Bug.class);
+    }
+
+    @Test
+    public void testStringPrimaryKey() {
+        StringAsPrimaryKey sample = new StringAsPrimaryKey();
+        sample.primaryKey = "baz";
+        sample.foo = "bar";
+
+        Object id = getAdapter().store(sample);
+        assertNotNull(id);
+        assertTrue(id instanceof String);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldFailStringPrimaryKeyNull() {
+        StringAsPrimaryKey sample = new StringAsPrimaryKey();
+        sample.foo = "bar";
+        getAdapter().store(sample);
     }
 
     protected abstract SqlAdapter getAdapter();

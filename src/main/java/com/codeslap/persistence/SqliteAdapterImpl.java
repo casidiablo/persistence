@@ -36,7 +36,6 @@ import java.util.Map;
  * paradigm), use PreferencesAdapter.
  */
 class SqliteAdapterImpl implements SqlAdapter {
-    private static final String TAG = SqliteAdapterImpl.class.getSimpleName();
 
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
@@ -116,12 +115,14 @@ class SqliteAdapterImpl implements SqlAdapter {
             try {
                 mDb.execSQL("BEGIN TRANSACTION;");
                 String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
-                String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-                for (String statement : statements) {
-                    if (statement.isEmpty()) {
-                        continue;
+                if (sqlStatement != null) {
+                    String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+                    for (String statement : statements) {
+                        if (statement.isEmpty()) {
+                            continue;
+                        }
+                        mDb.execSQL(statement);
                     }
-                    mDb.execSQL(statement);
                 }
             } finally {
                 mDb.execSQL("COMMIT;");
@@ -246,7 +247,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                     where = where.replaceFirst("\\?", String.format("'%s'", arg));
                 }
             }
-            String sqlStatement = SQLHelper.getUpdateStatement(bean, where);
+            String sqlStatement = SQLHelper.buildUpdateStatement(bean, where);
             String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
             for (String statement : statements) {
                 mDb.execSQL(statement);
@@ -441,10 +442,22 @@ class SqliteAdapterImpl implements SqlAdapter {
         // first try to find the bean by id (if its id is not autoincrement)
         // and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
+        // get its ID
+        Field theId = SQLHelper.getPrimaryKeyField(theClass);
+        theId.setAccessible(true);
+        if (theId.getType() == String.class ||
+                theId.getType() == Float.class ||
+                theId.getType() == Double.class) {
+            Object idValue = null;
+            try {
+                idValue = theId.get(bean);
+            } catch (IllegalAccessException e) {
+            }
+            if (idValue == null) {
+                throw new IllegalStateException("You cannot insert an object whose primary key is null and it is not int or long");
+            }
+        }
         try {
-            // get its ID
-            Field theId = SQLHelper.getPrimaryKeyField(theClass);
-            theId.setAccessible(true);
             Object beanId = theId.get(bean);
             if (SQLHelper.hasData(theId.getType(), beanId)) {
                 // create an object of the same type of the bean with the same id to search of it
@@ -459,18 +472,18 @@ class SqliteAdapterImpl implements SqlAdapter {
                         return null;
                     }
                     // update the bean using the just create sample
-                    return SQLHelper.getUpdateStatement(bean, sample);// TODO update children
+                    return SQLHelper.buildUpdateStatement(bean, match);
                 }
             }
 
         } catch (Exception ignored) {
         }
 
+
         String mainInsertStatement = SQLHelper.getInsertStatement(bean, attachedTo, mPersistence);
         try {
             mainInsertStatement += getSqlInsertForChildrenOf(bean, tree);
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
         }
         return mainInsertStatement;
     }
@@ -502,7 +515,10 @@ class SqliteAdapterImpl implements SqlAdapter {
                     if (list != null) {
                         for (Object object : list) {
                             // get the insertion SQL
-                            sqlStatement += getSqlStatement(object, tree, null);
+                            String partialSqlStatement = getSqlStatement(object, tree, null);
+                            if (partialSqlStatement != null) {
+                                sqlStatement += partialSqlStatement;
+                            }
                             // insert items in the joined table
                             // get the table name and columns
                             String relationTableName = ManyToMany.buildTableName(theClass, collectionClass);
@@ -544,7 +560,10 @@ class SqliteAdapterImpl implements SqlAdapter {
                     List list = (List) field.get(bean);
                     for (Object object : list) {
                         // prepare the object by setting the foreign value
-                        sqlStatement += getSqlStatement(object, tree, bean);
+                        String partialSqlStatement = getSqlStatement(object, tree, bean);
+                        if (partialSqlStatement != null) {
+                            sqlStatement += partialSqlStatement;
+                        }
                     }
                     break;
             }

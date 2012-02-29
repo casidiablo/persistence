@@ -58,11 +58,19 @@ public class SqlPersistence {
             if (!SQLITE_LIST.contains(theClass)) {
                 SQLITE_LIST.add(theClass);
                 boolean isAutoincrement = true;
-                for (Field field : theClass.getDeclaredFields()) {
-                    PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
-                    if (primaryKey != null && !primaryKey.autoincrement()) {
-                        isAutoincrement = false;
-                        break;
+                Field pk = SQLHelper.getPrimaryKeyField(theClass);
+                if (pk.getType() == String.class ||
+                        pk.getType() == Boolean.class || pk.getType() == boolean.class ||
+                        pk.getType() == Float.class || pk.getType() == float.class ||
+                        pk.getType() == Double.class || pk.getType() == double.class) {
+                    isAutoincrement = false;
+                } else {
+                    for (Field field : theClass.getDeclaredFields()) {
+                        PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
+                        if (primaryKey != null && !primaryKey.autoincrement()) {
+                            isAutoincrement = false;
+                            break;
+                        }
                     }
                 }
                 if (isAutoincrement && !AUTO_INCREMENT_LIST.contains(theClass)) {

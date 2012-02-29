@@ -37,7 +37,8 @@ public abstract class SqliteTest {
     public void configure() {
         PersistenceConfig.clear();
         mDatabase = PersistenceConfig.getDatabase("test.db", 1);
-        mDatabase.match(ExampleAutoincrement.class, AnnotationAutoincrement.class, AnnotationNotAutoincrement.class);
+        mDatabase.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
+                AnnotationNotAutoincrement.class, StringAsPrimaryKey.class);
         mDatabase.match(new HasMany(PolyTheist.class, God.class));
         mDatabase.match(new HasMany(Cow.class, Bug.class, true));
         mDatabase.match(new ManyToMany(Author.class, Book.class));
@@ -45,13 +46,10 @@ public abstract class SqliteTest {
         mDatabase.matchNotAutoIncrement(ExampleNotAutoincrement.class);
 
         mAdapter = Persistence.getSqliteAdapter(new Activity());
-        mAdapter.truncate(ExampleAutoincrement.class);
-        mAdapter.truncate(ExampleNotAutoincrement.class);
-        mAdapter.truncate(AnnotationAutoincrement.class);
-        mAdapter.truncate(Book.class);
-        mAdapter.truncate(God.class);
-        mAdapter.truncate(PolyTheist.class);
-        mAdapter.truncate(Author.class);
+        mAdapter.truncate(ExampleAutoincrement.class, ExampleNotAutoincrement.class,
+                AnnotationAutoincrement.class, Book.class, God.class, PolyTheist.class,
+                Author.class, Pet.class, Owner.class, StringAsPrimaryKey.class,
+                AnnotationNotAutoincrement.class, Cow.class, Bug.class);
     }
 
     public SqlAdapter getNormalAdapter() {
@@ -111,11 +109,47 @@ public abstract class SqliteTest {
         }
     }
 
+    public static class StringAsPrimaryKey {
+        @PrimaryKey
+        String primaryKey;
+        String foo;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            StringAsPrimaryKey that = (StringAsPrimaryKey) o;
+
+            if (foo != null ? !foo.equals(that.foo) : that.foo != null) return false;
+            if (primaryKey != null ? !primaryKey.equals(that.primaryKey) : that.primaryKey != null) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = primaryKey != null ? primaryKey.hashCode() : 0;
+            result = 31 * result + (foo != null ? foo.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "StringAsPrimaryKey{" +
+                    "primaryKey='" + primaryKey + '\'' +
+                    ", foo='" + foo + '\'' +
+                    '}';
+        }
+    }
+
     public static class AnnotationAutoincrement {
         @PrimaryKey
         long something;
         @Column(value = "char_sequence", notNull = true)
         String name;
+        @Column(value = "middle_name")
+        String middleName;
         @Column(value = "the_last_name", notNull = true, defaultValue = "Castiblanco")
         String lastName;
         @Column("signed")
@@ -163,6 +197,7 @@ public abstract class SqliteTest {
                     '}';
         }
     }
+
     public static class AnnotationNotAutoincrement {
         @PrimaryKey(autoincrement = false)
         long something;
@@ -180,7 +215,7 @@ public abstract class SqliteTest {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof AnnotationAutoincrement)) return false;
+            if (!(o instanceof AnnotationNotAutoincrement)) return false;
 
             AnnotationNotAutoincrement that = (AnnotationNotAutoincrement) o;
 
@@ -331,8 +366,8 @@ public abstract class SqliteTest {
                     '}';
         }
     }
-    
-    public static class Owner{
+
+    public static class Owner {
         long id;
         @Column("full_name")
         String name;
@@ -367,8 +402,8 @@ public abstract class SqliteTest {
                     '}';
         }
     }
-    
-    public static class Pet{
+
+    public static class Pet {
         @PrimaryKey
         long petId;
         @Column("nickname")
@@ -452,9 +487,9 @@ public abstract class SqliteTest {
     }
 
     public static class Author {
-        long id;
         String name;
         List<Book> books;
+        long id;
 
         @Override
         public boolean equals(Object o) {

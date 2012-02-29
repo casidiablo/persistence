@@ -48,7 +48,6 @@ class QuickSqlAdapter implements SqlAdapter {
         try {
             adapter.close();
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return id;
     }
