@@ -125,7 +125,7 @@ public class RawQueryTest extends SqliteTest {
         assertEquals(foo.decimal, cursor.getFloat(cursor.getColumnIndex("decimal")), 0.0f);
         assertEquals(foo.bool, cursor.getInt(cursor.getColumnIndex("bool")) == 1);
 
-        Cursor rawCursor = rawQuery.rawQuery("SELECT * FROM example_autoincrements WHERE bool = 1");
+        Cursor rawCursor = rawQuery.rawQuery("SELECT * FROM automatic WHERE bool = 1");
         assertNotNull(rawCursor);
         assertTrue(rawCursor.moveToFirst());
 
