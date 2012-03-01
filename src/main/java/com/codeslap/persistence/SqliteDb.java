@@ -17,6 +17,7 @@
 package com.codeslap.persistence;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.util.HashMap;
@@ -82,9 +83,17 @@ class SqliteDb {
         }
 
         @Override
-        public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-            // TODO define a way to migrate data
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            // Here we will the whole database and recreate it
+            Cursor c = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " +
+                    "AND name != 'sqlite_sequence';", null);
+            if (c != null && c.moveToFirst()) {
+                do {
+                    db.execSQL(c.getString(0));
+                } while (c.moveToNext());
+            }
+            db.execSQL("DELETE FROM sqlite_sequence");
+            onCreate(db);
         }
-
     }
 }
