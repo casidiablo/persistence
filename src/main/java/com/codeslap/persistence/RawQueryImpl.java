@@ -62,4 +62,9 @@ class RawQueryImpl implements RawQuery {
     public Cursor rawQuery(String rawQuery) {
         return mDb.rawQuery(rawQuery, null);
     }
+
+    @Override
+    public Cursor findAll(String table, String[] projection, String selection, String[] selectionArgs, String groupBy, String having, String sortOrder, String limit) {
+        return mDb.query(table, projection, selection, selectionArgs, groupBy, having, sortOrder, limit);
+    }
 }
