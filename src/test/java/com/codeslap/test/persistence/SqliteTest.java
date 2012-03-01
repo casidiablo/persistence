@@ -19,6 +19,7 @@ package com.codeslap.test.persistence;
 import android.app.Activity;
 import com.codeslap.persistence.*;
 import com.codeslap.robolectric.RobolectricSimpleRunner;
+import com.xtremelabs.robolectric.Robolectric;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
@@ -35,6 +36,8 @@ public abstract class SqliteTest {
 
     @Before
     public void configure() {
+        Robolectric.bindShadowClass(ShadowUriMatcher.class);
+        Robolectric.bindShadowClass(ShadowContentUris.class);
         PersistenceConfig.clear();
         mDatabase = PersistenceConfig.getDatabase("test.db", 1);
         mDatabase.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
