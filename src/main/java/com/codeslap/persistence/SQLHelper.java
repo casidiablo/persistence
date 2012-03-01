@@ -29,6 +29,7 @@ class SQLHelper {
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Class<?>, String> TABLE_NAMES_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Field, String> COLUMN_NAMES_CACHE = new HashMap<Field, String>();
+    private static final Map<Class<?>, Field[]> FIELDS_CACHE = new HashMap<Class<?>, Field[]>();
     static final String SELECT_AUTOINCREMENT_FORMAT = "(SELECT seq FROM sqlite_sequence WHERE name = '%s')";
 
     static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
@@ -36,7 +37,7 @@ class SQLHelper {
     static String getCreateTableSentence(String dbName, Class clazz) {
         List<String> fieldSentences = new ArrayList<String>();
         // loop through all the fields and add sql statements
-        Field[] declaredFields = clazz.getDeclaredFields();
+        Field[] declaredFields = SQLHelper.getDeclaredFields(clazz);
         List<String> columns = new ArrayList<String>();
         for (Field field : declaredFields) {
             String columnName = getColumnName(field);
@@ -106,6 +107,21 @@ class SQLHelper {
         return builder.toString();
     }
 
+    static Field[] getDeclaredFields(Class theClass) {
+        if (!FIELDS_CACHE.containsKey(theClass)) {
+            List<Field> list = new ArrayList<Field>();
+            for (Field field : theClass.getDeclaredFields()) {
+                // - If it has the ignore annotation, ignore it.
+                // - Oh, really? What a brilliant idea.
+                if (field.getAnnotation(Ignore.class) == null) {
+                    list.add(field);
+                }
+            }
+            FIELDS_CACHE.put(theClass, list.toArray(new Field[list.size()]));
+        }
+        return FIELDS_CACHE.get(theClass);
+    }
+
     /**
      * @param name    the name of the field
      * @param type    the type
@@ -134,7 +150,7 @@ class SQLHelper {
         List<String> conditions = new ArrayList<String>();
         if (bean != null) {
             Class<?> clazz = bean.getClass();
-            Field[] fields = clazz.getDeclaredFields();
+            Field[] fields = getDeclaredFields(clazz);
             for (Field field : fields) {
                 try {
                     Class<?> type = field.getType();
@@ -200,8 +216,7 @@ class SQLHelper {
     private static <T> String getSet(T bean) {
         List<String> sets = new ArrayList<String>();
         if (bean != null) {
-            Class<?> clazz = bean.getClass();
-            Field[] fields = clazz.getDeclaredFields();
+            Field[] fields = getDeclaredFields(bean.getClass());
             for (Field field : fields) {
                 try {
                     Class<?> type = field.getType();
@@ -350,7 +365,7 @@ class SQLHelper {
             return;
         }
         Class<?> theClass = bean.getClass();
-        Field[] fields = theClass.getDeclaredFields();
+        Field[] fields = getDeclaredFields(theClass);
         for (Field field : fields) {
             // if the class has an autoincrement, ignore the ID
             if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
@@ -446,7 +461,7 @@ class SQLHelper {
      * @return the primary key from a class
      */
     public static String getPrimaryKey(Class<?> theClass) {
-        for (Field field : theClass.getDeclaredFields()) {
+        for (Field field : getDeclaredFields(theClass)) {
             if (isPrimaryKey(field)) {
                 return field.getName();
             }
@@ -459,7 +474,7 @@ class SQLHelper {
      * @return the primary key field from a class
      */
     public static Field getPrimaryKeyField(Class<?> theClass) {
-        for (Field field : theClass.getDeclaredFields()) {
+        for (Field field : getDeclaredFields(theClass)) {
             if (isPrimaryKey(field)) {
                 return field;
             }

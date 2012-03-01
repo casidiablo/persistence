@@ -71,7 +71,7 @@ public class SqlPersistence {
                         pk.getType() == Double.class || pk.getType() == double.class) {
                     isAutoincrement = false;
                 } else {
-                    for (Field field : theClass.getDeclaredFields()) {
+                    for (Field field : SQLHelper.getDeclaredFields(theClass)) {
                         PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
                         if (primaryKey != null && !primaryKey.autoincrement()) {
                             isAutoincrement = false;

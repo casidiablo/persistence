@@ -49,7 +49,7 @@ public class HasMany {
         if (!artificial) {
             // we must make sure the relation exists
             boolean relationExists = false;
-            for (Field field : classA.getDeclaredFields()) {
+            for (Field field : SQLHelper.getDeclaredFields(classA)) {
                 if (field.getType() == List.class) {
                     ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
                     Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
