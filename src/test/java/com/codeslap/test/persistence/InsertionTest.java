@@ -252,8 +252,6 @@ public abstract class InsertionTest extends SqliteTest {
         assertEquals(bugs, sameBugs);
         List<Bug> allAttached = getAdapter().findAll(new Bug(), cow);
         assertEquals(bugs, allAttached);
-
-        getAdapter().truncate(Cow.class, Bug.class);
     }
 
     @Test

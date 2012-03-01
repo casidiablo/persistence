@@ -68,10 +68,10 @@ class SqliteAdapterImpl implements SqlAdapter {
     }
 
     @Override
-    public <T> List<T> findAll(Class<T> clazz) {
+    public <T> List<T> findAll(Class<T> theClass) {
         T emptySample = null;
         try {
-            emptySample = clazz.newInstance();
+            emptySample = theClass.newInstance();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -365,7 +365,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> int count(T bean) {
-        Cursor query = getCursorFindAllWhere(bean.getClass(), bean, null, null);
+        Cursor query = SQLHelper.getCursorFindAllWhere(mDb, mPersistence.getName(), bean.getClass(), bean, null, null);
         int count = query.getCount();
         query.close();
         return count;
@@ -381,7 +381,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T> int count(Class<T> clazz) {
-        Cursor query = getCursorFindAllWhere(clazz, null, null, null);
+        Cursor query = SQLHelper.getCursorFindAllWhere(mDb, mPersistence.getName(), clazz, null, null, null);
         int count = query.getCount();
         query.close();
         return count;
@@ -395,7 +395,7 @@ class SqliteAdapterImpl implements SqlAdapter {
     }
 
     private <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo, Constraint constraint) {
-        Cursor query = getCursorFindAllWhere(clazz, where, attachedTo, constraint);
+        Cursor query = SQLHelper.getCursorFindAllWhere(mDb, mPersistence.getName(), clazz, where, attachedTo, constraint);
         return findAllFromCursor(clazz, query);
     }
 
@@ -409,29 +409,6 @@ class SqliteAdapterImpl implements SqlAdapter {
         }
         query.close();
         return beans;
-    }
-
-    private <T, G> Cursor getCursorFindAllWhere(Class<? extends T> clazz, T sample, G attachedTo, Constraint constraint) {
-        String[] selectionArgs = null;
-        String where = null;
-        if (sample != null || attachedTo != null) {
-            ArrayList<String> args = new ArrayList<String>();
-            where = SQLHelper.getWhere(mPersistence.getName(), clazz, sample, args, attachedTo);
-            if (where == null || where.trim().isEmpty()) {
-                where = null;
-            } else {
-                selectionArgs = args.toArray(new String[args.size()]);
-            }
-        }
-        String orderBy = null;
-        String limit = null;
-        String groupBy = null;
-        if (constraint != null) {
-            orderBy = constraint.getOrderBy();
-            limit = String.valueOf(constraint.getLimit());
-            groupBy = constraint.getGroupBy();
-        }
-        return mDb.query(SQLHelper.getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
     }
 
     private <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, String where, String[] args) {

@@ -16,6 +16,9 @@
 
 package com.codeslap.persistence;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -480,5 +483,28 @@ class SQLHelper {
             }
         }
         throw new IllegalStateException("Class " + theClass + " does not have a primary key");
+    }
+
+    static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, String dbName, Class<? extends T> clazz, T sample, G attachedTo, Constraint constraint) {
+        String[] selectionArgs = null;
+        String where = null;
+        if (sample != null || attachedTo != null) {
+            ArrayList<String> args = new ArrayList<String>();
+            where = getWhere(dbName, clazz, sample, args, attachedTo);
+            if (where == null || where.trim().isEmpty()) {
+                where = null;
+            } else {
+                selectionArgs = args.toArray(new String[args.size()]);
+            }
+        }
+        String orderBy = null;
+        String limit = null;
+        String groupBy = null;
+        if (constraint != null) {
+            orderBy = constraint.getOrderBy();
+            limit = String.valueOf(constraint.getLimit());
+            groupBy = constraint.getGroupBy();
+        }
+        return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
     }
 }

@@ -28,19 +28,49 @@ import java.util.Map;
  */
 public class Persistence {
     private static final String TAG = Persistence.class.getSimpleName();
-
     private static final Map<String, SqlAdapter> QUICK_ADAPTERS = new HashMap<String, SqlAdapter>();
 
+    /**
+     * @param context used to open/create the database
+     * @param dbName  database name identifier
+     * @return an implementation of the {@link SqlAdapter} interface
+     */
     public static SqlAdapter getSqliteAdapter(Context context, String dbName) {
         PersistenceLogManager.d(TAG, String.format("Getting database adapter for \"%s\" database", dbName));
         return new SqliteAdapterImpl(context, dbName);
     }
 
+    /**
+     * @param context used to open/create the database
+     * @return an implementation of the {@link SqlAdapter} interface pointing to the first database created
+     */
     public static SqlAdapter getSqliteAdapter(Context context) {
         PersistenceLogManager.d(TAG, String.format("Getting database adapter for \"%s\" database", PersistenceConfig.sFirstDatabase));
         return new SqliteAdapterImpl(context, PersistenceConfig.sFirstDatabase);
     }
 
+    /**
+     * @param context used to open/create the database
+     * @return an implementation of the {@link RawQuery} interface. This will use the first database created.
+     */
+    public static RawQuery getRawQuery(Context context) {
+        return new RawQueryImpl(context, PersistenceConfig.sFirstDatabase);
+    }
+
+    /**
+     * @param context used to open/create the database
+     * @param name    database name identifier
+     * @return an implementation of the {@link RawQuery} interface
+     */
+    public static RawQuery getRawQuery(Context context, String name) {
+        return new RawQueryImpl(context, name);
+    }
+
+    /**
+     * @param context used to open/create the database
+     * @param name    database name identifier
+     * @return an implementation of the {@link SqlAdapter} interface that can be used once only
+     */
     public static SqlAdapter getQuickAdapter(Context context, String name) {
         PersistenceLogManager.d(TAG, String.format("Getting quick database adapter for \"%s\" database", name));
         if (!QUICK_ADAPTERS.containsKey(name)) {
@@ -49,14 +79,29 @@ public class Persistence {
         return QUICK_ADAPTERS.get(name);
     }
 
+    /**
+     * @param context used to open/create the database
+     * @return an implementation of the {@link SqlAdapter} interface that can be used once only. This will point
+     *         to the first database created.
+     */
+
     public static SqlAdapter quick(Context context) {
         return getQuickAdapter(context, PersistenceConfig.sFirstDatabase);
     }
 
+    /**
+     * @param context used to access to the preferences system
+     * @param name    the name of the preference file
+     * @return an implementation of the PreferencesAdapter interface.
+     */
     public static PreferencesAdapter getPreferenceAdapter(Context context, String name) {
         return new PrefsAdapterImpl(context, name);
     }
 
+    /**
+     * @param context used to access to the preferences system
+     * @return an implementation of the PreferencesAdapter interface pointing to the default sharepreferences
+     */
     public static PreferencesAdapter getPreferenceAdapter(Context context) {
         return new PrefsAdapterImpl(context);
     }
