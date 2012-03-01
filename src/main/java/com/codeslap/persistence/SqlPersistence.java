@@ -31,10 +31,12 @@ public class SqlPersistence {
 
     private final String mName;
     private final int mVersion;
+    private final DbOpenHelper mOpenHelper;
 
-    public SqlPersistence(String name, int version) {
+    public SqlPersistence(String name, int version, DbOpenHelper openHelper) {
         mName = name;
         mVersion = version;
+        mOpenHelper = openHelper;
     }
 
     public String getName() {
@@ -43,6 +45,10 @@ public class SqlPersistence {
 
     public int getVersion() {
         return mVersion;
+    }
+
+    public DbOpenHelper getOpenHelper() {
+        return mOpenHelper;
     }
 
     /**
@@ -65,7 +71,7 @@ public class SqlPersistence {
                         pk.getType() == Double.class || pk.getType() == double.class) {
                     isAutoincrement = false;
                 } else {
-                    for (Field field : theClass.getDeclaredFields()) {
+                    for (Field field : SQLHelper.getDeclaredFields(theClass)) {
                         PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
                         if (primaryKey != null && !primaryKey.autoincrement()) {
                             isAutoincrement = false;

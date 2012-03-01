@@ -47,7 +47,7 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     SqliteAdapterImpl(Context context, String name) {
         mPersistence = PersistenceConfig.getDatabase(name);
-        SqliteDb helper = SqliteDb.getInstance(context, mPersistence.getName(), mPersistence.getVersion());
+        SqliteDb helper = SqliteDb.getInstance(context, mPersistence);
         mDb = helper.getDatabase();
         mInsertHelperMap = new HashMap<String, DatabaseUtils.InsertHelper>();
     }
@@ -491,7 +491,7 @@ class SqliteAdapterImpl implements SqlAdapter {
     private <T> String getSqlInsertForChildrenOf(T bean, Node tree) throws IllegalAccessException {// bodom
         // get a list with the fields that are lists
         Class<?> theClass = bean.getClass();
-        Field[] fields = theClass.getDeclaredFields();
+        Field[] fields = SQLHelper.getDeclaredFields(theClass);
         List<Field> collectionFields = new ArrayList<Field>();
         for (Field field : fields) {
             if (field.getType() == List.class) {
@@ -592,7 +592,7 @@ class SqliteAdapterImpl implements SqlAdapter {
         }
 
         // get each field and put its value in a content values object
-        Field[] fields = theClass.getDeclaredFields();
+        Field[] fields = SQLHelper.getDeclaredFields(theClass);
         for (Field field : fields) {
             // get the column index
             String normalize = SQLHelper.getColumnName(field);

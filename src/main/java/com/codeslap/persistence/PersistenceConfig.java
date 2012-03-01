@@ -26,6 +26,14 @@ public class PersistenceConfig {
     static String sFirstDatabase;
 
     public static SqlPersistence getDatabase(String name, int version) {
+        return getDatabase(name, version, null);
+    }
+
+    public static SqlPersistence getDatabase(DbOpenHelper openHelper) {
+        return getDatabase(openHelper.getName(), openHelper.getVersion(), openHelper);
+    }
+
+    private static SqlPersistence getDatabase(String name, int version, DbOpenHelper openHelper) {
         if (name == null) {
             throw new IllegalArgumentException("You must provide a valid database name");
         }
@@ -35,7 +43,7 @@ public class PersistenceConfig {
         if (SQL.containsKey(name)) {
             return SQL.get(name);
         }
-        SqlPersistence sqlPersistence = new SqlPersistence(name, version);
+        SqlPersistence sqlPersistence = new SqlPersistence(name, version, openHelper);
         SQL.put(name, sqlPersistence);
         return sqlPersistence;
     }
