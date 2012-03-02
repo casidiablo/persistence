@@ -67,6 +67,7 @@ public abstract class SqliteTest {
         return mDatabase;
     }
 
+    @Table("automatic")
     public static class ExampleAutoincrement {
         long id;
         String name;

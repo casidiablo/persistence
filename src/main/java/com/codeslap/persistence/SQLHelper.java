@@ -168,7 +168,8 @@ class SQLHelper {
                     String columnName = getColumnName(field);
                     if (args == null) {
                         if (field.getType() == String.class) {
-                            conditions.add(String.format("%s LIKE '%s'", columnName, value));
+                            conditions.add(String.format("%s LIKE '%s'", columnName,
+                                    String.valueOf(value).replace("'", "''")));
                         } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                             conditions.add(String.format("%s = '%d'", columnName, intValue));
@@ -440,18 +441,33 @@ class SQLHelper {
         return field.getName().equals(ID) || field.getName().equals(_ID);
     }
 
-    static String getTableName(Class<?> clazz) {
-        if (TABLE_NAMES_CACHE.containsKey(clazz)) {
-            return TABLE_NAMES_CACHE.get(clazz);
+    static String getTableName(Class<?> theClass) {
+        if (TABLE_NAMES_CACHE.containsKey(theClass)) {
+            return TABLE_NAMES_CACHE.get(theClass);
         }
-        String name = clazz.getSimpleName();
-        if (name.endsWith("y")) {
-            name = name.substring(0, name.length() - 1) + "ies";
-        } else if (!name.endsWith("s")) {
-            name += "s";
+        Table table = theClass.getAnnotation(Table.class);
+        String tableName;
+        if (table != null) {
+            tableName = table.value();
+            if (tableName.isEmpty()) {
+                String msg = String.format("You cannot leave a table name empty (class %s)", theClass.getSimpleName());
+                throw new IllegalArgumentException(msg);
+            }
+            if (tableName.indexOf(" ") >= 0) {
+                String msg = String.format("Table name cannot have spaces: '%s'; found in class %s",
+                        tableName, theClass.getSimpleName());
+                throw new IllegalArgumentException(msg);
+            }
+        } else {
+            String name = theClass.getSimpleName();
+            if (name.endsWith("y")) {
+                name = name.substring(0, name.length() - 1) + "ies";
+            } else if (!name.endsWith("s")) {
+                name += "s";
+            }
+            tableName = normalize(name);
         }
-        String tableName = normalize(name);
-        TABLE_NAMES_CACHE.put(clazz, tableName);
+        TABLE_NAMES_CACHE.put(theClass, tableName);
         return tableName;
     }
 
