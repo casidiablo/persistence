@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.TextUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -118,7 +119,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                 if (sqlStatement != null) {
                     String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
                     for (String statement : statements) {
-                        if (statement.isEmpty()) {
+                        if (TextUtils.isEmpty(statement)) {
                             continue;
                         }
                         mDb.execSQL(statement);

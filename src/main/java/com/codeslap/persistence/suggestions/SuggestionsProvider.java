@@ -21,6 +21,7 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.text.TextUtils;
 
 import java.lang.ref.SoftReference;
 import java.util.*;
@@ -49,7 +50,7 @@ public abstract class SuggestionsProvider<T> extends ContentProvider {
         // retrieve elements using the search filter
         List<T> findAll = new ArrayList<T>();
         String query = uri.getLastPathSegment();
-        if (!SearchManager.SUGGEST_URI_PATH_QUERY.equals(query) && query != null && !query.isEmpty()) {
+        if (!SearchManager.SUGGEST_URI_PATH_QUERY.equals(query) && !TextUtils.isEmpty(query)) {
             List<T> ts = queryItems(query);
             findAll.addAll(ts);
         }
