@@ -168,7 +168,8 @@ class SQLHelper {
                     String columnName = getColumnName(field);
                     if (args == null) {
                         if (field.getType() == String.class) {
-                            conditions.add(String.format("%s LIKE '%s'", columnName, value));
+                            conditions.add(String.format("%s LIKE '%s'", columnName,
+                                    String.valueOf(value).replace("'", "''")));
                         } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                             conditions.add(String.format("%s = '%d'", columnName, intValue));
