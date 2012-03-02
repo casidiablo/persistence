@@ -18,6 +18,7 @@ package com.codeslap.persistence;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.text.TextUtils;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -449,7 +450,7 @@ class SQLHelper {
         String tableName;
         if (table != null) {
             tableName = table.value();
-            if (tableName.isEmpty()) {
+            if (TextUtils.isEmpty(tableName)) {
                 String msg = String.format("You cannot leave a table name empty (class %s)", theClass.getSimpleName());
                 throw new IllegalArgumentException(msg);
             }
@@ -507,7 +508,7 @@ class SQLHelper {
         if (sample != null || attachedTo != null) {
             ArrayList<String> args = new ArrayList<String>();
             where = getWhere(dbName, clazz, sample, args, attachedTo);
-            if (where == null || where.trim().isEmpty()) {
+            if (TextUtils.isEmpty(where)) {
                 where = null;
             } else {
                 selectionArgs = args.toArray(new String[args.size()]);
