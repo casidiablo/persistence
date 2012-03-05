@@ -21,6 +21,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 
 class SQLHelper {
@@ -117,7 +118,7 @@ class SQLHelper {
             for (Field field : theClass.getDeclaredFields()) {
                 // - If it has the ignore annotation, ignore it.
                 // - Oh, really? What a brilliant idea.
-                if (field.getAnnotation(Ignore.class) == null) {
+                if (!field.isAnnotationPresent(Ignore.class) && !Modifier.isStatic(field.getModifiers())) {
                     list.add(field);
                 }
             }
