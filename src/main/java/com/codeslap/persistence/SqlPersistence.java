@@ -16,6 +16,9 @@
 
 package com.codeslap.persistence;
 
+import android.content.Context;
+
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,14 +27,16 @@ import java.util.List;
  * @author cristian
  */
 public class SqlPersistence {
-    private final List<Class<?>> SQLITE_LIST = new ArrayList<Class<?>>();
-    private final List<Class<?>> AUTO_INCREMENT_LIST = new ArrayList<Class<?>>();
-    private final List<ManyToMany> MANY_TO_MANY_LIST = new ArrayList<ManyToMany>();
-    private final List<HasMany> HAS_MANY_LIST = new ArrayList<HasMany>();
+    private final List<Class<?>> mSqliteList = new ArrayList<Class<?>>();
+    private final List<Class<?>> mAutoIncrementList = new ArrayList<Class<?>>();
+    private final List<ManyToMany> mManyToManyList = new ArrayList<ManyToMany>();
+    private final List<HasMany> mHasManyList = new ArrayList<HasMany>();
 
     private final String mName;
     private final int mVersion;
     private final DbOpenHelper mOpenHelper;
+    private final List<Importer> mBeforeImporters = new ArrayList<Importer>();
+    private final List<Importer> mAfterImporters = new ArrayList<Importer>();
 
     public SqlPersistence(String name, int version, DbOpenHelper openHelper) {
         mName = name;
@@ -61,8 +66,8 @@ public class SqlPersistence {
      */
     public void match(Class<?>... classes) {
         for (Class<?> theClass : classes) {
-            if (!SQLITE_LIST.contains(theClass)) {
-                SQLITE_LIST.add(theClass);
+            if (!mSqliteList.contains(theClass)) {
+                mSqliteList.add(theClass);
                 boolean isAutoincrement = true;
                 Field pk = SQLHelper.getPrimaryKeyField(theClass);
                 if (pk.getType() == String.class ||
@@ -79,8 +84,8 @@ public class SqlPersistence {
                         }
                     }
                 }
-                if (isAutoincrement && !AUTO_INCREMENT_LIST.contains(theClass)) {
-                    AUTO_INCREMENT_LIST.add(theClass);
+                if (isAutoincrement && !mAutoIncrementList.contains(theClass)) {
+                    mAutoIncrementList.add(theClass);
                 }
             }
         }
@@ -96,8 +101,8 @@ public class SqlPersistence {
      */
     public void matchNotAutoIncrement(Class<?>... classes) {
         for (Class<?> type : classes) {
-            if (!SQLITE_LIST.contains(type)) {
-                SQLITE_LIST.add(type);
+            if (!mSqliteList.contains(type)) {
+                mSqliteList.add(type);
             }
         }
     }
@@ -114,15 +119,15 @@ public class SqlPersistence {
      */
     public void match(ManyToMany manyToMany) {
         // make sure there are no inverted many-to-many relations
-        for (ManyToMany mtm : MANY_TO_MANY_LIST) {
+        for (ManyToMany mtm : mManyToManyList) {
             if ((mtm.getFirstRelation() == manyToMany.getSecondRelation() && mtm.getSecondRelation() == manyToMany.getFirstRelation()) ||
                     (mtm.getFirstRelation() == manyToMany.getFirstRelation() && mtm.getSecondRelation() == manyToMany.getSecondRelation())) {
                 throw new IllegalStateException(String.format("Error adding '%s': there should not be two many-to-many relations with the same classes.", manyToMany));
             }
         }
         match(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
-        if (!MANY_TO_MANY_LIST.contains(manyToMany)) {
-            MANY_TO_MANY_LIST.add(manyToMany);
+        if (!mManyToManyList.contains(manyToMany)) {
+            mManyToManyList.add(manyToMany);
         }
     }
 
@@ -137,8 +142,8 @@ public class SqlPersistence {
      */
     public void matchNotAutoIncrement(ManyToMany manyToMany) {
         matchNotAutoIncrement(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
-        if (!MANY_TO_MANY_LIST.contains(manyToMany)) {
-            MANY_TO_MANY_LIST.add(manyToMany);
+        if (!mManyToManyList.contains(manyToMany)) {
+            mManyToManyList.add(manyToMany);
         }
     }
 
@@ -154,7 +159,7 @@ public class SqlPersistence {
         Class<?> containerClass = hasMany.getContainerClass();
         Class<?> containedClass = hasMany.getContainedClass();
         // make sure there are no inverted has many relations
-        for (HasMany hasManyRelation : HAS_MANY_LIST) {
+        for (HasMany hasManyRelation : mHasManyList) {
             Class<?> currentContainerClass = hasManyRelation.getContainerClass();
             Class<?> currentContainedClass = hasManyRelation.getContainedClass();
             if (currentContainerClass == containedClass && currentContainedClass == containerClass) {
@@ -163,8 +168,8 @@ public class SqlPersistence {
         }
         match(containedClass, containerClass);
         // add the has many relation to the list
-        if (!HAS_MANY_LIST.contains(hasMany)) {
-            HAS_MANY_LIST.add(hasMany);
+        if (!mHasManyList.contains(hasMany)) {
+            mHasManyList.add(hasMany);
         }
     }
 
@@ -181,7 +186,7 @@ public class SqlPersistence {
         Class<?> containedClass = hasMany.getContainedClass();
         matchNotAutoIncrement(containerClass, containedClass);
         // make sure there are no inverted has many relations
-        for (HasMany hasManyRelation : HAS_MANY_LIST) {
+        for (HasMany hasManyRelation : mHasManyList) {
             Class<?> currentContainerClass = hasManyRelation.getContainerClass();
             Class<?> currentContainedClass = hasManyRelation.getContainedClass();
             if (currentContainerClass == containedClass &&
@@ -190,8 +195,8 @@ public class SqlPersistence {
             }
         }
         // add the has many relation to the list
-        if (!HAS_MANY_LIST.contains(hasMany)) {
-            HAS_MANY_LIST.add(hasMany);
+        if (!mHasManyList.contains(hasMany)) {
+            mHasManyList.add(hasMany);
         }
     }
 
@@ -203,7 +208,7 @@ public class SqlPersistence {
      * @return the type of relationship between two classes
      */
     Relationship getRelationship(Class<?> theClass, Class<?> collectionClass) {
-        for (HasMany hasMany : HAS_MANY_LIST) {
+        for (HasMany hasMany : mHasManyList) {
             Class<?> containerClass = hasMany.getContainerClass();
             Class<?> containedClass = hasMany.getContainedClass();
             if (containerClass == theClass && containedClass == collectionClass) {
@@ -211,7 +216,7 @@ public class SqlPersistence {
             }
         }
 
-        for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
+        for (ManyToMany manyToMany : mManyToManyList) {
             if ((manyToMany.getFirstRelation() == theClass && manyToMany.getSecondRelation() == collectionClass) ||
                     (manyToMany.getSecondRelation() == theClass && manyToMany.getFirstRelation() == collectionClass)) {
                 return Relationship.MANY_TO_MANY;
@@ -228,14 +233,14 @@ public class SqlPersistence {
      * @return the type of relationship between this class and any other
      */
     Relationship getRelationship(Class<?> theClass) {
-        for (HasMany hasMany : HAS_MANY_LIST) {
+        for (HasMany hasMany : mHasManyList) {
             Class<?> containerClass = hasMany.getContainerClass();
             if (containerClass == theClass) {
                 return Relationship.HAS_MANY;
             }
         }
 
-        for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
+        for (ManyToMany manyToMany : mManyToManyList) {
             if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
                 return Relationship.MANY_TO_MANY;
             }
@@ -248,7 +253,7 @@ public class SqlPersistence {
      * @return the class that clazz belongs to or null if not such relation
      */
     HasMany belongsTo(Class clazz) {
-        for (HasMany hasMany : HAS_MANY_LIST) {
+        for (HasMany hasMany : mHasManyList) {
             Class<?> containedClass = hasMany.getContainedClass();
             if (containedClass == clazz) {
                 return hasMany;
@@ -262,7 +267,7 @@ public class SqlPersistence {
      * @return true if the class is registered as autoincrement
      */
     boolean isAutoincrement(Class<?> theClass) {
-        return AUTO_INCREMENT_LIST.contains(theClass);
+        return mAutoIncrementList.contains(theClass);
     }
 
     /**
@@ -271,7 +276,7 @@ public class SqlPersistence {
      */
     List<ManyToMany> getManyToMany(Class<?> theClass) {
         List<ManyToMany> manyToManyList = new ArrayList<ManyToMany>();
-        for (ManyToMany manyToMany : MANY_TO_MANY_LIST) {
+        for (ManyToMany manyToMany : mManyToManyList) {
             if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
                 manyToManyList.add(manyToMany);
             }
@@ -284,7 +289,7 @@ public class SqlPersistence {
      * @return the class that clazz has or null if not such relation
      */
     HasMany has(Class clazz) {
-        for (HasMany hasMany : HAS_MANY_LIST) {
+        for (HasMany hasMany : mHasManyList) {
             Class<?> containerClass = hasMany.getContainerClass();
             if (containerClass == clazz) {
                 return hasMany;
@@ -293,16 +298,89 @@ public class SqlPersistence {
         return null;
     }
 
+    /**
+     * Adds one or more importers from the file paths specified. This is executed before tables are created.
+     *
+     * @param context used to get the content of the assets
+     * @param paths   one or more file paths relative to the Assets folder
+     */
+    public void beforeCreateImportFromAssets(Context context, String... paths) {
+        if (paths.length == 0) {
+            throw new IllegalStateException("You should specify at lease one path");
+        }
+        for (String path : paths) {
+            mBeforeImporters.add(new AssetsImporter(context, path));
+        }
+    }
+
+    /**
+     * Adds an importer from a stream. This is executed before tables are created.
+     *
+     * @param inputStream the input stream must not be null and must point to sqlite statements to execute
+     */
+    public void beforeCreateImportFromStream(InputStream inputStream) {
+        mBeforeImporters.add(new StreamImporter(inputStream));
+    }
+
+    /**
+     * Execute sqlite statements before tables are created.
+     * @param sqlStatements the statements to execute
+     */
+    public void beforeCreateImportFromString(String sqlStatements) {
+        mBeforeImporters.add(new RawImporter(sqlStatements));
+    }
+
+    /**
+     * Adds one or more importers from the file paths specified. This is executed before tables are created.
+     * Executes the specified sql statements after tables are created.
+     *
+     * @param context used to get the content of the assets
+     * @param paths   one or more file paths relative to the Assets folder
+     */
+    public void afterCreateImportFromAssets(Context context, String... paths) {
+        if (paths.length == 0) {
+            throw new IllegalStateException("You should specify at lease one path");
+        }
+        for (String path : paths) {
+            mAfterImporters.add(new AssetsImporter(context, path));
+        }
+    }
+
+    /**
+     * Adds an importer from a stream. This is executed after tables are created.
+     *
+     * @param inputStream the input stream must not be null and must point to sqlite statements to execute
+     */
+    public void afterCreateImportFromStream(InputStream inputStream) {
+        mAfterImporters.add(new StreamImporter(inputStream));
+    }
+
+    /**
+     * Execute sqlite statements after tables are created.
+     * @param sqlStatements the statements to execute
+     */
+    public void afterCreateImportFromString(String sqlStatements) {
+        mAfterImporters.add(new RawImporter(sqlStatements));
+    }
+
+    List<Importer> getAfterImporters() {
+        return mAfterImporters;
+    }
+
+    List<Importer> getBeforeImporters() {
+        return mBeforeImporters;
+    }
+
     enum PersistenceType {SQLITE, PREFERENCES, UNKNOWN}
 
     enum Relationship {MANY_TO_MANY, HAS_MANY, UNKNOWN}
 
     List<Class<?>> getSqliteClasses() {
-        return SQLITE_LIST;
+        return mSqliteList;
     }
 
     List<ManyToMany> getSqliteManyToMany() {
-        return MANY_TO_MANY_LIST;
+        return mManyToManyList;
     }
 
     @Override
@@ -313,13 +391,13 @@ public class SqlPersistence {
         SqlPersistence that = (SqlPersistence) o;
 
         if (mVersion != that.mVersion) return false;
-        if (AUTO_INCREMENT_LIST != null ? !AUTO_INCREMENT_LIST.equals(that.AUTO_INCREMENT_LIST) : that.AUTO_INCREMENT_LIST != null)
+        if (mAutoIncrementList != null ? !mAutoIncrementList.equals(that.mAutoIncrementList) : that.mAutoIncrementList != null)
             return false;
-        if (HAS_MANY_LIST != null ? !HAS_MANY_LIST.equals(that.HAS_MANY_LIST) : that.HAS_MANY_LIST != null)
+        if (mHasManyList != null ? !mHasManyList.equals(that.mHasManyList) : that.mHasManyList != null)
             return false;
-        if (MANY_TO_MANY_LIST != null ? !MANY_TO_MANY_LIST.equals(that.MANY_TO_MANY_LIST) : that.MANY_TO_MANY_LIST != null)
+        if (mManyToManyList != null ? !mManyToManyList.equals(that.mManyToManyList) : that.mManyToManyList != null)
             return false;
-        if (SQLITE_LIST != null ? !SQLITE_LIST.equals(that.SQLITE_LIST) : that.SQLITE_LIST != null) return false;
+        if (mSqliteList != null ? !mSqliteList.equals(that.mSqliteList) : that.mSqliteList != null) return false;
         if (mName != null ? !mName.equals(that.mName) : that.mName != null) return false;
 
         return true;
@@ -327,10 +405,10 @@ public class SqlPersistence {
 
     @Override
     public int hashCode() {
-        int result = SQLITE_LIST != null ? SQLITE_LIST.hashCode() : 0;
-        result = 31 * result + (AUTO_INCREMENT_LIST != null ? AUTO_INCREMENT_LIST.hashCode() : 0);
-        result = 31 * result + (MANY_TO_MANY_LIST != null ? MANY_TO_MANY_LIST.hashCode() : 0);
-        result = 31 * result + (HAS_MANY_LIST != null ? HAS_MANY_LIST.hashCode() : 0);
+        int result = mSqliteList != null ? mSqliteList.hashCode() : 0;
+        result = 31 * result + (mAutoIncrementList != null ? mAutoIncrementList.hashCode() : 0);
+        result = 31 * result + (mManyToManyList != null ? mManyToManyList.hashCode() : 0);
+        result = 31 * result + (mHasManyList != null ? mHasManyList.hashCode() : 0);
         result = 31 * result + (mName != null ? mName.hashCode() : 0);
         result = 31 * result + mVersion;
         return result;

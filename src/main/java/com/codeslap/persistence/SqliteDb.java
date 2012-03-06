@@ -68,8 +68,14 @@ class SqliteDb {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            // create all tables for registered classes
+            // get a reference to the sqlite persister
             SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(getName());
+
+            // if there is something to import before creation, let's do it
+            List<Importer> importers = sqlPersistence.getBeforeImporters();
+            for (Importer importer : importers) {
+                importer.execute(db);
+            }
 
             List<Class<?>> objects = sqlPersistence.getSqliteClasses();
             for (Class<?> clazz : objects) {
@@ -79,6 +85,12 @@ class SqliteDb {
             List<ManyToMany> sqliteManyToMany = sqlPersistence.getSqliteManyToMany();
             for (ManyToMany manyToMany : sqliteManyToMany) {
                 db.execSQL(manyToMany.getCreateTableStatement());
+            }
+
+            // if there is something to import after creation, let's do it
+            importers = sqlPersistence.getAfterImporters();
+            for (Importer importer : importers) {
+                importer.execute(db);
             }
         }
 
