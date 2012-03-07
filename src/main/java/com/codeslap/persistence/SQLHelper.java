@@ -436,8 +436,7 @@ class SQLHelper {
     }
 
     private static boolean isPrimaryKey(Field field) {
-        PrimaryKey annotation = field.getAnnotation(PrimaryKey.class);
-        if (annotation != null) {
+        if (field.isAnnotationPresent(PrimaryKey.class)) {
             return true;
         }
         return field.getName().equals(ID) || field.getName().equals(_ID);
