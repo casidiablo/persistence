@@ -32,7 +32,7 @@ public @interface Preference {
     /**
      * @return the key to use in this preference
      */
-    String key();
+    String value();
 
     /**
      * @return default value to use

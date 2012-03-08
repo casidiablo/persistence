@@ -55,7 +55,7 @@ public class PreferenceScreenHelper {
                     continue;
                 }
                 // add the preference data to the category list
-                PrefMetadata prefMetaData = new PrefMetadata(title, summary, annotation.order(), type, annotation.defaultValue(), annotation.key());
+                PrefMetadata prefMetaData = new PrefMetadata(title, summary, annotation.order(), type, annotation.defaultValue(), annotation.value());
                 if (fieldMap.containsKey(annotation.category())) {
                     fieldMap.get(annotation.category()).add(prefMetaData);
                 } else {

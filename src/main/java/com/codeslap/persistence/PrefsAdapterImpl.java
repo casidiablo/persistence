@@ -72,7 +72,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 if (annotation == null) {
                     keyName = field.getName();
                 } else {
-                    keyName = annotation.key();
+                    keyName = annotation.value();
                 }
                 boolean defaultEnabled = annotation != null && !annotation.defaultValue().equals("");
                 Object value = null;
@@ -113,7 +113,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
             if (preferenceAnnotation == null) {
                 keyName = field.getName();
             } else {
-                keyName = preferenceAnnotation.key();
+                keyName = preferenceAnnotation.value();
             }
             editor.remove(keyName);
         }
@@ -130,7 +130,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 if (preferenceAnnotation == null) {
                     keyName = field.getName();
                 } else {
-                    keyName = preferenceAnnotation.key();
+                    keyName = preferenceAnnotation.value();
                 }
                 if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                     editor.putBoolean(keyName, (Boolean) value);
