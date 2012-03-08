@@ -8,24 +8,14 @@ In order to use this library from you Android project using maven your pom shoul
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project ...>
-    ...
-
     <dependencies>
         <dependency>
             <groupId>com.codeslap</groupId>
             <artifactId>persistence</artifactId>
-            <version>[0.9.)</version>
+            <version>0.9.10</version>
             <scope>compile</scope>
         </dependency>
-        ...
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>codeslap</id>
-            <url>http://casidiablo.github.com/codeslap-maven/repository/</url>
-        </repository>
-    </repositories>
 </project>
 ```
 
