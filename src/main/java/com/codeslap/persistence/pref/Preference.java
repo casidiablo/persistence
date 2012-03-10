@@ -50,6 +50,21 @@ public @interface Preference {
     int title() default 0;
 
     /**
+     * @return Android string resource to use when the dialog title is needed
+     */
+    int dialogTitle() default 0;
+
+    /**
+     * @return Android string resource to use when the dialog message is needed
+     */
+    int dialogMessage() default 0;
+
+    /**
+     * @return Android drawable resource to use when the dialog icon is needed
+     */
+    int dialogIcon() default 0;
+
+    /**
      * @return Android string resource to wrap this preference
      */
     int category() default -1;

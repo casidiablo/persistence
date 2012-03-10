@@ -55,7 +55,16 @@ public class PreferenceScreenHelper {
                     continue;
                 }
                 // add the preference data to the category list
-                PrefMetadata prefMetaData = new PrefMetadata(title, summary, annotation.order(), type, annotation.defaultValue(), annotation.value());
+                PrefMetadata prefMetaData = new PrefMetadata()
+                        .setTitle(title)
+                        .setSummary(summary)
+                        .setOrder(annotation.order())
+                        .setType(type)
+                        .setDefaultValue(annotation.defaultValue())
+                        .setKey(annotation.value())
+                        .setDialogIcon(annotation.dialogIcon())
+                        .setDialogMessage(annotation.dialogMessage())
+                        .setDialogTitle(annotation.dialogTitle());
                 if (fieldMap.containsKey(annotation.category())) {
                     fieldMap.get(annotation.category()).add(prefMetaData);
                 } else {
@@ -82,7 +91,7 @@ public class PreferenceScreenHelper {
             Collections.sort(fields, new Comparator<PrefMetadata>() {
                 @Override
                 public int compare(PrefMetadata foo, PrefMetadata bar) {
-                    return foo.order - bar.order;
+                    return foo.getOrder() - bar.getOrder();
                 }
             });
 
@@ -97,39 +106,43 @@ public class PreferenceScreenHelper {
             for (PrefMetadata field : fields) {
                 android.preference.Preference preference = null;
                 // define a default value
-                boolean hasDefault = !"".equals(field.defaultValue);
+                boolean hasDefault = !"".equals(field.getDefaultValue());
                 TypeChangeListener typeChangeListener = null;
                 // depending on the type of the field, create different kind of preferences
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
-                if (field.type == boolean.class || field.type == Boolean.class) {
+                Class<?> type = field.getType();
+                String key = field.getKey();
+                String defaultValue = field.getDefaultValue();
+                if (type == boolean.class || type == Boolean.class) {
                     preference = new CheckBoxPreference(activity);
-                    boolean checked = prefs.getBoolean(field.key, hasDefault ? Boolean.parseBoolean(field.defaultValue) : false);
+                    boolean checked = prefs.getBoolean(key, hasDefault ? Boolean.parseBoolean(defaultValue) : false);
                     ((CheckBoxPreference) preference).setChecked(checked);
                     typeChangeListener = new TypeChangeListener(boolean.class);
-                } else if (field.type == int.class || field.type == Integer.class
-                        || field.type == long.class || field.type == Long.class) {
-                    if (field.type == long.class || field.type == Long.class) {
-                        long value = prefs.getLong(field.key, hasDefault ? Long.parseLong(field.defaultValue) : 0L);
+                } else if (type == int.class || type == Integer.class
+                        || type == long.class || type == Long.class) {
+                    if (type == long.class || type == Long.class) {
+                        long value = prefs.getLong(key, hasDefault ? Long.parseLong(defaultValue) : 0L);
                         preference = new SmartEditTextPreference(activity, long.class, String.valueOf(value));
                         ((EditTextPreference) preference).setText(String.valueOf(value));
                         typeChangeListener = new TypeChangeListener(long.class);
                     } else {
-                        int value = prefs.getInt(field.key, hasDefault ? Integer.parseInt(field.defaultValue) : 0);
+                        int value = prefs.getInt(key, hasDefault ? Integer.parseInt(defaultValue) : 0);
                         preference = new SmartEditTextPreference(activity, int.class, String.valueOf(value));
+
                         ((EditTextPreference) preference).setText(String.valueOf(value));
                         typeChangeListener = new TypeChangeListener(int.class);
                     }
                     setEditTextType(preference, InputType.TYPE_CLASS_NUMBER);
-                } else if (field.type == float.class || field.type == Float.class ||
-                        field.type == double.class || field.type == Double.class) {
-                    float def = hasDefault ? ((Double) Double.parseDouble(field.defaultValue)).floatValue() : 0.0f;
-                    float value = prefs.getFloat(field.key, def);
+                } else if (type == float.class || type == Float.class ||
+                        type == double.class || type == Double.class) {
+                    float def = hasDefault ? ((Double) Double.parseDouble(defaultValue)).floatValue() : 0.0f;
+                    float value = prefs.getFloat(key, def);
                     preference = new SmartEditTextPreference(activity, float.class, String.valueOf(value));
                     ((EditTextPreference) preference).setText(String.valueOf(value));
                     setEditTextType(preference, InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
                     typeChangeListener = new TypeChangeListener(float.class);
-                } else if (field.type == String.class) {
-                    String def = hasDefault ? field.defaultValue : null;
+                } else if (type == String.class) {
+                    String def = hasDefault ? defaultValue : null;
                     preference = new SmartEditTextPreference(activity, String.class, def);
                     ((EditTextPreference) preference).setText(def);
                     typeChangeListener = new TypeChangeListener(String.class);
@@ -137,31 +150,29 @@ public class PreferenceScreenHelper {
 
                 // if a preference was created, add it to the preference screen
                 if (preference != null) {
-                    preference.setTitle(field.title);
-                    preference.setKey(field.key);
-                    preference.setSummary(field.summary);
+                    preference.setTitle(field.getTitle());
+                    preference.setKey(key);
+                    preference.setSummary(field.getSummary());
+                    if (preference instanceof SmartEditTextPreference) {
+                        SmartEditTextPreference pref = (SmartEditTextPreference) preference;
+                        int dialogTitle = field.getDialogTitle();
+                        if (dialogTitle != 0) {
+                            pref.setDialogTitle(dialogTitle);
+                        }
+                        int dialogIcon = field.getDialogIcon();
+                        if (dialogIcon != 0) {
+                            pref.setDialogIcon(dialogIcon);
+                        }
+                        int dialogMessage = field.getDialogMessage();
+                        if (dialogMessage != 0) {
+                            pref.setDialogMessage(dialogMessage);
+                        }
+                    }
                     preference.setOnPreferenceChangeListener(typeChangeListener);
                     activity.getPreferenceScreen().addPreference(preference);
                 }
             }
         }
-    }
-
-    private static class PrefMetadata {
-        final int title, summary, order;
-        final Class<?> type;
-        final String defaultValue;
-        final String key;
-
-        private PrefMetadata(int title, int summary, int order, Class<?> type, String defaultValue, String key) {
-            this.title = title;
-            this.summary = summary;
-            this.order = order;
-            this.type = type;
-            this.defaultValue = defaultValue;
-            this.key = key;
-        }
-
     }
 
     private static class CategoryMetadata {
