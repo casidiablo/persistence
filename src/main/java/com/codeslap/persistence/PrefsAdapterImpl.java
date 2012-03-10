@@ -22,6 +22,7 @@ import android.preference.PreferenceManager;
 import com.codeslap.persistence.pref.Preference;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,6 +67,10 @@ class PrefsAdapterImpl implements PreferencesAdapter {
         }
         try {
             for (Field field : clazz.getDeclaredFields()) {
+                // ignore static fields
+                if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
+                    continue;
+                }
                 field.setAccessible(true);
                 Preference annotation = field.getAnnotation(Preference.class);
                 String keyName;

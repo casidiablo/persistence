@@ -118,7 +118,9 @@ class SQLHelper {
             for (Field field : theClass.getDeclaredFields()) {
                 // - If it has the ignore annotation, ignore it.
                 // - Oh, really? What a brilliant idea.
-                if (!field.isAnnotationPresent(Ignore.class) && !Modifier.isStatic(field.getModifiers())) {
+                if (!field.isAnnotationPresent(Ignore.class) &&
+                        !Modifier.isStatic(field.getModifiers()) &&// ignore static fields
+                        !Modifier.isFinal(field.getModifiers())) {// ignore final fields
                     list.add(field);
                 }
             }
