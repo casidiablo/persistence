@@ -29,7 +29,7 @@
     <packaging>jar</packaging>
     <name>Codeslap Persistence</name>
     <description>Core functionality provided by MarkdownJ.</description>
-    <url>https://github.com/rtyley/markdownj</url>
+    <url>https://github.com/casidiablo/persistence</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>

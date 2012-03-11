@@ -105,4 +105,29 @@ public class Persistence {
     public static PreferencesAdapter getPreferenceAdapter(Context context) {
         return new PrefsAdapterImpl(context);
     }
+
+    /**
+     * Quick way to retrieve an object from the default preferences
+     *
+     * @param context  used to access to the preferences system
+     * @param name    the name of the preference file
+     * @param theClass the class to retrieve
+     * @return a bean created from the preferences
+     */
+    public static <T> T quickPref(Context context, String name, Class<T> theClass) {
+        PreferencesAdapter adapter = getPreferenceAdapter(context, name);
+        return adapter.retrieve(theClass);
+    }
+
+    /**
+     * Quick way to retrieve an object from the default preferences
+     *
+     * @param context  used to access to the preferences system
+     * @param theClass the class to retrieve
+     * @return a bean created from the preferences
+     */
+    public static <T> T quickPref(Context context, Class<T> theClass) {
+        PreferencesAdapter adapter = getPreferenceAdapter(context);
+        return adapter.retrieve(theClass);
+    }
 }
