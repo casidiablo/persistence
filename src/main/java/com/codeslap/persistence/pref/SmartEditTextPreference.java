@@ -24,9 +24,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
-* @author cristian
-*/
-class SmartEditTextPreference extends EditTextPreference implements android.preference.Preference.OnPreferenceClickListener {
+ * @author cristian
+ */
+class SmartEditTextPreference extends EditTextPreference {
     private final Class<?> mType;
     private final String mDefVal;
 
@@ -34,11 +34,32 @@ class SmartEditTextPreference extends EditTextPreference implements android.pref
         super(context);
         mType = type;
         mDefVal = defVal;
-        setOnPreferenceClickListener(this);
+        setOnPreferenceClickListener(new ProxyOnPreferenceClickListener(this));
+        setOnPreferenceChangeListener(new TypeChangeListener(type));
     }
 
     @Override
-    protected String getPersistedString(String defaultReturnValue) {
+    public void setOnPreferenceClickListener(OnPreferenceClickListener onPreferenceClickListener) {
+        if (onPreferenceClickListener instanceof ProxyOnPreferenceClickListener) {
+            super.setOnPreferenceClickListener(onPreferenceClickListener);
+        } else {
+            ProxyOnPreferenceClickListener listener = (ProxyOnPreferenceClickListener) getOnPreferenceClickListener();
+            listener.setClickListener(onPreferenceClickListener);
+        }
+    }
+
+    @Override
+    public void setOnPreferenceChangeListener(OnPreferenceChangeListener onPreferenceChangeListener) {
+        if (onPreferenceChangeListener instanceof TypeChangeListener) {
+            super.setOnPreferenceChangeListener(onPreferenceChangeListener);
+        } else {
+            TypeChangeListener listener = (TypeChangeListener) getOnPreferenceChangeListener();
+            listener.setOnPreferenceChangeListener(onPreferenceChangeListener);
+        }
+    }
+
+    @Override
+    public String getPersistedString(String defaultReturnValue) {
         String value = null;
         if (mType == int.class) {
             value = String.valueOf(getPersistedInt(Integer.parseInt(mDefVal)));
@@ -70,24 +91,36 @@ class SmartEditTextPreference extends EditTextPreference implements android.pref
         }
     }
 
-    @Override
-    public boolean onPreferenceClick(android.preference.Preference preference) {
-        if (!(preference instanceof EditTextPreference)) {
+    private static class ProxyOnPreferenceClickListener implements android.preference.Preference.OnPreferenceClickListener {
+        android.preference.Preference.OnPreferenceClickListener clickListener;
+        private final SmartEditTextPreference mSmartEditTextPreference;
+
+        public ProxyOnPreferenceClickListener(SmartEditTextPreference smartEditTextPreference) {
+            mSmartEditTextPreference = smartEditTextPreference;
+        }
+
+        @Override
+        public boolean onPreferenceClick(android.preference.Preference preference) {
+            String persistedString = mSmartEditTextPreference.getPersistedString(mSmartEditTextPreference.mDefVal);
+            try {
+                // get the internal EditText
+                Field internal = EditTextPreference.class.getDeclaredField("mEditText");
+                internal.setAccessible(true);
+                Object editText = internal.get(preference);
+                // set the text
+                Method setText = TextView.class.getDeclaredMethod("setText", CharSequence.class);
+                setText.invoke(editText, persistedString);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (clickListener != null) {
+                return clickListener.onPreferenceClick(preference);
+            }
             return true;
         }
 
-        String persistedString = getPersistedString(mDefVal);
-        try {
-            // get the internal EditText
-            Field internal = EditTextPreference.class.getDeclaredField("mEditText");
-            internal.setAccessible(true);
-            Object editText = internal.get(preference);
-            // set the text
-            Method setText = TextView.class.getDeclaredMethod("setText", CharSequence.class);
-            setText.invoke(editText, persistedString);
-        } catch (Exception e) {
-            e.printStackTrace();
+        private void setClickListener(OnPreferenceClickListener listener) {
+            clickListener = listener;
         }
-        return true;
     }
 }

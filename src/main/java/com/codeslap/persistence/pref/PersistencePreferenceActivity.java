@@ -28,9 +28,45 @@ import java.util.*;
 /**
  * @author cristian
  */
-public class PreferenceScreenHelper {
+public class PersistencePreferenceActivity extends PreferenceActivity {
 
-    public static void addPreferencesFrom(PreferenceActivity activity, Class<?>... classes) {
+    private final Map<android.preference.Preference, String> mDependencies = new HashMap<android.preference.Preference, String>();
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        for (android.preference.Preference preference : mDependencies.keySet()) {
+            if (preference.getDependency() == null) {
+                preference.setDependency(mDependencies.get(preference));
+            }
+        }
+    }
+
+    /**
+     * Adds preferences to the preferences screen based on the specified classes.
+     *
+     * @param classes the classes to use as preferences. Fields on these
+     *                classes must use the {@link Preference} annotation
+     */
+    public void addPreferencesFrom(Class<?>... classes) {
+        addPreferencesFrom(null, classes);
+    }
+
+    /**
+     * Adds preferences to the preferences screen based on the specified classes.
+     *
+     * @param prefsFactory if you have custom preferences, you can use this to customize which
+     *                     preference should be used depending on the used key
+     * @param classes      the classes to use as preferences. Fields on these
+     *                     classes must use the {@link Preference} annotation
+     */
+    public void addPreferencesFrom(PrefsFactory prefsFactory, Class<?>... classes) {
+        // if there is no preferences screen, create one
+        if (getPreferenceScreen() == null) {
+            PreferenceScreen preferenceScreen = getPreferenceManager().createPreferenceScreen(this);
+            setPreferenceScreen(preferenceScreen);
+        }
+
         Map<Integer, List<PrefMetadata>> fieldMap = new HashMap<Integer, List<PrefMetadata>>();
         List<CategoryMetadata> categories = new ArrayList<CategoryMetadata>();
         // loop through all the classes and fields.
@@ -62,6 +98,9 @@ public class PreferenceScreenHelper {
                         .setType(type)
                         .setDefaultValue(annotation.defaultValue())
                         .setKey(annotation.value())
+                        .setDependency(annotation.dependency())
+                        .setEntries(annotation.entries())
+                        .setEntryValues(annotation.entryValues())
                         .setDialogIcon(annotation.dialogIcon())
                         .setDialogMessage(annotation.dialogMessage())
                         .setDialogTitle(annotation.dialogTitle());
@@ -97,95 +136,112 @@ public class PreferenceScreenHelper {
 
             // if the category exist, create it
             if (category.categoryTitle != -1) {
-                PreferenceCategory preferenceCategory = new PreferenceCategory(activity);
+                PreferenceCategory preferenceCategory = new PreferenceCategory(this);
                 preferenceCategory.setTitle(category.categoryTitle);
-                activity.getPreferenceScreen().addPreference(preferenceCategory);
+                getPreferenceScreen().addPreference(preferenceCategory);
             }
+            addFieldsToHierarchy(prefsFactory, fields);
+        }
+    }
 
-            // add each field to the preference screen
-            for (PrefMetadata field : fields) {
-                android.preference.Preference preference = null;
-                // define a default value
-                boolean hasDefault = !"".equals(field.getDefaultValue());
-                TypeChangeListener typeChangeListener = null;
-                // depending on the type of the field, create different kind of preferences
-                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
-                Class<?> type = field.getType();
-                String key = field.getKey();
-                String defaultValue = field.getDefaultValue();
+    private void addFieldsToHierarchy(PrefsFactory prefsFactory, List<PrefMetadata> fields) {
+        // add each field to the preference screen
+        for (PrefMetadata metadata : fields) {
+            // define a default value
+            boolean hasDefault = !"".equals(metadata.getDefaultValue());
+            // depending on the type of the field, create different kind of preferences
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+            Class<?> type = metadata.getType();
+            String key = metadata.getKey();
+            String defaultValue = metadata.getDefaultValue();
+            android.preference.Preference preference = null;
+            if (prefsFactory != null) {
+                preference = prefsFactory.getPreference(key);
+            }
+            if (preference == null) {
                 if (type == boolean.class || type == Boolean.class) {
-                    preference = new CheckBoxPreference(activity);
+                    preference = new SmartCheckBoxPreference(this);
                     boolean checked = prefs.getBoolean(key, hasDefault ? Boolean.parseBoolean(defaultValue) : false);
                     ((CheckBoxPreference) preference).setChecked(checked);
-                    typeChangeListener = new TypeChangeListener(boolean.class);
                 } else if (type == int.class || type == Integer.class
                         || type == long.class || type == Long.class) {
                     if (type == long.class || type == Long.class) {
                         long value = prefs.getLong(key, hasDefault ? Long.parseLong(defaultValue) : 0L);
-                        preference = new SmartEditTextPreference(activity, long.class, String.valueOf(value));
+                        preference = new SmartEditTextPreference(this, long.class, String.valueOf(value));
                         ((EditTextPreference) preference).setText(String.valueOf(value));
-                        typeChangeListener = new TypeChangeListener(long.class);
                     } else {
                         int value = prefs.getInt(key, hasDefault ? Integer.parseInt(defaultValue) : 0);
-                        preference = new SmartEditTextPreference(activity, int.class, String.valueOf(value));
-
+                        preference = new SmartEditTextPreference(this, int.class, String.valueOf(value));
                         ((EditTextPreference) preference).setText(String.valueOf(value));
-                        typeChangeListener = new TypeChangeListener(int.class);
                     }
                     setEditTextType(preference, InputType.TYPE_CLASS_NUMBER);
                 } else if (type == float.class || type == Float.class ||
                         type == double.class || type == Double.class) {
                     float def = hasDefault ? ((Double) Double.parseDouble(defaultValue)).floatValue() : 0.0f;
                     float value = prefs.getFloat(key, def);
-                    preference = new SmartEditTextPreference(activity, float.class, String.valueOf(value));
+                    preference = new SmartEditTextPreference(this, float.class, String.valueOf(value));
                     ((EditTextPreference) preference).setText(String.valueOf(value));
                     setEditTextType(preference, InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                    typeChangeListener = new TypeChangeListener(float.class);
                 } else if (type == String.class) {
                     String def = hasDefault ? defaultValue : null;
-                    preference = new SmartEditTextPreference(activity, String.class, def);
-                    ((EditTextPreference) preference).setText(def);
-                    typeChangeListener = new TypeChangeListener(String.class);
-                }
-
-                // if a preference was created, add it to the preference screen
-                if (preference != null) {
-                    preference.setTitle(field.getTitle());
-                    preference.setKey(key);
-                    preference.setSummary(field.getSummary());
-                    if (preference instanceof SmartEditTextPreference) {
-                        SmartEditTextPreference pref = (SmartEditTextPreference) preference;
-                        int dialogTitle = field.getDialogTitle();
-                        if (dialogTitle != 0) {
-                            pref.setDialogTitle(dialogTitle);
-                        }
-                        int dialogIcon = field.getDialogIcon();
-                        if (dialogIcon != 0) {
-                            pref.setDialogIcon(dialogIcon);
-                        }
-                        int dialogMessage = field.getDialogMessage();
-                        if (dialogMessage != 0) {
-                            pref.setDialogMessage(dialogMessage);
-                        }
+                    if (metadata.getEntries() != 0 && metadata.getEntryValues() != 0) {
+                        preference = new ListPreference(this);
+                    } else {
+                        preference = new SmartEditTextPreference(this, String.class, def);
+                        ((EditTextPreference) preference).setText(def);
                     }
-                    preference.setOnPreferenceChangeListener(typeChangeListener);
-                    activity.getPreferenceScreen().addPreference(preference);
                 }
             }
+
+            if (preference == null) {
+                continue;
+            }
+            // if a preference was created, add it to the preference screen
+            preference.setKey(key);
+            int title = metadata.getTitle();
+            if (title != 0) {
+                preference.setTitle(title);
+            }
+            if (metadata.getSummary() != 0) {
+                preference.setSummary(metadata.getSummary());
+            }
+            if (!"".equals(metadata.getDependency())) {
+                mDependencies.put(preference, metadata.getDependency());
+            }
+            if (preference instanceof SmartEditTextPreference) {
+                SmartEditTextPreference pref = (SmartEditTextPreference) preference;
+                int dialogTitle = metadata.getDialogTitle();
+                if (dialogTitle != 0) {
+                    pref.setDialogTitle(dialogTitle);
+                }
+                int dialogIcon = metadata.getDialogIcon();
+                if (dialogIcon != 0) {
+                    pref.setDialogIcon(dialogIcon);
+                }
+                int dialogMessage = metadata.getDialogMessage();
+                if (dialogMessage != 0) {
+                    pref.setDialogMessage(dialogMessage);
+                }
+            } else if (preference instanceof ListPreference) {
+                ListPreference pref = (ListPreference) preference;
+                pref.setEntries(metadata.getEntries());
+                pref.setEntryValues(metadata.getEntryValues());
+            }
+            getPreferenceScreen().addPreference(preference);
         }
     }
 
-    private static class CategoryMetadata {
-
-        final int categoryTitle;
-
-        final int categoryOrder;
-
-        private CategoryMetadata(int categoryTitle, int categoryOrder) {
-            this.categoryTitle = categoryTitle;
-            this.categoryOrder = categoryOrder;
-        }
-
+    /**
+     * Implement this interface if you want to customize one or more preferences to add
+     * to the preferences screen
+     */
+    public interface PrefsFactory {
+        /**
+         * @param key the key of the preference
+         * @return an instance of {@link android.preference.Preference} or null if the specified key
+         *         does not need a custom preference
+         */
+        android.preference.Preference getPreference(String key);
     }
 
     private static void setEditTextType(android.preference.Preference preference, int type) {
@@ -200,5 +256,18 @@ public class PreferenceScreenHelper {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static class CategoryMetadata {
+
+        final int categoryTitle;
+
+        final int categoryOrder;
+
+        private CategoryMetadata(int categoryTitle, int categoryOrder) {
+            this.categoryTitle = categoryTitle;
+            this.categoryOrder = categoryOrder;
+        }
+
     }
 }

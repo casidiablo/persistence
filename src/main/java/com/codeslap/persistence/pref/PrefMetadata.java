@@ -20,10 +20,10 @@ package com.codeslap.persistence.pref;
  * @author cristian
  */
 class PrefMetadata {
-    private int title, summary, order, dialogTitle, dialogMessage, dialogIcon;
+    private int title, summary, order, dialogTitle, dialogMessage, dialogIcon, entries, entryValues;
     private Class<?> type;
     private String defaultValue;
-    private String key;
+    private String key, dependency;
 
     public PrefMetadata setTitle(int title) {
         this.title = title;
@@ -70,6 +70,25 @@ class PrefMetadata {
         return this;
     }
 
+    public PrefMetadata setEntries(int entries) {
+        this.entries = entries;
+        return this;
+    }
+
+    public PrefMetadata setEntryValues(int entryValues) {
+        this.entryValues = entryValues;
+        return this;
+    }
+
+    public PrefMetadata setDependency(String dependency) {
+        this.dependency = dependency;
+        return this;
+    }
+
+    public String getDependency() {
+        return dependency;
+    }
+
     public int getTitle() {
         return title;
     }
@@ -104,5 +123,13 @@ class PrefMetadata {
 
     public String getKey() {
         return key;
+    }
+
+    public int getEntries() {
+        return entries;
+    }
+
+    public int getEntryValues() {
+        return entryValues;
     }
 }

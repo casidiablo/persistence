@@ -17,13 +17,15 @@
 package com.codeslap.persistence.pref;
 
 import android.content.SharedPreferences;
-import android.preference.CheckBoxPreference;
+import android.preference.*;
+import android.preference.Preference;
 
 /**
  * @author cristian
  */
 class TypeChangeListener implements android.preference.Preference.OnPreferenceChangeListener {
     private final Class<?> mType;
+    private Preference.OnPreferenceChangeListener mOnPreferenceChangeListener;
 
     TypeChangeListener(Class<?> type) {
         mType = type;
@@ -46,6 +48,13 @@ class TypeChangeListener implements android.preference.Preference.OnPreferenceCh
             editor.putString(key, (String) o);
         }
         editor.commit();
+        if (mOnPreferenceChangeListener != null) {
+            return mOnPreferenceChangeListener.onPreferenceChange(preference, o);
+        }
         return false;
+    }
+
+    public void setOnPreferenceChangeListener(Preference.OnPreferenceChangeListener onPreferenceChangeListener) {
+        mOnPreferenceChangeListener = onPreferenceChangeListener;
     }
 }

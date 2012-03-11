@@ -80,7 +80,22 @@ public @interface Preference {
     int categoryOrder() default -1;
 
     /**
+     * @return the key of a preference that this preference depends on
+     */
+    String dependency() default "";
+
+    /**
      * @return true if this key must be ignored when building a preference screen
      */
     boolean ignore() default false;
+
+    /**
+     * @return array resource pointing to the list of entries
+     */
+    int entries() default 0;
+
+    /**
+     * @return array resource pointing to the list of entry values
+     */
+    int entryValues() default 0;
 }
