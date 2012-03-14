@@ -28,6 +28,8 @@ import java.io.InputStream;
  */
 class AssetsImporter implements Importer {
 
+    public static final String TAG = AssetsImporter.class.toString();
+
     private final Context mContext;
     private final String mPath;
 
@@ -38,8 +40,13 @@ class AssetsImporter implements Importer {
 
     @Override
     public void execute(SQLiteDatabase database) {
-        InputStream is = getInputStream();
-        new StreamImporter(is).execute(database);
+        long init = System.currentTimeMillis();
+        PersistenceLogManager.d(TAG, String.format("Importing '%s'...", mPath));
+
+        new StreamImporter(getInputStream()).execute(database);
+
+        long end = System.currentTimeMillis();
+        PersistenceLogManager.d(TAG, String.format("Took %dms to import '%s'", end - init, mPath));
     }
 
     private InputStream getInputStream() {
