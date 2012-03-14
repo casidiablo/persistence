@@ -21,7 +21,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,34 +63,6 @@ class SqliteDb {
     private static class Helper extends DbOpenHelper {
         public Helper(Context context, String name, int version) {
             super(context, name, version);
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            // get a reference to the sqlite persister
-            SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(getName());
-
-            // if there is something to import before creation, let's do it
-            List<Importer> importers = sqlPersistence.getBeforeImporters();
-            for (Importer importer : importers) {
-                importer.execute(db);
-            }
-
-            List<Class<?>> objects = sqlPersistence.getSqliteClasses();
-            for (Class<?> clazz : objects) {
-                db.execSQL(SQLHelper.getCreateTableSentence(getName(), clazz));
-            }
-            // create all extra table for many to many relations
-            List<ManyToMany> sqliteManyToMany = sqlPersistence.getSqliteManyToMany();
-            for (ManyToMany manyToMany : sqliteManyToMany) {
-                db.execSQL(manyToMany.getCreateTableStatement());
-            }
-
-            // if there is something to import after creation, let's do it
-            importers = sqlPersistence.getAfterImporters();
-            for (Importer importer : importers) {
-                importer.execute(db);
-            }
         }
 
         @Override
