@@ -45,7 +45,7 @@ class SqliteDb {
         PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database... Open: %s", name, mSqLiteDatabase.isOpen()));
     }
 
-    static SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
+    static synchronized SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
         String key = sqlPersistence.getName() + sqlPersistence.getVersion();
         if (!instances.containsKey(key)) {
             instances.put(key, new SqliteDb(context, sqlPersistence));

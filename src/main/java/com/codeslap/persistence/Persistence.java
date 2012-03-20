@@ -72,7 +72,6 @@ public class Persistence {
      * @return an implementation of the {@link SqlAdapter} interface that can be used once only
      */
     public static SqlAdapter getQuickAdapter(Context context, String name) {
-        PersistenceLogManager.d(TAG, String.format("Getting quick database adapter for \"%s\" database", name));
         if (!QUICK_ADAPTERS.containsKey(name)) {
             QUICK_ADAPTERS.put(name, new QuickSqlAdapter(context, name));
         }
