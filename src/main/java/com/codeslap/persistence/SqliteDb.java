@@ -31,7 +31,6 @@ import java.util.Map;
 class SqliteDb {
     private static final String TAG = SqliteDb.class.getSimpleName();
     private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
-    private SQLiteDatabase mSqLiteDatabase;
     private final DbOpenHelper mDbHelper;
 
     private SqliteDb(Context context, SqlPersistence sqlPersistence) {
@@ -41,8 +40,7 @@ class SqliteDb {
         } else {
             mDbHelper = sqlPersistence.getOpenHelper();
         }
-        mSqLiteDatabase = mDbHelper.getWritableDatabase();
-        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database... Open: %s", name, mSqLiteDatabase.isOpen()));
+        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database...", name));
     }
 
     static synchronized SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
@@ -54,10 +52,7 @@ class SqliteDb {
     }
 
     public SQLiteDatabase getDatabase() {
-        if (mSqLiteDatabase.isOpen()) {
-            return mSqLiteDatabase;
-        }
-        return mSqLiteDatabase = mDbHelper.getWritableDatabase();
+        return mDbHelper.getWritableDatabase();
     }
 
     private static class Helper extends DbOpenHelper {
