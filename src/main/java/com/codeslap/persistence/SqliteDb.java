@@ -21,7 +21,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,7 +31,6 @@ import java.util.Map;
 class SqliteDb {
     private static final String TAG = SqliteDb.class.getSimpleName();
     private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
-    private SQLiteDatabase mSqLiteDatabase;
     private final DbOpenHelper mDbHelper;
 
     private SqliteDb(Context context, SqlPersistence sqlPersistence) {
@@ -42,11 +40,10 @@ class SqliteDb {
         } else {
             mDbHelper = sqlPersistence.getOpenHelper();
         }
-        mSqLiteDatabase = mDbHelper.getWritableDatabase();
-        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database... Open: %s", name, mSqLiteDatabase.isOpen()));
+        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database...", name));
     }
 
-    static SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
+    static synchronized SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
         String key = sqlPersistence.getName() + sqlPersistence.getVersion();
         if (!instances.containsKey(key)) {
             instances.put(key, new SqliteDb(context, sqlPersistence));
@@ -55,43 +52,12 @@ class SqliteDb {
     }
 
     public SQLiteDatabase getDatabase() {
-        if (mSqLiteDatabase.isOpen()) {
-            return mSqLiteDatabase;
-        }
-        return mSqLiteDatabase = mDbHelper.getWritableDatabase();
+        return mDbHelper.getWritableDatabase();
     }
 
     private static class Helper extends DbOpenHelper {
         public Helper(Context context, String name, int version) {
             super(context, name, version);
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            // get a reference to the sqlite persister
-            SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(getName());
-
-            // if there is something to import before creation, let's do it
-            List<Importer> importers = sqlPersistence.getBeforeImporters();
-            for (Importer importer : importers) {
-                importer.execute(db);
-            }
-
-            List<Class<?>> objects = sqlPersistence.getSqliteClasses();
-            for (Class<?> clazz : objects) {
-                db.execSQL(SQLHelper.getCreateTableSentence(getName(), clazz));
-            }
-            // create all extra table for many to many relations
-            List<ManyToMany> sqliteManyToMany = sqlPersistence.getSqliteManyToMany();
-            for (ManyToMany manyToMany : sqliteManyToMany) {
-                db.execSQL(manyToMany.getCreateTableStatement());
-            }
-
-            // if there is something to import after creation, let's do it
-            importers = sqlPersistence.getAfterImporters();
-            for (Importer importer : importers) {
-                importer.execute(db);
-            }
         }
 
         @Override

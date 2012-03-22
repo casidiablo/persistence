@@ -20,6 +20,8 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.util.List;
+
 /**
  * This class will allow you to customize the database creation and, more important,
  * the upgrades you may want to perform.
@@ -38,6 +40,30 @@ public abstract class DbOpenHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
+        // get a reference to the sqlite persister
+        SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(getName());
+
+        // if there is something to import before creation, let's do it
+        List<Importer> importers = sqlPersistence.getBeforeImporters();
+        for (Importer importer : importers) {
+            importer.execute(sqLiteDatabase);
+        }
+
+        List<Class<?>> objects = sqlPersistence.getSqliteClasses();
+        for (Class<?> clazz : objects) {
+            sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(getName(), clazz));
+        }
+        // create all extra table for many to many relations
+        List<ManyToMany> sqliteManyToMany = sqlPersistence.getSqliteManyToMany();
+        for (ManyToMany manyToMany : sqliteManyToMany) {
+            sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
+        }
+
+        // if there is something to import after creation, let's do it
+        importers = sqlPersistence.getAfterImporters();
+        for (Importer importer : importers) {
+            importer.execute(sqLiteDatabase);
+        }
     }
 
     public abstract void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion);

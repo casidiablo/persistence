@@ -72,7 +72,6 @@ public class Persistence {
      * @return an implementation of the {@link SqlAdapter} interface that can be used once only
      */
     public static SqlAdapter getQuickAdapter(Context context, String name) {
-        PersistenceLogManager.d(TAG, String.format("Getting quick database adapter for \"%s\" database", name));
         if (!QUICK_ADAPTERS.containsKey(name)) {
             QUICK_ADAPTERS.put(name, new QuickSqlAdapter(context, name));
         }
@@ -104,5 +103,30 @@ public class Persistence {
      */
     public static PreferencesAdapter getPreferenceAdapter(Context context) {
         return new PrefsAdapterImpl(context);
+    }
+
+    /**
+     * Quick way to retrieve an object from the default preferences
+     *
+     * @param context  used to access to the preferences system
+     * @param name    the name of the preference file
+     * @param theClass the class to retrieve
+     * @return a bean created from the preferences
+     */
+    public static <T> T quickPref(Context context, String name, Class<T> theClass) {
+        PreferencesAdapter adapter = getPreferenceAdapter(context, name);
+        return adapter.retrieve(theClass);
+    }
+
+    /**
+     * Quick way to retrieve an object from the default preferences
+     *
+     * @param context  used to access to the preferences system
+     * @param theClass the class to retrieve
+     * @return a bean created from the preferences
+     */
+    public static <T> T quickPref(Context context, Class<T> theClass) {
+        PreferencesAdapter adapter = getPreferenceAdapter(context);
+        return adapter.retrieve(theClass);
     }
 }

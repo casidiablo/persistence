@@ -16,6 +16,8 @@
 
 package com.codeslap.persistence;
 
+import android.content.Context;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,6 +33,15 @@ public class PersistenceConfig {
 
     public static SqlPersistence getDatabase(DbOpenHelper openHelper) {
         return getDatabase(openHelper.getName(), openHelper.getVersion(), openHelper);
+    }
+
+    /**
+     * @param context used to find the databases' path
+     * @param name the name of the database to check
+     * @return true if the database already exist
+     */
+    public static boolean isDatabaseAlreadyCreated(Context context, String name) {
+        return context.getDatabasePath(name).exists();
     }
 
     private static SqlPersistence getDatabase(String name, int version, DbOpenHelper openHelper) {

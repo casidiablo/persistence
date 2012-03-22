@@ -56,7 +56,7 @@ class Node {
             }
             root = parent;
         } while (true);
-        List<Node> allButMe = new ArrayList<Node>(){
+        List<Node> allButMe = new ArrayList<Node>() {
             @Override
             public boolean add(Node node) {
                 if (contains(node)) {
@@ -98,6 +98,10 @@ class Node {
         if (!(o instanceof Node)) return false;
 
         Node node = (Node) o;
+
+        if (mContent == null || node == null) {
+            return false;
+        }
 
         return mContent.equals(node.mContent);
     }

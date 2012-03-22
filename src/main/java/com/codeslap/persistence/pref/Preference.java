@@ -32,7 +32,7 @@ public @interface Preference {
     /**
      * @return the key to use in this preference
      */
-    String key();
+    String value();
 
     /**
      * @return default value to use
@@ -50,6 +50,21 @@ public @interface Preference {
     int title() default 0;
 
     /**
+     * @return Android string resource to use when the dialog title is needed
+     */
+    int dialogTitle() default 0;
+
+    /**
+     * @return Android string resource to use when the dialog message is needed
+     */
+    int dialogMessage() default 0;
+
+    /**
+     * @return Android drawable resource to use when the dialog icon is needed
+     */
+    int dialogIcon() default 0;
+
+    /**
      * @return Android string resource to wrap this preference
      */
     int category() default -1;
@@ -65,7 +80,22 @@ public @interface Preference {
     int categoryOrder() default -1;
 
     /**
+     * @return the key of a preference that this preference depends on
+     */
+    String dependency() default "";
+
+    /**
      * @return true if this key must be ignored when building a preference screen
      */
     boolean ignore() default false;
+
+    /**
+     * @return array resource pointing to the list of entries
+     */
+    int entries() default 0;
+
+    /**
+     * @return array resource pointing to the list of entry values
+     */
+    int entryValues() default 0;
 }

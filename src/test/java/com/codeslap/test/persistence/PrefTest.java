@@ -45,16 +45,17 @@ public abstract class PrefTest {
     }
 
     public static class PrefWithAnnotations {
-        @Preference(key = "the_long", defaultValue = Long.MIN_VALUE + "")
+        @Preference(value = "the_long", defaultValue = Long.MIN_VALUE + "")
         long veryLong;
-        @Preference(key = "the_string", defaultValue = "foo bar")
+        @Preference(value = "the_string", defaultValue = "foo bar")
         String name;
-        @Preference(key = "the_integer", defaultValue = Integer.MIN_VALUE + "")
+        @Preference(value = "the_integer", defaultValue = Integer.MIN_VALUE + "")
         int number;
-        @Preference(key = "the_decimal", defaultValue = Float.MIN_VALUE + "")
+        @Preference(value = "the_decimal", defaultValue = Float.MIN_VALUE + "")
         double decimal;
-        @Preference(key = "the_boolean", defaultValue = "true")
+        @Preference(value = "the_boolean", defaultValue = "true")
         boolean bool;
+        @Preference("really_short")
         private short something;
 
         @Override

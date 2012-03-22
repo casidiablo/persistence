@@ -22,6 +22,7 @@ import android.preference.PreferenceManager;
 import com.codeslap.persistence.pref.Preference;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,13 +67,17 @@ class PrefsAdapterImpl implements PreferencesAdapter {
         }
         try {
             for (Field field : clazz.getDeclaredFields()) {
+                // ignore static fields
+                if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
+                    continue;
+                }
                 field.setAccessible(true);
                 Preference annotation = field.getAnnotation(Preference.class);
                 String keyName;
                 if (annotation == null) {
                     keyName = field.getName();
                 } else {
-                    keyName = annotation.key();
+                    keyName = annotation.value();
                 }
                 boolean defaultEnabled = annotation != null && !annotation.defaultValue().equals("");
                 Object value = null;
@@ -113,7 +118,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
             if (preferenceAnnotation == null) {
                 keyName = field.getName();
             } else {
-                keyName = preferenceAnnotation.key();
+                keyName = preferenceAnnotation.value();
             }
             editor.remove(keyName);
         }
@@ -130,7 +135,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 if (preferenceAnnotation == null) {
                     keyName = field.getName();
                 } else {
-                    keyName = preferenceAnnotation.key();
+                    keyName = preferenceAnnotation.value();
                 }
                 if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                     editor.putBoolean(keyName, (Boolean) value);
