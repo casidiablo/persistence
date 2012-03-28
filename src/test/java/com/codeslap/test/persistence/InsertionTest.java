@@ -41,6 +41,7 @@ public abstract class InsertionTest extends SqliteTest {
         foo.number = 111;
         foo.decimal = 222f;
         foo.bool = true;
+        foo.blob = "Foo Bar".getBytes();
 
         // insert it into the database
         Object id = getAdapter().store(foo);
@@ -68,6 +69,7 @@ public abstract class InsertionTest extends SqliteTest {
             foo.number = random.nextInt();
             foo.decimal = random.nextFloat();
             foo.bool = random.nextBoolean();
+            foo.blob = foo.name.getBytes();
             collection.add(foo);
         }
         getAdapter().storeCollection(collection, null);
@@ -95,6 +97,7 @@ public abstract class InsertionTest extends SqliteTest {
             foo.number = random.nextInt();
             foo.decimal = random.nextFloat();
             foo.bool = random.nextBoolean();
+            foo.blob = foo.name.getBytes();
         }
 
         // now, using the store unique collection method there should be only 50 elements

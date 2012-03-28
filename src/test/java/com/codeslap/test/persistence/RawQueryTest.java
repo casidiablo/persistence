@@ -41,6 +41,7 @@ public class RawQueryTest extends SqliteTest {
             foo.number = random.nextInt();
             foo.decimal = random.nextFloat();
             foo.bool = random.nextBoolean();
+            foo.blob = foo.name.getBytes();
             collection.add(foo);
         }
         getNormalAdapter().storeCollection(collection, null);
@@ -59,6 +60,7 @@ public class RawQueryTest extends SqliteTest {
             assertEquals(item.number, cursor.getInt(cursor.getColumnIndex("number")));
             assertEquals(item.decimal, cursor.getFloat(cursor.getColumnIndex("decimal")), 0.0f);
             assertEquals(item.bool, cursor.getInt(cursor.getColumnIndex("bool")) == 1);
+            assertEquals(new String(item.blob), new String(cursor.getBlob(cursor.getColumnIndex("blob"))));
             i++;
         } while (cursor.moveToNext());
     }
@@ -70,6 +72,7 @@ public class RawQueryTest extends SqliteTest {
         foo.number = 111;
         foo.decimal = 222f;
         foo.bool = false;
+        foo.blob = foo.name.getBytes();
 
         getNormalAdapter().store(foo);
 
@@ -78,6 +81,7 @@ public class RawQueryTest extends SqliteTest {
         foo.number = 333;
         foo.decimal = 444f;
         foo.bool = true;
+        foo.blob = foo.name.getBytes();
 
         getNormalAdapter().store(foo);
 
@@ -101,6 +105,7 @@ public class RawQueryTest extends SqliteTest {
         foo.number = 111;
         foo.decimal = 222f;
         foo.bool = false;
+        foo.blob = foo.name.getBytes();
 
         getNormalAdapter().store(foo);
 
@@ -109,6 +114,7 @@ public class RawQueryTest extends SqliteTest {
         foo.number = 333;
         foo.decimal = 444f;
         foo.bool = true;
+        foo.blob = foo.name.getBytes();
 
         getNormalAdapter().store(foo);
 
@@ -124,6 +130,7 @@ public class RawQueryTest extends SqliteTest {
         assertEquals(foo.number, cursor.getInt(cursor.getColumnIndex("number")));
         assertEquals(foo.decimal, cursor.getFloat(cursor.getColumnIndex("decimal")), 0.0f);
         assertEquals(foo.bool, cursor.getInt(cursor.getColumnIndex("bool")) == 1);
+        assertEquals(new String(foo.blob), new String(cursor.getBlob(cursor.getColumnIndex("blob"))));
 
         Cursor rawCursor = rawQuery.rawQuery("SELECT * FROM automatic WHERE bool = 1");
         assertNotNull(rawCursor);
@@ -134,6 +141,7 @@ public class RawQueryTest extends SqliteTest {
         assertEquals(foo.number, rawCursor.getInt(rawCursor.getColumnIndex("number")));
         assertEquals(foo.decimal, rawCursor.getFloat(rawCursor.getColumnIndex("decimal")), 0.0f);
         assertEquals(foo.bool, rawCursor.getInt(rawCursor.getColumnIndex("bool")) == 1);
+        assertEquals(new String(foo.blob), new String(rawCursor.getBlob(rawCursor.getColumnIndex("blob"))));
     }
 
     @Test

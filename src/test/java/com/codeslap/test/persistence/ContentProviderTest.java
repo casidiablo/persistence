@@ -55,6 +55,7 @@ public class ContentProviderTest extends SqliteTest {
         values.put("number", 111);
         values.put("decimal", 222f);
         values.put("bool", true);
+        values.put("blob", "Foo bar baz".getBytes());
         Uri insert = mProvider.insert(uri, values);
         assertNotNull(insert);
 

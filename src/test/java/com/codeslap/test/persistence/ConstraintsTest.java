@@ -41,6 +41,7 @@ public abstract class ConstraintsTest extends SqliteTest {
             foo.number = random.nextInt();
             foo.decimal = random.nextFloat();
             foo.bool = i < 25;
+            foo.blob = foo.name.getBytes();
             list.add(foo);
         }
         getAdapter().storeCollection(list, null);
