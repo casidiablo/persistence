@@ -660,6 +660,8 @@ class SqliteAdapterImpl implements SqlAdapter {
             value = query.getFloat(columnIndex);
         } else if (type == String.class) {
             value = query.getString(columnIndex);
+        } else if (type == byte[].class || type == Byte[].class) {
+            value = query.getBlob(columnIndex);
         }
         return value;
     }

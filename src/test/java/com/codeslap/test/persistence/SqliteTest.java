@@ -23,6 +23,7 @@ import com.xtremelabs.robolectric.Robolectric;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -74,11 +75,12 @@ public abstract class SqliteTest {
         int number;
         float decimal;
         boolean bool;
+        byte[] blob;
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (!(o instanceof ExampleAutoincrement)) return false;
 
             ExampleAutoincrement that = (ExampleAutoincrement) o;
 
@@ -86,6 +88,7 @@ public abstract class SqliteTest {
             if (Float.compare(that.decimal, decimal) != 0) return false;
             if (id != that.id) return false;
             if (number != that.number) return false;
+            if (!Arrays.equals(blob, that.blob)) return false;
             if (name != null ? !name.equals(that.name) : that.name != null) return false;
 
             return true;
@@ -98,6 +101,7 @@ public abstract class SqliteTest {
             result = 31 * result + number;
             result = 31 * result + (decimal != +0.0f ? Float.floatToIntBits(decimal) : 0);
             result = 31 * result + (bool ? 1 : 0);
+            result = 31 * result + (blob != null ? Arrays.hashCode(blob) : 0);
             return result;
         }
 
@@ -109,6 +113,7 @@ public abstract class SqliteTest {
                     ", number=" + number +
                     ", decimal=" + decimal +
                     ", bool=" + bool +
+                    ", blob=" + blob +
                     '}';
         }
     }

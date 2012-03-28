@@ -43,6 +43,7 @@ public abstract class DeleteTest extends SqliteTest {
             foo.number = random.nextInt();
             foo.decimal = random.nextFloat();
             foo.bool = random.nextBoolean();
+            foo.blob = foo.name.getBytes();
             collection.add(foo);
         }
         getAdapter().storeCollection(collection, null);

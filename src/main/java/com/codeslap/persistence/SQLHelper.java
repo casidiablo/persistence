@@ -30,6 +30,7 @@ class SQLHelper {
     static final String _ID = "_id";
     static final String PRIMARY_KEY = _ID + " INTEGER PRIMARY KEY";
     private static final String PRIMARY_KEY_TEXT = "_id TEXT PRIMARY KEY";
+    private static final String HEXES = "0123456789ABCDEF";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Class<?>, String> TABLE_NAMES_CACHE = new HashMap<Class<?>, String>();
@@ -150,6 +151,9 @@ class SQLHelper {
         if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
             return String.format("%s REAL%s", name, notNullSentence);
         }
+        if (type == byte[].class || type == Byte[].class) {
+            return String.format("%s BLOB%s", name, notNullSentence);
+        }
         return String.format("%s TEXT%s", name, notNullSentence);
     }
 
@@ -159,6 +163,9 @@ class SQLHelper {
             Class<?> clazz = bean.getClass();
             Field[] fields = getDeclaredFields(clazz);
             for (Field field : fields) {
+                if (field.getType() == byte[].class || field.getType() == Byte[].class) {
+                    continue;
+                }
                 try {
                     Class<?> type = field.getType();
                     if (type == List.class) {
@@ -238,6 +245,9 @@ class SQLHelper {
                         if (isBoolean) {
                             int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
                             sets.add(String.format("%s = '%d'", getColumnName(field), intValue));
+                        } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
+                            String hex = getHex((byte[]) value);
+                            sets.add(String.format("%s = X'%s'", getColumnName(field), hex));
                         } else {
                             sets.add(String.format("%s = '%s'", getColumnName(field), String.valueOf(value).replace("'", "''")));
                         }
@@ -284,6 +294,9 @@ class SQLHelper {
                 return ((Integer) value) != 0;
             }
             return false;
+        }
+        if (type == byte[].class || type == Byte[].class) {
+            return value != null && ((byte[]) value).length > 0;
         }
         return value != null;
     }
@@ -389,25 +402,33 @@ class SQLHelper {
                 if (columns != null) {
                     columns.add(getColumnName(field));
                 }
-                if (values != null) {
-                    if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                        int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
-                        values.add(String.format("%d", intValue));
-                    } else if (value == null) {
-                        Column columnAnnotation = field.getAnnotation(Column.class);
-                        boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
-                        if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
-                            String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
-                            throw new IllegalStateException(msg);
-                        }
-                        if (hasDefault) {
-                            values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
-                        } else {
-                            values.add("NULL");
-                        }
+                if (values == null) {
+                    continue;
+                }
+                if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+                    int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                    values.add(String.valueOf(intValue));
+                } else if (field.getType() == Byte[].class || field.getType() == byte[].class) {
+                    if (value == null) {
+                        values.add("NULL");
                     } else {
-                        values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                        String hex = getHex((byte[]) value);
+                        values.add(String.format("X'%s'", hex));
                     }
+                } else if (value == null) {
+                    Column columnAnnotation = field.getAnnotation(Column.class);
+                    boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                    if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
+                        String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
+                        throw new IllegalStateException(msg);
+                    }
+                    if (hasDefault) {
+                        values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
+                    } else {
+                        values.add("NULL");
+                    }
+                } else {
+                    values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
                 }
             } catch (IllegalAccessException ignored) {
             }
@@ -476,6 +497,18 @@ class SQLHelper {
 
     private static <T> String getTableName(T bean) {
         return getTableName(bean.getClass());
+    }
+
+    private static String getHex(byte[] raw) {
+        if (raw == null) {
+            return null;
+        }
+        final StringBuilder hex = new StringBuilder(2 * raw.length);
+        for (final byte b : raw) {
+            hex.append(HEXES.charAt((b & 0xF0) >> 4))
+                    .append(HEXES.charAt((b & 0x0F)));
+        }
+        return hex.toString();
     }
 
     /**
