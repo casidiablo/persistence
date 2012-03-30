@@ -36,6 +36,7 @@ public abstract class UpdateTest extends SqliteTest {
         foo.number = random.nextInt();
         foo.decimal = random.nextFloat();
         foo.bool = random.nextBoolean();
+        foo.blob = foo.name.getBytes();
         getAdapter().store(foo);
 
         // now, let's create a new object with different data
@@ -44,6 +45,7 @@ public abstract class UpdateTest extends SqliteTest {
         int number = bar.number = random.nextInt();
         float decimal = bar.decimal = random.nextFloat();
         boolean bool = bar.bool = random.nextBoolean();
+        byte[] blob = bar.blob = bar.name.getBytes();
 
         // after updating this record, all its data should have changed...
         int update = getAdapter().update(bar, foo);
@@ -53,6 +55,7 @@ public abstract class UpdateTest extends SqliteTest {
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);
         assertEquals(bool, baz.bool);
+        assertEquals(new String(blob), new String(baz.blob));
     }
     @Test
     public void updateTestAnnotations() {
@@ -91,6 +94,7 @@ public abstract class UpdateTest extends SqliteTest {
         foo.number = random.nextInt();
         foo.decimal = random.nextFloat();
         foo.bool = random.nextBoolean();
+        foo.blob = foo.name.getBytes();
         getAdapter().store(foo);
 
         // now, let's create a new object with different data
@@ -99,6 +103,7 @@ public abstract class UpdateTest extends SqliteTest {
         int number = bar.number = random.nextInt();
         float decimal = bar.decimal = random.nextFloat();
         boolean bool = bar.bool = random.nextBoolean();
+        byte[] blob = bar.blob = bar.name.getBytes();
 
         // after updating this record, all its data should have changed...
         int update = getAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
@@ -108,6 +113,7 @@ public abstract class UpdateTest extends SqliteTest {
         assertEquals(number, baz.number);
         assertEquals(decimal, baz.decimal, 0.0);
         assertEquals(bool, baz.bool);
+        assertEquals(new String(blob), new String(baz.blob));
     }
 
     @Test
