@@ -417,7 +417,10 @@ class SQLHelper {
                     }
                 } else if (value == null) {
                     Column columnAnnotation = field.getAnnotation(Column.class);
-                    boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                    boolean hasDefault = false;
+                    if (columnAnnotation != null) {
+                        hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                    }
                     if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
                         String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
                         throw new IllegalStateException(msg);
