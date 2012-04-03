@@ -28,7 +28,7 @@ class SQLHelper {
 
     static final String ID = "id";
     static final String _ID = "_id";
-    static final String PRIMARY_KEY = _ID + " INTEGER PRIMARY KEY";
+    static final String PRIMARY_KEY = "%s INTEGER PRIMARY KEY";
     private static final String PRIMARY_KEY_TEXT = "_id TEXT PRIMARY KEY";
     private static final String HEXES = "0123456789ABCDEF";
 
@@ -48,7 +48,7 @@ class SQLHelper {
         for (Field field : declaredFields) {
             String columnName = getColumnName(field);
             if (isPrimaryKey(field)) {
-                String primaryKeySentence = PRIMARY_KEY;
+                String primaryKeySentence = getCreatePrimaryKey(field);
                 if (field.getType() == String.class) {// what types are supported
                     primaryKeySentence = PRIMARY_KEY_TEXT;
                 } else if (PersistenceConfig.getDatabase(dbName).isAutoincrement(clazz)) {
@@ -88,10 +88,10 @@ class SQLHelper {
         Collections.sort(fieldSentences, new Comparator<String>() {
             @Override
             public int compare(String s1, String s2) {
-                if (s1.contains(PRIMARY_KEY)) {
+                if (s1.contains(String.format(PRIMARY_KEY, ""))) {
                     return -1;
                 }
-                if (s2.contains(PRIMARY_KEY)) {
+                if (s2.contains(String.format(PRIMARY_KEY, ""))) {
                     return 1;
                 }
                 return 0;
@@ -325,8 +325,8 @@ class SQLHelper {
         if (COLUMN_NAMES_CACHE.containsKey(field)) {
             return COLUMN_NAMES_CACHE.get(field);
         }
-        if (isPrimaryKey(field)) {
-            return _ID;
+        if (isPrimaryKey(field) && !forcedName(field)) {
+            return getIdColumn(field);
         }
         Column column = field.getAnnotation(Column.class);
         if (column != null) {
@@ -376,7 +376,7 @@ class SQLHelper {
         // build insert statement for the main object
         if (values.size() == 0 && persistence.isAutoincrement(bean.getClass())) {
             String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
-            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), _ID, hack, STATEMENT_SEPARATOR);
+            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), getIdColumn(getPrimaryKeyField(bean.getClass())), hack, STATEMENT_SEPARATOR);
         }
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
@@ -465,7 +465,11 @@ class SQLHelper {
         if (field.isAnnotationPresent(PrimaryKey.class)) {
             return true;
         }
-        return field.getName().equals(ID) || field.getName().equals(_ID);
+        return field.getName().equals(ID) || field.getName().equals(getIdColumn(field));
+    }
+
+    private static boolean forcedName(Field field) {
+        return field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).forceName();
     }
 
     static String getTableName(Class<?> theClass) {
@@ -538,6 +542,17 @@ class SQLHelper {
             }
         }
         throw new IllegalStateException("Class " + theClass + " does not have a primary key");
+    }
+
+    static String getIdColumn(Field field) {
+        if (forcedName(field)) {
+            return getColumnName(field);
+        }
+        return _ID;
+    }
+
+    static String getCreatePrimaryKey(Field field) {
+        return String.format(PRIMARY_KEY, getIdColumn(field));
     }
 
     static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, String dbName, Class<? extends T> clazz, T sample, G attachedTo, Constraint constraint) {

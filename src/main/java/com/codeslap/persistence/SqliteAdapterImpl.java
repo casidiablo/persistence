@@ -583,15 +583,25 @@ class SqliteAdapterImpl implements SqlAdapter {
                 if (tree.addChild(node)) {
                     switch (mPersistence.getRelationship(theClass, collectionClass)) {
                         case MANY_TO_MANY: {
+                            Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
                             // build a query that uses the joining table and the joined object
-                            long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
                             String collectionTableName = SQLHelper.getTableName(collectionClass);
-                            String sql = "SELECT * FROM " + SQLHelper.getTableName(collectionClass) +
-                                    " WHERE " + SQLHelper._ID + " IN (SELECT " + collectionTableName + "_id FROM " +
-                                    ManyToMany.buildTableName(theClass, collectionClass) +
-                                    " WHERE " + SQLHelper.getTableName(theClass) + "_id = ?)";
+                            String sql = new StringBuilder().append("SELECT * FROM ")
+                                    .append(SQLHelper.getTableName(collectionClass))
+                                    .append(" WHERE ")
+                                    .append(SQLHelper.getIdColumn(collectionId))
+                                    .append(" IN (SELECT ")
+                                    .append(collectionTableName)
+                                    .append(SQLHelper._ID)
+                                    .append(" FROM ")
+                                    .append(ManyToMany.buildTableName(theClass, collectionClass))
+                                    .append(" WHERE ")
+                                    .append(SQLHelper.getTableName(theClass))
+                                    .append(SQLHelper._ID)
+                                    .append(" = ?)").toString();
                             // execute the query
                             String[] selectionArgs = new String[1];
+                            long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
                             selectionArgs[0] = String.valueOf(id);
                             Cursor join = mDbHelper.getDatabase().rawQuery(sql, selectionArgs);
                             // set the result to the current field
@@ -612,8 +622,13 @@ class SqliteAdapterImpl implements SqlAdapter {
                             Field throughField = belongsTo.getThroughField();
                             Object foreignValue = getValueFromCursor(throughField.getType(), belongsTo.getThroughColumnName(), query);
                             if (foreignValue != null) {
-                                String sql = "SELECT * FROM " + SQLHelper.getTableName(collectionClass) +
-                                        " WHERE " + belongsTo.getForeignKey() + " = '" + foreignValue + "'";
+                                String sql = new StringBuilder().append("SELECT * FROM ")
+                                        .append(SQLHelper.getTableName(collectionClass))
+                                        .append(" WHERE ")
+                                        .append(belongsTo.getForeignKey())
+                                        .append(" = '")
+                                        .append(foreignValue)
+                                        .append("'").toString();
                                 // execute the query and set the result to the current field
                                 Cursor join = mDbHelper.getDatabase().rawQuery(sql, null);
                                 List listValue = new ArrayList();
