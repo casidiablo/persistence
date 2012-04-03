@@ -646,24 +646,28 @@ class SqliteAdapterImpl implements SqlAdapter {
     }
 
     private Object getValueFromCursor(Class<?> type, String name, Cursor query) {
-        // get the column index
-        int columnIndex = query.getColumnIndex(name);
-        // get an object value depending on the type
-        Object value = null;
-        if (type == int.class || type == Integer.class) {
-            value = query.getInt(columnIndex);
-        } else if (type == long.class || type == Long.class) {
-            value = query.getLong(columnIndex);
-        } else if (type == boolean.class || type == Boolean.class) {
-            value = query.getInt(columnIndex) == 1;
-        } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-            value = query.getFloat(columnIndex);
-        } else if (type == String.class) {
-            value = query.getString(columnIndex);
-        } else if (type == byte[].class || type == Byte[].class) {
-            value = query.getBlob(columnIndex);
+        try {
+            // get the column index
+            int columnIndex = query.getColumnIndex(name);
+            // get an object value depending on the type
+            Object value = null;
+            if (type == int.class || type == Integer.class) {
+                value = query.getInt(columnIndex);
+            } else if (type == long.class || type == Long.class) {
+                value = query.getLong(columnIndex);
+            } else if (type == boolean.class || type == Boolean.class) {
+                value = query.getInt(columnIndex) == 1;
+            } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
+                value = query.getFloat(columnIndex);
+            } else if (type == String.class) {
+                value = query.getString(columnIndex);
+            } else if (type == byte[].class || type == Byte[].class) {
+                value = query.getBlob(columnIndex);
+            }
+            return value;
+        } catch (Exception e) {
+            throw new IllegalStateException("Error getting column " + name, e);
         }
-        return value;
     }
 
 }
