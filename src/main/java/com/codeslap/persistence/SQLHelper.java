@@ -29,7 +29,6 @@ class SQLHelper {
     static final String ID = "id";
     static final String _ID = "_id";
     static final String PRIMARY_KEY = "%s INTEGER PRIMARY KEY";
-    private static final String PRIMARY_KEY_TEXT = "_id TEXT PRIMARY KEY";
     private static final String HEXES = "0123456789ABCDEF";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
@@ -50,7 +49,7 @@ class SQLHelper {
             if (isPrimaryKey(field)) {
                 String primaryKeySentence = getCreatePrimaryKey(field);
                 if (field.getType() == String.class) {// what types are supported
-                    primaryKeySentence = PRIMARY_KEY_TEXT;
+                    primaryKeySentence = primaryKeySentence.replace("INTEGER PRIMARY KEY", "TEXT PRIMARY KEY");
                 } else if (PersistenceConfig.getDatabase(dbName).isAutoincrement(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
