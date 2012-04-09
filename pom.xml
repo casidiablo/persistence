@@ -28,7 +28,7 @@
     <version>0.9.16-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Codeslap Persistence</name>
-    <description>Core functionality provided by MarkdownJ.</description>
+    <description>Persistence library for Android</description>
     <url>https://github.com/casidiablo/persistence</url>
     <licenses>
         <license>
