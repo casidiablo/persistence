@@ -48,7 +48,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
 
     @Override
     public <T> void store(T bean) {
-        Class<? extends Object> theClass = bean.getClass();
+        Class<?> theClass = bean.getClass();
         if (!PersistenceConfig.getPreference(mName).belongsToPreferences(theClass)) {
             throw new IllegalStateException("This object is not associated with a preference persister");
         }
@@ -104,7 +104,7 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 }
                 field.set(bean, value);
             }
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         return bean;
     }
@@ -150,12 +150,12 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 } else if (field.getType() == String.class) {
                     editor.putString(keyName, String.valueOf(value));
                 }
-            } catch (IllegalAccessException e) {
+            } catch (IllegalAccessException ignored) {
             }
         }
     }
 
-    private SharedPreferences getSharedPreferences(Class<? extends Object> theClass) {
+    private SharedPreferences getSharedPreferences(Class<?> theClass) {
         String key = theClass.getSimpleName();
         if (!mPreferences.containsKey(key)) {
             SharedPreferences prefs;
