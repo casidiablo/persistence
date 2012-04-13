@@ -181,7 +181,7 @@ class SQLHelper {
                             conditions.add(String.format("%s LIKE '%s'", columnName,
                                     String.valueOf(value).replace("'", "''")));
                         } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            int intValue = (Boolean) value ? 1 : 0;
                             conditions.add(String.format("%s = '%d'", columnName, intValue));
                         } else {
                             conditions.add(String.format("%s = '%s'", columnName, value));
@@ -193,7 +193,7 @@ class SQLHelper {
                             conditions.add(String.format("%s = ?", columnName));
                         }
                         if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                            value = ((Boolean) value).booleanValue() ? 1 : 0;
+                            value = (Boolean) value ? 1 : 0;
                         }
                         args.add(String.valueOf(value));
                     }
@@ -242,7 +242,7 @@ class SQLHelper {
                     boolean isBoolean = field.getType() == Boolean.class || field.getType() == boolean.class;
                     if (isBoolean || hasData(type, value)) {
                         if (isBoolean) {
-                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            int intValue = (Boolean) value ? 1 : 0;
                             sets.add(String.format("%s = '%d'", getColumnName(field), intValue));
                         } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
                             String hex = getHex((byte[]) value);
@@ -388,7 +388,7 @@ class SQLHelper {
         Field[] fields = getDeclaredFields(theClass);
         for (Field field : fields) {
             // if the class has an autoincrement, ignore the ID
-            if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
+            if (isPrimaryKey(field) && persistence.isAutoincrement(theClass)) {
                 continue;
             }
             try {
@@ -405,7 +405,7 @@ class SQLHelper {
                     continue;
                 }
                 if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                    int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                    int intValue = (Boolean) value ? 1 : 0;
                     values.add(String.valueOf(intValue));
                 } else if (field.getType() == Byte[].class || field.getType() == byte[].class) {
                     if (value == null) {
@@ -575,5 +575,41 @@ class SQLHelper {
             groupBy = constraint.getGroupBy();
         }
         return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
+    }
+
+    static <T> String getFastInsertSqlHeader(T bean, SqlPersistence persistence) {
+        ArrayList<String> values = new ArrayList<String>();
+        ArrayList<String> columns = new ArrayList<String>();
+        populateColumnsAndValues(bean, null, values, columns, persistence);
+
+        StringBuilder result = new StringBuilder();
+
+        result.append("INSERT OR IGNORE INTO ").append(getTableName(bean.getClass())).append(" ");
+        // set insert columns
+        result.append("(");
+        result.append(join(columns, ", "));
+        result.append(")");
+        // add first insertion body
+        result.append(" SELECT ");
+
+        ArrayList<String> columnsAndValues = new ArrayList<String>();
+        for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
+            String column = columns.get(i);
+            String value = values.get(i);
+            StringBuilder columnAndValue = new StringBuilder();
+            columnAndValue.append(value).append(" AS ").append(column);
+            columnsAndValues.add(columnAndValue.toString());
+        }
+        result.append(join(columnsAndValues, ", "));
+        return result.toString();
+    }
+
+    static <T> String getUnionInsertSql(T bean, SqlPersistence persistence) {
+        ArrayList<String> values = new ArrayList<String>();
+        populateColumnsAndValues(bean, null, values, null, persistence);
+        StringBuilder builder = new StringBuilder();
+        builder.append(" UNION SELECT ");
+        builder.append(join(values, ", "));
+        return builder.toString();
     }
 }

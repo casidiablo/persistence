@@ -170,21 +170,57 @@ class SqliteAdapterImpl implements SqlAdapter {
             if (listener != null) {
                 listener.onProgressChange(0);
             }
-            int progress;
-            int all = collection.size() + 1; // 1 == commit phase
-            for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
-                T object = collection.get(i);
-                String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
-                if (sqlStatement == null) {
-                    continue;
+            SqlPersistence.Relationship relationship = SqlPersistence.Relationship.UNKNOWN;
+            if (!collection.isEmpty()) {
+                T object = collection.get(0);
+                relationship = mPersistence.getRelationship(object.getClass());
+            }
+            // if there is no listener, attached object, collection is too small or objects in the list have inner
+            // relationships: insert them in a normal way, in which there will be a sql execution per object
+            if (listener != null || attachedTo != null || collection.size() <= 1 || relationship != SqlPersistence.Relationship.UNKNOWN) {
+                int progress;
+                int all = collection.size() + 1; // 1 == commit phase
+                for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
+                    T object = collection.get(i);
+                    String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
+                    if (sqlStatement == null) {
+                        continue;
+                    }
+                    String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+                    for (String statement : statements) {
+                        mDbHelper.getDatabase().execSQL(statement);
+                    }
+                    if (listener != null) {
+                        progress = i * 100 / all;
+                        listener.onProgressChange(progress);
+                    }
                 }
-                String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-                for (String statement : statements) {
-                    mDbHelper.getDatabase().execSQL(statement);
+            } else {
+                // if it reaches here, we can insert collection in a faster way by creating few sql statements
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0, collectionSize = collection.size(), newItems = 0; i < collectionSize; i++) {
+                    T bean = collection.get(i);
+                    String updateStatement = getUpdateStatementIfPossible(bean);
+                    if (!TextUtils.isEmpty(updateStatement)) {
+                        String[] statements = updateStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+                        for (String statement : statements) {
+                            mDbHelper.getDatabase().execSQL(statement);
+                        }
+                        continue;
+                    }
+                    if (newItems % 400 == 0) {
+                        if (newItems > 0) {
+                            mDbHelper.getDatabase().execSQL(builder.append(";").toString());
+                            builder = new StringBuilder();
+                        }
+                        builder.append(SQLHelper.getFastInsertSqlHeader(bean, mPersistence));
+                    } else {
+                        builder.append(SQLHelper.getUnionInsertSql(bean, mPersistence));
+                    }
+                    newItems++;
                 }
-                if (listener != null) {
-                    progress = i * 100 / all;
-                    listener.onProgressChange(progress);
+                if (builder.length() > 0) {
+                    mDbHelper.getDatabase().execSQL(builder.append(";").toString());
                 }
             }
             mDbHelper.getDatabase().execSQL("COMMIT;");
@@ -220,7 +256,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                 // not a big deal
             }
         }
-        storeCollection(collection, null);
+        storeCollection(collection, listener);
     }
 
     @Override
@@ -415,10 +451,23 @@ class SqliteAdapterImpl implements SqlAdapter {
     }
 
     private <T, G> String getSqlStatement(T bean, Node tree, G attachedTo) {
-        // first try to find the bean by id (if its id is not autoincrement)
-        // and if it exists, do not insert it, update it
+        String updateStatement = getUpdateStatementIfPossible(bean);
+        if (!TextUtils.isEmpty(updateStatement)) {
+            return updateStatement;
+        }
+        String mainInsertStatement = SQLHelper.getInsertStatement(bean, attachedTo, mPersistence);
+        try {
+            mainInsertStatement += getSqlInsertForChildrenOf(bean, tree);
+        } catch (IllegalAccessException ignored) {
+        }
+        return mainInsertStatement;
+    }
+
+    private <T> String getUpdateStatementIfPossible(T bean) {
+        String result = null;
+        // try to find the bean by id and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
-        // get its ID
+        // get its ID and make sure primary key is not null
         Field theId = SQLHelper.getPrimaryKeyField(theClass);
         theId.setAccessible(true);
         if (theId.getType() == String.class ||
@@ -445,23 +494,15 @@ class SqliteAdapterImpl implements SqlAdapter {
                 if (match != null) {
                     // if they are the same, do nothing...
                     if (bean.equals(match)) {
-                        return null;
+                        result = null;
                     }
                     // update the bean using the just create sample
-                    return SQLHelper.buildUpdateStatement(bean, match);
+                    result = SQLHelper.buildUpdateStatement(bean, match);
                 }
             }
-
         } catch (Exception ignored) {
         }
-
-
-        String mainInsertStatement = SQLHelper.getInsertStatement(bean, attachedTo, mPersistence);
-        try {
-            mainInsertStatement += getSqlInsertForChildrenOf(bean, tree);
-        } catch (IllegalAccessException ignored) {
-        }
-        return mainInsertStatement;
+        return result;
     }
 
     private <T> String getSqlInsertForChildrenOf(T bean, Node tree) throws IllegalAccessException {// bodom
