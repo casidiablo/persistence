@@ -571,7 +571,9 @@ class SQLHelper {
         String groupBy = null;
         if (constraint != null) {
             orderBy = constraint.getOrderBy();
-            limit = String.valueOf(constraint.getLimit());
+            if (constraint.getLimit() != null) {
+                limit = constraint.getLimit().toString();
+            }
             groupBy = constraint.getGroupBy();
         }
         return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
