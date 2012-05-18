@@ -67,6 +67,8 @@ public interface SqlAdapter {
 
     /**
      * Updates one of more records in the database
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param object the object to insert into the database
      * @param where  the sample object
@@ -77,6 +79,8 @@ public interface SqlAdapter {
 
     /**
      * Updates one of more records in the database
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param object    the object to insert into the database
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
@@ -88,6 +92,8 @@ public interface SqlAdapter {
 
     /**
      * Retrieves an object from the database
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where sample object
      * @param <T>   object type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -97,8 +103,10 @@ public interface SqlAdapter {
 
     /**
      * Retrieves an object from the database
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
-     * @param theClass     the type of the object to retrieve
+     * @param theClass  the type of the object to retrieve
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -110,13 +118,15 @@ public interface SqlAdapter {
      * Retrieves all elements from the database of the specified type
      *
      * @param theClass the class of the object that we want to retrieve
-     * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @param <T>      object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return a list of T objects
      */
     <T> List<T> findAll(Class<T> theClass);
 
     /**
      * Retrieves all elements from the database that matches the specified sample
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where sample object
      * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -126,6 +136,8 @@ public interface SqlAdapter {
 
     /**
      * Retrieves all elements from the database that matches the specified sample. And follows the specified constraint.
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where      sample object
      * @param constraint constrains for this query
@@ -136,6 +148,8 @@ public interface SqlAdapter {
 
     /**
      * Retrieves all elements from the database that are attached to the specified object
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where      the sample object
      * @param attachedTo the object that is attached to the sample object
@@ -146,8 +160,10 @@ public interface SqlAdapter {
 
     /**
      * Retrieves all elements from the database that matches the specified sample
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
-     * @param theClass     the class to find all items
+     * @param theClass  the class to find all items
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -157,6 +173,8 @@ public interface SqlAdapter {
 
     /**
      * Deletes one or more elements from the database
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where sample object
      * @param <T>   object type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -166,6 +184,9 @@ public interface SqlAdapter {
 
     /**
      * Deletes one or more elements from the database
+     * <p/>
+     * <p/>
+     * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where     sample object
      * @param onCascade true if it must delete relations on cascade
@@ -176,8 +197,10 @@ public interface SqlAdapter {
 
     /**
      * Deletes one or more elements from the database
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
-     * @param theClass     the type of the object to delete
+     * @param theClass  the type of the object to delete
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -187,8 +210,10 @@ public interface SqlAdapter {
 
     /**
      * Deletes one or more elements from the database
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
-     * @param theClass     the type of the object to delete
+     * @param theClass  the type of the object to delete
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param onCascade true if it must delete relations on cascade
      * @param whereArgs the list of values used in the wildcards
@@ -206,6 +231,8 @@ public interface SqlAdapter {
 
     /**
      * Counts how many items there are in the database and match the specified condition
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
      * @param where the sample object
      * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -215,8 +242,10 @@ public interface SqlAdapter {
 
     /**
      * Counts how many items there are in the database and match the specified condition
+     * <p/>
+     * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
      *
-     * @param theClass     the class of the object that we want to count
+     * @param theClass  the class of the object that we want to count
      * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
      * @param whereArgs the list of values used in the wildcards
      * @param <T>       object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
@@ -228,7 +257,7 @@ public interface SqlAdapter {
      * Counts how many items there are in the database
      *
      * @param theClass the class of the object that we want to count
-     * @param <T>   object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
+     * @param <T>      object  type. Must be already registered using {@link SqlPersistence#match(Class[])}
      * @return number of elements in the table of the specified object
      */
     <T> int count(Class<T> theClass);
