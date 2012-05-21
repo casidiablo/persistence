@@ -21,7 +21,7 @@ package com.codeslap.persistence;
  */
 public class Constraint {
     private String mOrderBy;
-    private int mLimit;
+    private Integer mLimit;
     private String mGroupBy;
 
     public Constraint() {
@@ -32,7 +32,7 @@ public class Constraint {
         return this;
     }
 
-    public Constraint limit(int limit) {
+    public Constraint limit(Integer limit) {
         mLimit = limit;
         return this;
     }
@@ -46,7 +46,7 @@ public class Constraint {
         return mOrderBy;
     }
 
-    int getLimit() {
+    Integer getLimit() {
         return mLimit;
     }
 
