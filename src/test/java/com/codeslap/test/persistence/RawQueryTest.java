@@ -47,15 +47,27 @@ public class RawQueryTest extends SqliteTest {
         getNormalAdapter().storeCollection(collection, null);
 
         RawQuery rawQuery = Persistence.getRawQuery(new Activity());
-        Cursor cursor = rawQuery.findAll(ExampleAutoincrement.class);
+        Cursor cursor = rawQuery.findAll("automatic", null, null, null, null, null, "number ASC", null);
         assertNotNull(cursor);
         assertEquals(100, cursor.getCount());
         assertTrue(cursor.moveToFirst());
 
+        Collections.sort(collection, new Comparator<ExampleAutoincrement>() {
+            @Override
+            public int compare(ExampleAutoincrement foo, ExampleAutoincrement bar) {
+                if (foo.number < 0 && bar.number >= 0) {
+                    return -1;
+                }
+                if (foo.number >= 0 && bar.number < 0) {
+                    return 1;
+                }
+                return foo.number - bar.number;
+            }
+        });
+
         int i = 0;
         do {
             ExampleAutoincrement item = collection.get(i);
-            assertEquals(i + 1, cursor.getLong(cursor.getColumnIndex("_id")));
             assertEquals(item.name, cursor.getString(cursor.getColumnIndex("name")));
             assertEquals(item.number, cursor.getInt(cursor.getColumnIndex("number")));
             assertEquals(item.decimal, cursor.getFloat(cursor.getColumnIndex("decimal")), 0.0f);

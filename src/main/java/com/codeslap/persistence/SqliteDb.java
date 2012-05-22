@@ -72,6 +72,7 @@ class SqliteDb {
             }
             db.execSQL("DELETE FROM sqlite_sequence");
             onCreate(db);
+            c.close();
         }
     }
 }

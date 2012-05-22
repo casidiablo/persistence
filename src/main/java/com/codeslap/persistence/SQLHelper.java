@@ -28,8 +28,7 @@ class SQLHelper {
 
     static final String ID = "id";
     static final String _ID = "_id";
-    static final String PRIMARY_KEY = _ID + " INTEGER PRIMARY KEY";
-    private static final String PRIMARY_KEY_TEXT = "_id TEXT PRIMARY KEY";
+    static final String PRIMARY_KEY = "%s INTEGER PRIMARY KEY";
     private static final String HEXES = "0123456789ABCDEF";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
@@ -48,9 +47,9 @@ class SQLHelper {
         for (Field field : declaredFields) {
             String columnName = getColumnName(field);
             if (isPrimaryKey(field)) {
-                String primaryKeySentence = PRIMARY_KEY;
+                String primaryKeySentence = getCreatePrimaryKey(field);
                 if (field.getType() == String.class) {// what types are supported
-                    primaryKeySentence = PRIMARY_KEY_TEXT;
+                    primaryKeySentence = primaryKeySentence.replace("INTEGER PRIMARY KEY", "TEXT PRIMARY KEY");
                 } else if (PersistenceConfig.getDatabase(dbName).isAutoincrement(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
@@ -88,10 +87,10 @@ class SQLHelper {
         Collections.sort(fieldSentences, new Comparator<String>() {
             @Override
             public int compare(String s1, String s2) {
-                if (s1.contains(PRIMARY_KEY)) {
+                if (s1.contains(String.format(PRIMARY_KEY, ""))) {
                     return -1;
                 }
-                if (s2.contains(PRIMARY_KEY)) {
+                if (s2.contains(String.format(PRIMARY_KEY, ""))) {
                     return 1;
                 }
                 return 0;
@@ -182,7 +181,7 @@ class SQLHelper {
                             conditions.add(String.format("%s LIKE '%s'", columnName,
                                     String.valueOf(value).replace("'", "''")));
                         } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            int intValue = (Boolean) value ? 1 : 0;
                             conditions.add(String.format("%s = '%d'", columnName, intValue));
                         } else {
                             conditions.add(String.format("%s = '%s'", columnName, value));
@@ -194,7 +193,7 @@ class SQLHelper {
                             conditions.add(String.format("%s = ?", columnName));
                         }
                         if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                            value = ((Boolean) value).booleanValue() ? 1 : 0;
+                            value = (Boolean) value ? 1 : 0;
                         }
                         args.add(String.valueOf(value));
                     }
@@ -243,7 +242,7 @@ class SQLHelper {
                     boolean isBoolean = field.getType() == Boolean.class || field.getType() == boolean.class;
                     if (isBoolean || hasData(type, value)) {
                         if (isBoolean) {
-                            int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                            int intValue = (Boolean) value ? 1 : 0;
                             sets.add(String.format("%s = '%d'", getColumnName(field), intValue));
                         } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
                             String hex = getHex((byte[]) value);
@@ -325,8 +324,8 @@ class SQLHelper {
         if (COLUMN_NAMES_CACHE.containsKey(field)) {
             return COLUMN_NAMES_CACHE.get(field);
         }
-        if (isPrimaryKey(field)) {
-            return _ID;
+        if (isPrimaryKey(field) && !forcedName(field)) {
+            return getIdColumn(field);
         }
         Column column = field.getAnnotation(Column.class);
         if (column != null) {
@@ -376,7 +375,7 @@ class SQLHelper {
         // build insert statement for the main object
         if (values.size() == 0 && persistence.isAutoincrement(bean.getClass())) {
             String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
-            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), _ID, hack, STATEMENT_SEPARATOR);
+            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), getIdColumn(getPrimaryKeyField(bean.getClass())), hack, STATEMENT_SEPARATOR);
         }
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
@@ -389,7 +388,7 @@ class SQLHelper {
         Field[] fields = getDeclaredFields(theClass);
         for (Field field : fields) {
             // if the class has an autoincrement, ignore the ID
-            if (persistence.isAutoincrement(theClass) && isPrimaryKey(field)) {
+            if (isPrimaryKey(field) && persistence.isAutoincrement(theClass)) {
                 continue;
             }
             try {
@@ -406,7 +405,7 @@ class SQLHelper {
                     continue;
                 }
                 if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-                    int intValue = ((Boolean) value).booleanValue() ? 1 : 0;
+                    int intValue = (Boolean) value ? 1 : 0;
                     values.add(String.valueOf(intValue));
                 } else if (field.getType() == Byte[].class || field.getType() == byte[].class) {
                     if (value == null) {
@@ -417,7 +416,10 @@ class SQLHelper {
                     }
                 } else if (value == null) {
                     Column columnAnnotation = field.getAnnotation(Column.class);
-                    boolean hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                    boolean hasDefault = false;
+                    if (columnAnnotation != null) {
+                        hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+                    }
                     if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
                         String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
                         throw new IllegalStateException(msg);
@@ -462,7 +464,11 @@ class SQLHelper {
         if (field.isAnnotationPresent(PrimaryKey.class)) {
             return true;
         }
-        return field.getName().equals(ID) || field.getName().equals(_ID);
+        return field.getName().equals(ID) || field.getName().equals(getIdColumn(field));
+    }
+
+    private static boolean forcedName(Field field) {
+        return field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).forceName();
     }
 
     static String getTableName(Class<?> theClass) {
@@ -537,6 +543,17 @@ class SQLHelper {
         throw new IllegalStateException("Class " + theClass + " does not have a primary key");
     }
 
+    static String getIdColumn(Field field) {
+        if (forcedName(field)) {
+            return getColumnName(field);
+        }
+        return _ID;
+    }
+
+    static String getCreatePrimaryKey(Field field) {
+        return String.format(PRIMARY_KEY, getIdColumn(field));
+    }
+
     static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, String dbName, Class<? extends T> clazz, T sample, G attachedTo, Constraint constraint) {
         String[] selectionArgs = null;
         String where = null;
@@ -554,9 +571,47 @@ class SQLHelper {
         String groupBy = null;
         if (constraint != null) {
             orderBy = constraint.getOrderBy();
-            limit = String.valueOf(constraint.getLimit());
+            if (constraint.getLimit() != null) {
+                limit = constraint.getLimit().toString();
+            }
             groupBy = constraint.getGroupBy();
         }
         return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
+    }
+
+    static <T> String getFastInsertSqlHeader(T bean, SqlPersistence persistence) {
+        ArrayList<String> values = new ArrayList<String>();
+        ArrayList<String> columns = new ArrayList<String>();
+        populateColumnsAndValues(bean, null, values, columns, persistence);
+
+        StringBuilder result = new StringBuilder();
+
+        result.append("INSERT OR IGNORE INTO ").append(getTableName(bean.getClass())).append(" ");
+        // set insert columns
+        result.append("(");
+        result.append(join(columns, ", "));
+        result.append(")");
+        // add first insertion body
+        result.append(" SELECT ");
+
+        ArrayList<String> columnsAndValues = new ArrayList<String>();
+        for (int i = 0, valuesSize = values.size(); i < valuesSize; i++) {
+            String column = columns.get(i);
+            String value = values.get(i);
+            StringBuilder columnAndValue = new StringBuilder();
+            columnAndValue.append(value).append(" AS ").append(column);
+            columnsAndValues.add(columnAndValue.toString());
+        }
+        result.append(join(columnsAndValues, ", "));
+        return result.toString();
+    }
+
+    static <T> String getUnionInsertSql(T bean, SqlPersistence persistence) {
+        ArrayList<String> values = new ArrayList<String>();
+        populateColumnsAndValues(bean, null, values, null, persistence);
+        StringBuilder builder = new StringBuilder();
+        builder.append(" UNION SELECT ");
+        builder.append(join(values, ", "));
+        return builder.toString();
     }
 }

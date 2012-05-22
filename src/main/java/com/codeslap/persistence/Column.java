@@ -44,4 +44,9 @@ public @interface Column {
      * @return the value to set to this element when no argument is assigned. This works for TEXT columns only.
      */
     String defaultValue() default NULL;
+
+    /**
+     * @return true if the name of this column must be forced. Useful when handling primary keys whose name is not _id
+     */
+    boolean forceName() default false;
 }
