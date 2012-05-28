@@ -58,16 +58,16 @@ class PrefsAdapterImpl implements PreferencesAdapter {
     }
 
     @Override
-    public <T> T retrieve(Class<T> clazz) {
+    public <T> T retrieve(Class<T> theClass) {
         T bean;
         try {
-            bean = clazz.newInstance();
+            bean = theClass.newInstance();
         } catch (Exception e) {
             return null;
         }
         try {
-            for (Field field : clazz.getDeclaredFields()) {
-                // ignore static fields
+            for (Field field : theClass.getDeclaredFields()) {
+                // ignore static and final fields
                 if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
                     continue;
                 }
@@ -84,20 +84,20 @@ class PrefsAdapterImpl implements PreferencesAdapter {
                 Class<?> type = field.getType();
                 if (type == boolean.class || type == Boolean.class) {
                     boolean def = defaultEnabled && "true".equals(annotation.defaultValue());
-                    value = getSharedPreferences(clazz).getBoolean(keyName, def);
+                    value = getSharedPreferences(theClass).getBoolean(keyName, def);
                 } else if (type == float.class || type == Float.class
                         || type == double.class || type == Double.class) {
                     float def = defaultEnabled ? Float.parseFloat(annotation.defaultValue()) : 0.0f;
-                    value = getSharedPreferences(clazz).getFloat(keyName, def);
+                    value = getSharedPreferences(theClass).getFloat(keyName, def);
                 } else if (type == Integer.class || type == int.class) {
                     int def = defaultEnabled ? Integer.parseInt(annotation.defaultValue()) : 0;
-                    value = getSharedPreferences(clazz).getInt(keyName, def);
+                    value = getSharedPreferences(theClass).getInt(keyName, def);
                 } else if (type == Long.class || type == long.class) {
                     long def = defaultEnabled ? Long.parseLong(annotation.defaultValue()) : 0L;
-                    value = getSharedPreferences(clazz).getLong(keyName, def);
+                    value = getSharedPreferences(theClass).getLong(keyName, def);
                 } else if (type == String.class) {
                     String def = defaultEnabled ? annotation.defaultValue() : null;
-                    value = getSharedPreferences(clazz).getString(keyName, def);
+                    value = getSharedPreferences(theClass).getString(keyName, def);
                 } else {
                     String msg = String.format("Current object (%s) has incompatible fields (%s of type %s)", bean, field, type);
                     PersistenceLogManager.e("pref", msg);
@@ -110,9 +110,9 @@ class PrefsAdapterImpl implements PreferencesAdapter {
     }
 
     @Override
-    public <T> boolean delete(Class<T> clazz) {
-        SharedPreferences.Editor editor = getSharedPreferences(clazz).edit();
-        for (Field field : clazz.getDeclaredFields()) {
+    public <T> boolean delete(Class<T> theClass) {
+        SharedPreferences.Editor editor = getSharedPreferences(theClass).edit();
+        for (Field field : theClass.getDeclaredFields()) {
             Preference preferenceAnnotation = field.getAnnotation(Preference.class);
             String keyName;
             if (preferenceAnnotation == null) {
@@ -125,18 +125,17 @@ class PrefsAdapterImpl implements PreferencesAdapter {
         return editor.commit();
     }
 
-    <T> void fillEditor(SharedPreferences.Editor editor, T bean) {
+    private <T> void fillEditor(SharedPreferences.Editor editor, T bean) {
         for (Field field : bean.getClass().getDeclaredFields()) {
+            // ignore static and final fields
+            if (Modifier.isStatic(field.getModifiers()) || Modifier.isFinal(field.getModifiers())) {
+                continue;
+            }
             field.setAccessible(true);
             Preference preferenceAnnotation = field.getAnnotation(Preference.class);
             try {
                 Object value = field.get(bean);
-                String keyName;
-                if (preferenceAnnotation == null) {
-                    keyName = field.getName();
-                } else {
-                    keyName = preferenceAnnotation.value();
-                }
+                String keyName = preferenceAnnotation == null ? field.getName() : preferenceAnnotation.value();
                 if (field.getType() == boolean.class || field.getType() == Boolean.class) {
                     editor.putBoolean(keyName, (Boolean) value);
                 } else if (field.getType() == float.class || field.getType() == Float.class) {

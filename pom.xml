@@ -79,7 +79,7 @@
         <dependency>
             <groupId>com.codeslap</groupId>
             <artifactId>robolectric-sqlite</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
+            <version>1.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

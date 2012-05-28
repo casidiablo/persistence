@@ -16,12 +16,40 @@
 
 package com.codeslap.persistence;
 
+/**
+ * Persistence adapter that retrieves and saves one bean from and to a shared preferences file.
+ * Keep in mind that this won't save collections of beans; if you want to persist more than
+ * one bean use the {@link SqlAdapter}
+ *
+ * @author cristian
+ * @version 1.0
+ */
 public interface PreferencesAdapter {
     String DEFAULT_PREFS = "default.prefs";
 
+    /**
+     * Persist a bean to the shared preferences
+     *
+     * @param bean the bean to persist
+     * @param <T>  this can be any kind of bean with primitive data
+     */
     public <T> void store(T bean);
 
-    public <T> T retrieve(Class<T> clazz);
+    /**
+     * Retrieves an object from the database
+     *
+     * @param theClass the class of the bean to retrieve
+     * @param <T>      this can be any kind of bean with primitive data
+     * @return the persisted object
+     */
+    public <T> T retrieve(Class<T> theClass);
 
-    public <T> boolean delete(Class<T> clazz);
+    /**
+     * Removes an object from the shared preferences
+     *
+     * @param theClass the class of the bean to delete
+     * @param <T>      this can be any kind of bean with primitive data
+     * @return true if everything went fine
+     */
+    public <T> boolean delete(Class<T> theClass);
 }
