@@ -19,15 +19,13 @@ package com.codeslap.persistence;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This is a persistence adapter that uses sqlite database as persistence engine.
@@ -110,23 +108,18 @@ class SqliteAdapterImpl implements SqlAdapter {
             return null;
         }
         Class<?> theClass = bean.getClass();
-        synchronized (mDbHelper.getDatabase()) {
-            try {
-                mDbHelper.getDatabase().execSQL("BEGIN TRANSACTION;");
-                String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
-                if (sqlStatement != null) {
-                    String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-                    for (String statement : statements) {
-                        if (TextUtils.isEmpty(statement)) {
-                            continue;
-                        }
-                        mDbHelper.getDatabase().execSQL(statement);
-                    }
+        List<String> transactions = new ArrayList<String>();
+        String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
+        if (sqlStatement != null) {
+            String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+            for (String statement : statements) {
+                if (TextUtils.isEmpty(statement)) {
+                    continue;
                 }
-            } finally {
-                mDbHelper.getDatabase().execSQL("COMMIT;");
+                transactions.add(statement);
             }
         }
+        executeTransactions(transactions);
         Field idField = SQLHelper.getPrimaryKeyField(theClass);
         // if it is autoincrement, we will try to populate the id field with the inserted id
         if (mPersistence.isAutoincrement(theClass)) {
@@ -165,66 +158,70 @@ class SqliteAdapterImpl implements SqlAdapter {
 
     @Override
     public <T, G> void storeCollection(List<T> collection, G attachedTo, ProgressListener listener) {
-        synchronized (mDbHelper.getDatabase()) {
-            mDbHelper.getDatabase().execSQL("BEGIN TRANSACTION;");
-            if (listener != null) {
-                listener.onProgressChange(0);
-            }
-            SqlPersistence.Relationship relationship = SqlPersistence.Relationship.UNKNOWN;
-            if (!collection.isEmpty()) {
-                T object = collection.get(0);
-                relationship = mPersistence.getRelationship(object.getClass());
-            }
-            // if there is no listener, attached object, collection is too small or objects in the list have inner
-            // relationships: insert them in a normal way, in which there will be a sql execution per object
-            if (listener != null || attachedTo != null || collection.size() <= 1 || relationship != SqlPersistence.Relationship.UNKNOWN) {
-                int progress;
-                int all = collection.size() + 1; // 1 == commit phase
-                for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
-                    T object = collection.get(i);
-                    String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
-                    if (sqlStatement == null) {
-                        continue;
-                    }
-                    String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-                    for (String statement : statements) {
-                        mDbHelper.getDatabase().execSQL(statement);
-                    }
-                    if (listener != null) {
-                        progress = i * 100 / all;
-                        listener.onProgressChange(progress);
-                    }
+        if (listener != null) {
+            listener.onProgressChange(0);
+        }
+        if (collection.isEmpty()) {
+            return;
+        }
+        List<String> transactions = new ArrayList<String>();
+        SqlPersistence.Relationship relationship = mPersistence.getRelationship(collection.get(0).getClass());
+        // if there is no listener, attached object, collection is too small or objects in the list have inner
+        // relationships: insert them in a normal way, in which there will be a sql execution per object
+        if (listener != null || attachedTo != null || collection.size() <= 1 || relationship != SqlPersistence.Relationship.UNKNOWN) {
+            int progress;
+            int all = collection.size() + 1; // 1 == commit phase
+            for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
+                T object = collection.get(i);
+                String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
+                if (sqlStatement == null) {
+                    continue;
                 }
-            } else {
-                // if it reaches here, we can insert collection in a faster way by creating few sql statements
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0, collectionSize = collection.size(), newItems = 0; i < collectionSize; i++) {
-                    T bean = collection.get(i);
+                String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+                for (String statement : statements) {
+                    transactions.add(statement);
+                }
+                if (listener != null) {
+                    progress = i * 100 / all;
+                    listener.onProgressChange(progress);
+                }
+            }
+        } else {
+            // get current table size
+            int count = count(collection.get(0).getClass());
+            boolean tryToUpdate = count > 0;
+
+            // if it reaches here, we can insert collection in a faster way by creating few sql statements
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0, collectionSize = collection.size(), newItems = 0; i < collectionSize; i++) {
+                T bean = collection.get(i);
+                if (tryToUpdate) {
                     String updateStatement = getUpdateStatementIfPossible(bean);
                     if (!TextUtils.isEmpty(updateStatement)) {
                         String[] statements = updateStatement.split(SQLHelper.STATEMENT_SEPARATOR);
                         for (String statement : statements) {
-                            mDbHelper.getDatabase().execSQL(statement);
+                            transactions.add(statement);
                         }
                         continue;
                     }
-                    if (newItems % 400 == 0) {
-                        if (newItems > 0) {
-                            mDbHelper.getDatabase().execSQL(builder.append(";").toString());
-                            builder = new StringBuilder();
-                        }
-                        builder.append(SQLHelper.getFastInsertSqlHeader(bean, mPersistence));
-                    } else {
-                        builder.append(SQLHelper.getUnionInsertSql(bean, mPersistence));
+                }
+                if (newItems % 400 == 0) {
+                    if (newItems > 0) {
+                        transactions.add(builder.append(";").toString());
+                        builder = new StringBuilder();
                     }
-                    newItems++;
+                    builder.append(SQLHelper.getFastInsertSqlHeader(bean, mPersistence));
+                } else {
+                    builder.append(SQLHelper.getUnionInsertSql(bean, mPersistence));
                 }
-                if (builder.length() > 0) {
-                    mDbHelper.getDatabase().execSQL(builder.append(";").toString());
-                }
+                newItems++;
             }
-            mDbHelper.getDatabase().execSQL("COMMIT;");
+            if (builder.length() > 0) {
+                String sql = builder.append(";").toString();
+                transactions.add(sql);
+            }
         }
+        executeTransactions(transactions);
         if (listener != null) {
             listener.onProgressChange(100);
         }
@@ -275,20 +272,14 @@ class SqliteAdapterImpl implements SqlAdapter {
             return 0;
         }
         int count = count(bean.getClass(), where, whereArgs);
-        synchronized (mDbHelper.getDatabase()) {
-            mDbHelper.getDatabase().execSQL("BEGIN TRANSACTION;");
-            if (whereArgs != null) {
-                for (String arg : whereArgs) {
-                    where = where.replaceFirst("\\?", String.format("'%s'", arg));
-                }
+        if (whereArgs != null) {
+            for (String arg : whereArgs) {
+                where = where.replaceFirst("\\?", String.format("'%s'", arg));
             }
-            String sqlStatement = SQLHelper.buildUpdateStatement(bean, where);
-            String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
-            for (String statement : statements) {
-                mDbHelper.getDatabase().execSQL(statement);
-            }
-            mDbHelper.getDatabase().execSQL("COMMIT;");
         }
+        String sqlStatement = SQLHelper.buildUpdateStatement(bean, where);
+        String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
+        executeTransactions(Arrays.asList(statements));
         return count;
     }
 
@@ -429,6 +420,20 @@ class SqliteAdapterImpl implements SqlAdapter {
         }
     }
 
+    private synchronized void executeTransactions(List<String> transactions) {
+        SQLiteDatabase database = mDbHelper.getDatabase();
+        try {
+            database.execSQL("BEGIN TRANSACTION;");
+            for (String transaction : transactions) {
+                database.execSQL(transaction);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            database.execSQL("COMMIT;");
+        }
+    }
+
     private <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo, Constraint constraint) {
         Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(), mPersistence.getName(), clazz, where, attachedTo, constraint);
         return findAllFromCursor(clazz, query);
@@ -464,7 +469,6 @@ class SqliteAdapterImpl implements SqlAdapter {
     }
 
     private <T> String getUpdateStatementIfPossible(T bean) {
-        String result = null;
         // try to find the bean by id and if it exists, do not insert it, update it
         Class<T> theClass = (Class<T>) bean.getClass();
         // get its ID and make sure primary key is not null
@@ -482,6 +486,7 @@ class SqliteAdapterImpl implements SqlAdapter {
                 throw new IllegalStateException("You cannot insert an object whose primary key is null and it is not int or long");
             }
         }
+        String result = null;
         try {
             Object beanId = theId.get(bean);
             if (SQLHelper.hasData(theId.getType(), beanId)) {
@@ -494,10 +499,11 @@ class SqliteAdapterImpl implements SqlAdapter {
                 if (match != null) {
                     // if they are the same, do nothing...
                     if (bean.equals(match)) {
-                        result = null;
+                        result = SQLHelper.STATEMENT_SEPARATOR;
+                    } else {
+                        // update the bean using the just created sample
+                        result = SQLHelper.buildUpdateStatement(bean, match);
                     }
-                    // update the bean using the just create sample
-                    result = SQLHelper.buildUpdateStatement(bean, match);
                 }
             }
         } catch (Exception ignored) {
