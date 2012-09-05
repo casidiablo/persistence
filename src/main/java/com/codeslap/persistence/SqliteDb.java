@@ -18,6 +18,7 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.util.HashMap;
@@ -63,16 +64,24 @@ class SqliteDb {
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             // Here we will the whole database and recreate it
-            Cursor c = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " +
+            Cursor cursor = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " +
                     "AND name != 'sqlite_sequence';", null);
-            if (c != null && c.moveToFirst()) {
+            if (cursor != null && cursor.moveToFirst()) {
                 do {
-                    db.execSQL(c.getString(0));
-                } while (c.moveToNext());
+                    try {
+                        db.execSQL(cursor.getString(0));
+                    } catch (SQLException e) {
+                        // lets ignore errors while purging the database
+                    }
+                } while (cursor.moveToNext());
             }
-            db.execSQL("DELETE FROM sqlite_sequence");
+            try {
+                db.execSQL("DELETE FROM sqlite_sequence");
+            } catch (SQLException e) {
+                // sometimes the sqlite_sequence has not been created yet
+            }
             onCreate(db);
-            c.close();
+            cursor.close();
         }
     }
 }
