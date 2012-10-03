@@ -18,14 +18,15 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * This is a persistence adapter that uses sqlite database as persistence engine.
@@ -33,20 +34,18 @@ import java.util.*;
  * that don't get repeated, singletons, or any data that don't fit into the tables
  * paradigm), use PreferencesAdapter.
  */
-class SqliteAdapterImpl implements SqlAdapter {
+public class SqliteAdapterImpl implements SqlAdapter {
 
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
     private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
 
     private final SqlPersistence mPersistence;
-    private final Map<String, DatabaseUtils.InsertHelper> mInsertHelperMap;
     private final SqliteDb mDbHelper;
 
     SqliteAdapterImpl(Context context, String name) {
         mPersistence = PersistenceConfig.getDatabase(name);
         mDbHelper = SqliteDb.getInstance(context, mPersistence);
-        mInsertHelperMap = new HashMap<String, DatabaseUtils.InsertHelper>();
     }
 
     @Override
@@ -411,13 +410,6 @@ class SqliteAdapterImpl implements SqlAdapter {
         int count = query.getCount();
         query.close();
         return count;
-    }
-
-    @Override
-    public void close() {
-        for (String key : mInsertHelperMap.keySet()) {
-            mInsertHelperMap.get(key).close();
-        }
     }
 
     private synchronized void executeTransactions(List<String> transactions) {

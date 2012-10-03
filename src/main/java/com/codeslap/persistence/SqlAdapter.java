@@ -263,11 +263,6 @@ public interface SqlAdapter {
     <T> int count(Class<T> theClass);
 
     /**
-     * Closes the database
-     */
-    void close();
-
-    /**
      * Callback used when storing a collection to notify the progress.
      * Note: when doing a bulk insert, we use the BEGIN TRANSACTION; ...; COMMIT; technique. So, if you are inserting
      * 99 records, each record will consume 1% and the COMMIT phase another 1%.

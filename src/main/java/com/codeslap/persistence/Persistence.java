@@ -18,9 +18,6 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Returns the application persistence adapter. You must close the adapter when you don't need it anymore.
  *
@@ -28,7 +25,6 @@ import java.util.Map;
  */
 public class Persistence {
     private static final String TAG = Persistence.class.getSimpleName();
-    private static final Map<String, SqlAdapter> QUICK_ADAPTERS = new HashMap<String, SqlAdapter>();
 
     /**
      * @param context used to open/create the database
@@ -64,28 +60,6 @@ public class Persistence {
      */
     public static RawQuery getRawQuery(Context context, String name) {
         return new RawQueryImpl(context, name);
-    }
-
-    /**
-     * @param context used to open/create the database
-     * @param name    database name identifier
-     * @return an implementation of the {@link SqlAdapter} interface that can be used once only
-     */
-    public static SqlAdapter getQuickAdapter(Context context, String name) {
-        if (!QUICK_ADAPTERS.containsKey(name)) {
-            QUICK_ADAPTERS.put(name, new QuickSqlAdapter(context, name));
-        }
-        return QUICK_ADAPTERS.get(name);
-    }
-
-    /**
-     * @param context used to open/create the database
-     * @return an implementation of the {@link SqlAdapter} interface that can be used once only. This will point
-     *         to the first database created.
-     */
-
-    public static SqlAdapter quick(Context context) {
-        return getQuickAdapter(context, PersistenceConfig.sFirstDatabase);
     }
 
     /**

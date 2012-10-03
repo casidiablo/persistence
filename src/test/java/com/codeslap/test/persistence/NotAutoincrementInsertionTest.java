@@ -16,7 +16,6 @@
 
 package com.codeslap.test.persistence;
 
-import com.codeslap.persistence.SqlAdapter;
 import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,7 +31,7 @@ import static org.junit.Assert.*;
  * @author cristian
  */
 @RunWith(RobolectricSimpleRunner.class)
-public abstract class NotAutoincrementInsertionTest extends SqliteTest {
+public class NotAutoincrementInsertionTest extends SqliteTest {
 
     @Test
     public void testSingleInsertion() {
@@ -49,7 +48,7 @@ public abstract class NotAutoincrementInsertionTest extends SqliteTest {
 
         // it should have inserted in the first record
         assertTrue(id instanceof Long);
-        foo.id = ((Long) id).longValue();
+        foo.id = (Long) id;
         assertEquals(1L, ((Long) id).longValue());
 
         // if we retrieve all elements, it should be there in the first record
@@ -109,6 +108,4 @@ public abstract class NotAutoincrementInsertionTest extends SqliteTest {
             assertEquals(ExampleNotAutoincrement, found);
         }
     }
-
-    protected abstract SqlAdapter getAdapter();
 }

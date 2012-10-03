@@ -27,7 +27,7 @@ public class CollectionInsertionTest extends SqliteTest {
         }
 
         // save collection using progress listener
-        getNormalAdapter().storeCollection(collection, new SqlAdapter.ProgressListener() {
+        getAdapter().storeCollection(collection, new SqlAdapter.ProgressListener() {
             @Override
             public void onProgressChange(int percentage) {
             }
@@ -35,22 +35,22 @@ public class CollectionInsertionTest extends SqliteTest {
         performTesting(collection);
 
         // save collection without progress listener to speed things up
-        getNormalAdapter().delete(ExampleAutoincrement.class, null, null);
-        getNormalAdapter().storeCollection(collection, null);
+        getAdapter().delete(ExampleAutoincrement.class, null, null);
+        getAdapter().storeCollection(collection, null);
         performTesting(collection);
     }
 
     private void performTesting(List<ExampleAutoincrement> collection) {
         // it should have stored all items
-        assertEquals(collection.size(), getNormalAdapter().findAll(ExampleAutoincrement.class, null, null).size());
-        assertEquals(collection.size(), getNormalAdapter().count(ExampleAutoincrement.class));
-        assertEquals(collection.size(), getNormalAdapter().count(ExampleAutoincrement.class, null, null));
+        assertEquals(collection.size(), getAdapter().findAll(ExampleAutoincrement.class, null, null).size());
+        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
+        assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class, null, null));
 
         // now let's see if it stored everything
         int i = 0;
         for (ExampleAutoincrement exampleAutoincrement : collection) {
             exampleAutoincrement.id = 0;
-            ExampleAutoincrement found = getNormalAdapter().findFirst(exampleAutoincrement);
+            ExampleAutoincrement found = getAdapter().findFirst(exampleAutoincrement);
             assertNotNull(found);
             exampleAutoincrement.id = found.id;
             assertEquals(exampleAutoincrement, found);

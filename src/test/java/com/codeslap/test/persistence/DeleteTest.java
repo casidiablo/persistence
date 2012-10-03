@@ -31,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author cristian
  */
-public abstract class DeleteTest extends SqliteTest {
+public class DeleteTest extends SqliteTest {
     @Test
     public void testDelete() {
         // let's first insert a collection of data
@@ -212,6 +212,4 @@ public abstract class DeleteTest extends SqliteTest {
         Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
         Assert.assertEquals(0, getAdapter().findAll(Book.class).size());
     }
-
-    protected abstract SqlAdapter getAdapter();
 }

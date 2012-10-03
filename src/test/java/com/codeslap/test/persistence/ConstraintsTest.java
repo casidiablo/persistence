@@ -17,7 +17,6 @@
 package com.codeslap.test.persistence;
 
 import com.codeslap.persistence.Constraint;
-import com.codeslap.persistence.SqlAdapter;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author cristian
  */
-public abstract class ConstraintsTest extends SqliteTest {
+public class ConstraintsTest extends SqliteTest {
     @Test
     public void testConstraints() {
         List<ExampleAutoincrement> list = new ArrayList<ExampleAutoincrement>();
@@ -58,6 +57,4 @@ public abstract class ConstraintsTest extends SqliteTest {
 
         assertTrue(found.get(0).number >= found.get(1).number);
     }
-
-    protected abstract SqlAdapter getAdapter();
 }

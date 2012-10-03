@@ -16,7 +16,6 @@
 
 package com.codeslap.test.persistence;
 
-import com.codeslap.persistence.SqlAdapter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,12 +25,11 @@ import java.util.List;
 import java.util.Random;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 
 /**
  * @author cristian
  */
-public abstract class InsertionTest extends SqliteTest {
+public class InsertionTest extends SqliteTest {
     @Test
     public void testSingleInsertion() {
         assertNull(getAdapter().store(null));
@@ -274,6 +272,4 @@ public abstract class InsertionTest extends SqliteTest {
         sample.foo = "bar";
         getAdapter().store(sample);
     }
-
-    protected abstract SqlAdapter getAdapter();
 }

@@ -36,8 +36,6 @@ public class PersistenceHelpersTest extends SqliteTest {
         assertNotNull(sqliteAdapter);
         SqlAdapter test = Persistence.getSqliteAdapter(new Activity(), "test.db");
         assertNotNull(test);
-        SqlAdapter quick = Persistence.getQuickAdapter(new Activity(), "test.db");
-        assertNotNull(quick);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -108,12 +106,5 @@ public class PersistenceHelpersTest extends SqliteTest {
     @Test(expected = IllegalStateException.class)
     public void shouldFailWhenNoDatabaseIsAssociated() {
         PersistenceConfig.getDatabase("foo");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void shouldFailWhenClosingAQuickAdapter() {
-        SqlAdapter quick = Persistence.getQuickAdapter(new Activity(), "test.db");
-        assertNotNull(quick);
-        quick.close();
     }
 }

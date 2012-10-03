@@ -16,7 +16,6 @@
 
 package com.codeslap.test.persistence;
 
-import com.codeslap.persistence.SqlAdapter;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -26,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * @author cristian
  */
-public abstract class ManyToManyTest extends SqliteTest {
+public class ManyToManyTest extends SqliteTest {
     @Test
     public void testManyToMany() {
         // let's create some dummy data
@@ -101,6 +100,4 @@ public abstract class ManyToManyTest extends SqliteTest {
         getAdapter().delete(ospina);
         getAdapter().delete(tobby);
     }
-
-    protected abstract SqlAdapter getAdapter();
 }

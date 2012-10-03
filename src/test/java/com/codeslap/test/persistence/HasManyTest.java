@@ -18,7 +18,6 @@ package com.codeslap.test.persistence;
 
 import com.codeslap.persistence.HasMany;
 import com.codeslap.persistence.PersistenceConfig;
-import com.codeslap.persistence.SqlAdapter;
 import com.codeslap.persistence.SqlPersistence;
 import org.junit.Test;
 
@@ -26,14 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author cristian
  */
-public abstract class HasManyTest extends SqliteTest {
+public class HasManyTest extends SqliteTest {
     @Test
     public void testHasMany() {
         // let's create some gods. We men have a lot of practice creating gods
@@ -76,6 +73,4 @@ public abstract class HasManyTest extends SqliteTest {
     public void shouldFailWhenThroughDoesNotExist() {
         new HasMany(Cow.class, Bug.class, "something", true);
     }
-
-    protected abstract SqlAdapter getAdapter();
 }

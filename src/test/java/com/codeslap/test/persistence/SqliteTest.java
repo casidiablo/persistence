@@ -56,12 +56,8 @@ public abstract class SqliteTest {
                 AnnotationNotAutoincrement.class, Cow.class, Bug.class);
     }
 
-    public SqlAdapter getNormalAdapter() {
+    public SqlAdapter getAdapter() {
         return mAdapter;
-    }
-
-    public SqlAdapter getQuickAdapter() {
-        return Persistence.quick(new Activity());
     }
 
     public SqlPersistence getDatabase() {
@@ -113,7 +109,7 @@ public abstract class SqliteTest {
                     ", number=" + number +
                     ", decimal=" + decimal +
                     ", bool=" + bool +
-                    ", blob=" + blob +
+                    ", blob=" + Arrays.toString(blob) +
                     '}';
         }
     }
