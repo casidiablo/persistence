@@ -22,6 +22,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.net.Uri;
 import com.codeslap.persistence.BaseContentProvider;
+import com.codeslap.persistence.PersistenceConfig;
 import org.junit.Test;
 
 import static org.easymock.EasyMock.createMockBuilder;
@@ -111,6 +112,11 @@ public class ContentProviderTest extends SqliteTest {
         @Override
         public String getDatabaseName() {
             return "test.db";
+        }
+
+        @Override
+        public String getDatabaseSpecId() {
+            return PersistenceConfig.DEFAULT_SPEC_ID;
         }
 
         @Override

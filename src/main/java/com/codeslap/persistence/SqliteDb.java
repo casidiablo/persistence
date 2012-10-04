@@ -34,20 +34,20 @@ class SqliteDb {
     private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
     private final DbOpenHelper mDbHelper;
 
-    private SqliteDb(Context context, SqlPersistence sqlPersistence) {
-        String name = sqlPersistence.getName();
-        if (sqlPersistence.getOpenHelper() == null) {
-            mDbHelper = new Helper(context, name, sqlPersistence.getVersion());
+    private SqliteDb(Context context, String name, DatabaseSpec databaseSpec) {
+        if (databaseSpec.mDbOpenHelperBuilder != null) {
+            mDbHelper = databaseSpec.mDbOpenHelperBuilder.buildOpenHelper(context, name, databaseSpec.getVersion());
         } else {
-            mDbHelper = sqlPersistence.getOpenHelper();
+            mDbHelper = new Helper(context, name, databaseSpec.getVersion());
         }
+        mDbHelper.setDatabaseSpec(databaseSpec);
         PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database...", name));
     }
 
-    static synchronized SqliteDb getInstance(Context context, SqlPersistence sqlPersistence) {
-        String key = sqlPersistence.getName() + sqlPersistence.getVersion();
+    static synchronized SqliteDb getInstance(Context context, String name, DatabaseSpec databaseSpec) {
+        String key = name + databaseSpec.getVersion();
         if (!instances.containsKey(key)) {
-            instances.put(key, new SqliteDb(context, sqlPersistence));
+            instances.put(key, new SqliteDb(context, name, databaseSpec));
         }
         return instances.get(key);
     }
@@ -63,7 +63,7 @@ class SqliteDb {
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            // Here we will the whole database and recreate it
+            // Here we will delete the whole database and recreate it
             Cursor cursor = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " +
                     "AND name != 'sqlite_sequence';", null);
             if (cursor != null && cursor.moveToFirst()) {

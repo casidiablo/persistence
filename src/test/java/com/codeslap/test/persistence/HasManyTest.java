@@ -16,9 +16,9 @@
 
 package com.codeslap.test.persistence;
 
+import com.codeslap.persistence.DatabaseSpec;
 import com.codeslap.persistence.HasMany;
 import com.codeslap.persistence.PersistenceConfig;
-import com.codeslap.persistence.SqlPersistence;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class HasManyTest extends SqliteTest {
     public void shouldFailWithDuplicatedRelations() {
         HasMany hasMany1 = new HasMany(Author.class, Book.class);
         HasMany hasMany2 = new HasMany(Book.class, Author.class);
-        SqlPersistence database = PersistenceConfig.getDatabase("foo.db", 1);
+        DatabaseSpec database = PersistenceConfig.registerSpec("failing_spec", 1);
         database.matchNotAutoIncrement(hasMany1);
         database.matchNotAutoIncrement(hasMany2);
     }

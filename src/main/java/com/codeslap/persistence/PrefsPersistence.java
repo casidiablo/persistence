@@ -26,9 +26,6 @@ import java.util.List;
 public class PrefsPersistence {
     private final List<Class<?>> PREFS_MAP = new ArrayList<Class<?>>();
 
-    public PrefsPersistence() {
-    }
-
     public void match(Class<?>... types) {
         for (Class<?> type : types) {
             if (!PREFS_MAP.contains(type)) {

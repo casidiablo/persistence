@@ -18,6 +18,8 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 
+import static com.codeslap.persistence.PersistenceLogManager.d;
+
 /**
  * Returns the application persistence adapter. You must close the adapter when you don't need it anymore.
  *
@@ -25,41 +27,65 @@ import android.content.Context;
  */
 public class Persistence {
     private static final String TAG = Persistence.class.getSimpleName();
+    public static final String DEFAULT_DATABASE_NAME = "com.codeslap.persistence.db";
+
+    /**
+     * @param context used to open/create the database
+     * @return implementation of the {@link SqlAdapter} that uses the default database name
+     *         ({@link #DEFAULT_DATABASE_NAME}) and specification ({@link PersistenceConfig#DEFAULT_SPEC_ID})
+     */
+    public static SqlAdapter getAdapter(Context context) {
+        return getAdapter(context, DEFAULT_DATABASE_NAME, PersistenceConfig.DEFAULT_SPEC_ID);
+    }
 
     /**
      * @param context used to open/create the database
      * @param dbName  database name identifier
-     * @return an implementation of the {@link SqlAdapter} interface
+     * @return implementation of the {@link SqlAdapter} that uses the default database specification
+     *         ({@link PersistenceConfig#DEFAULT_SPEC_ID})
      */
-    public static SqlAdapter getSqliteAdapter(Context context, String dbName) {
-        PersistenceLogManager.d(TAG, String.format("Getting database adapter for \"%s\" database", dbName));
-        return new SqliteAdapterImpl(context, dbName);
+    public static SqlAdapter getAdapter(Context context, String dbName) {
+        return getAdapter(context, dbName, PersistenceConfig.DEFAULT_SPEC_ID);
     }
 
     /**
      * @param context used to open/create the database
-     * @return an implementation of the {@link SqlAdapter} interface pointing to the first database created
+     * @param dbName  database name identifier
+     * @param specId  database specification
+     * @return implementation of the {@link SqlAdapter} using passed parameters
      */
-    public static SqlAdapter getSqliteAdapter(Context context) {
-        PersistenceLogManager.d(TAG, String.format("Getting database adapter for \"%s\" database", PersistenceConfig.sFirstDatabase));
-        return new SqliteAdapterImpl(context, PersistenceConfig.sFirstDatabase);
+    public static SqlAdapter getAdapter(Context context, String dbName, String specId) {
+        d(TAG, String.format("Getting database adapter for \"%s\" database with \"" + specId + "\" spec", dbName));
+        return new SqliteAdapterImpl(context, dbName, specId);
     }
 
     /**
      * @param context used to open/create the database
-     * @return an implementation of the {@link RawQuery} interface. This will use the first database created.
+     * @return implementation of the {@link RawQuery} interface that uses the default database name
+     *         ({@link #DEFAULT_DATABASE_NAME}) and specification ({@link PersistenceConfig#DEFAULT_SPEC_ID})
      */
     public static RawQuery getRawQuery(Context context) {
-        return new RawQueryImpl(context, PersistenceConfig.sFirstDatabase);
+        return new RawQueryImpl(context, DEFAULT_DATABASE_NAME, PersistenceConfig.DEFAULT_SPEC_ID);
     }
 
     /**
      * @param context used to open/create the database
      * @param name    database name identifier
-     * @return an implementation of the {@link RawQuery} interface
+     * @return an implementation of the {@link RawQuery} interface that uses the default database specification
+     *         ({@link PersistenceConfig#DEFAULT_SPEC_ID})
      */
     public static RawQuery getRawQuery(Context context, String name) {
-        return new RawQueryImpl(context, name);
+        return new RawQueryImpl(context, name, PersistenceConfig.DEFAULT_SPEC_ID);
+    }
+
+    /**
+     * @param context used to open/create the database
+     * @param name    database name identifier
+     * @param specId  database specification
+     * @return an implementation of the {@link RawQuery} interface
+     */
+    public static RawQuery getRawQuery(Context context, String name, String specId) {
+        return new RawQueryImpl(context, name, specId);
     }
 
     /**
@@ -83,7 +109,7 @@ public class Persistence {
      * Quick way to retrieve an object from the default preferences
      *
      * @param context  used to access to the preferences system
-     * @param name    the name of the preference file
+     * @param name     the name of the preference file
      * @param theClass the class to retrieve
      * @return a bean created from the preferences
      */

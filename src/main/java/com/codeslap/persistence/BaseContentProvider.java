@@ -44,16 +44,15 @@ public abstract class BaseContentProvider extends ContentProvider {
     private static UriMatcher sUriMatcher;
     private static final Map<Integer, String> TABLE_NAME_IDS = new HashMap<Integer, String>();
 
-    private SqlPersistence mPersistence;
+    private DatabaseSpec mDatabaseSpec;
 
     @Override
     public boolean onCreate() {
-        mPersistence = PersistenceConfig.getDatabase(getDatabaseName());
+        mDatabaseSpec = PersistenceConfig.getDatabaseSpec(getDatabaseSpecId());
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
         // get the list of registered classes and add them to the matcher
-        SqlPersistence sqlPersistence = PersistenceConfig.getDatabase(getDatabaseName());
-        List<Class<?>> objects = sqlPersistence.getSqliteClasses();
+        List<Class<?>> objects = mDatabaseSpec.getSqliteClasses();
         int id = 1;
         for (Class<?> theClass : objects) {
             String tableName = SQLHelper.getTableName(theClass);
@@ -134,7 +133,7 @@ public abstract class BaseContentProvider extends ContentProvider {
     }
 
     private SQLiteDatabase getDatabase() {
-        SqliteDb helper = SqliteDb.getInstance(getContext(), mPersistence);
+        SqliteDb helper = SqliteDb.getInstance(getContext(), getDatabaseName(), mDatabaseSpec);
         return helper.getDatabase();
     }
 
@@ -146,6 +145,11 @@ public abstract class BaseContentProvider extends ContentProvider {
      * @return the name of the database where the tables of this content provider are
      */
     public abstract String getDatabaseName();
+
+    /**
+     * @return the id of the database spec
+     */
+    public abstract String getDatabaseSpecId();
 
     /**
      * @return the authority that will be used in the Uri's

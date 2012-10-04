@@ -25,11 +25,11 @@ import android.database.sqlite.SQLiteDatabase;
  */
 class RawQueryImpl implements RawQuery {
     private final SQLiteDatabase mDb;
-    private final SqlPersistence mPersistence;
+    private final DatabaseSpec mDatabaseSpec;
 
-    public RawQueryImpl(Context context, String databaseName) {
-        mPersistence = PersistenceConfig.getDatabase(databaseName);
-        SqliteDb helper = SqliteDb.getInstance(context, mPersistence);
+    RawQueryImpl(Context context, String name, String specId) {
+        mDatabaseSpec = PersistenceConfig.getDatabaseSpec(specId);
+        SqliteDb helper = SqliteDb.getInstance(context, name, mDatabaseSpec);
         mDb = helper.getDatabase();
     }
 
@@ -45,12 +45,12 @@ class RawQueryImpl implements RawQuery {
 
     @Override
     public Cursor findAll(Object where, Constraint constraint) {
-        return SQLHelper.getCursorFindAllWhere(mDb, mPersistence.getName(), where.getClass(), where, null, constraint);
+        return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, null, constraint, mDatabaseSpec);
     }
 
     @Override
     public Cursor findAll(Object where, Object attachedTo) {
-        return SQLHelper.getCursorFindAllWhere(mDb, mPersistence.getName(), where.getClass(), where, attachedTo, null);
+        return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, attachedTo, null, mDatabaseSpec);
     }
 
     @Override

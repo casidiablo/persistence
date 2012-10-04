@@ -30,39 +30,42 @@ import static org.junit.Assert.assertNull;
  * @author cristian
  */
 public class PersistenceHelpersTest extends SqliteTest {
+
+    private static final String FAILING_SPEC_ID = "some.db";
+
     @Test
     public void testHelpers() {
-        SqlAdapter sqliteAdapter = Persistence.getSqliteAdapter(new Activity());
+        SqlAdapter sqliteAdapter = Persistence.getAdapter(new Activity());
         assertNotNull(sqliteAdapter);
-        SqlAdapter test = Persistence.getSqliteAdapter(new Activity(), "test.db");
+        SqlAdapter test = Persistence.getAdapter(new Activity(), Persistence.DEFAULT_DATABASE_NAME);
         assertNotNull(test);
     }
 
     @Test(expected = IllegalStateException.class)
     public void shouldFailWithMultipleHasManyRelationships() {
-        SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
-        database.match(new HasMany(Author.class, Book.class));
-        database.match(new HasMany(Book.class, Author.class));
+        DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
+        dbSpec.match(new HasMany(Author.class, Book.class));
+        dbSpec.match(new HasMany(Book.class, Author.class));
     }
 
     @Test(expected = IllegalStateException.class)
     public void shouldFailWithMultipleManyToManyRelationships() {
-        SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
-        database.match(new ManyToMany(Author.class, Book.class));
-        database.match(new ManyToMany(Book.class, Author.class));
+        DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
+        dbSpec.match(new ManyToMany(Author.class, Book.class));
+        dbSpec.match(new ManyToMany(Book.class, Author.class));
     }
 
     @Test(expected = IllegalStateException.class)
     public void shouldFailWithRepeatedManyToManyRelationships() {
-        SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
-        database.match(new ManyToMany(Author.class, Book.class));
-        database.match(new ManyToMany(Author.class, Book.class));
+        DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
+        dbSpec.match(new ManyToMany(Author.class, Book.class));
+        dbSpec.match(new ManyToMany(Author.class, Book.class));
     }
 
     @Test(expected = IllegalStateException.class)
     public void shouldFailWithWhenHasManyRelationDoesNotExist() {
-        SqlPersistence database = PersistenceConfig.getDatabase("some.db", 1);
-        database.match(new HasMany(ExampleAutoincrement.class, ExampleNotAutoincrement.class));
+        DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
+        dbSpec.match(new HasMany(ExampleAutoincrement.class, ExampleNotAutoincrement.class));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -72,12 +75,12 @@ public class PersistenceHelpersTest extends SqliteTest {
 
     @Test
     public void testGetRelationship() {
-        SqlPersistence.Relationship unknown = getDatabase().getRelationship(ExampleAutoincrement.class, ExampleNotAutoincrement.class);
-        assertEquals(SqlPersistence.Relationship.UNKNOWN, unknown);
-        SqlPersistence.Relationship hasMany = getDatabase().getRelationship(PolyTheist.class, God.class);
-        assertEquals(SqlPersistence.Relationship.HAS_MANY, hasMany);
-        SqlPersistence.Relationship manyToMany = getDatabase().getRelationship(Author.class, Book.class);
-        assertEquals(SqlPersistence.Relationship.MANY_TO_MANY, manyToMany);
+        DatabaseSpec.Relationship unknown = getDatabase().getRelationship(ExampleAutoincrement.class, ExampleNotAutoincrement.class);
+        assertEquals(DatabaseSpec.Relationship.UNKNOWN, unknown);
+        DatabaseSpec.Relationship hasMany = getDatabase().getRelationship(PolyTheist.class, God.class);
+        assertEquals(DatabaseSpec.Relationship.HAS_MANY, hasMany);
+        DatabaseSpec.Relationship manyToMany = getDatabase().getRelationship(Author.class, Book.class);
+        assertEquals(DatabaseSpec.Relationship.MANY_TO_MANY, manyToMany);
     }
 
     @Test
@@ -99,12 +102,12 @@ public class PersistenceHelpersTest extends SqliteTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void shouldFailWithInvalidDatabaseName() {
-        PersistenceConfig.getDatabase(null, 1);
+    public void shouldFailWithInvalidSpecName() {
+        PersistenceConfig.registerSpec(null, 1);
     }
 
     @Test(expected = IllegalStateException.class)
-    public void shouldFailWhenNoDatabaseIsAssociated() {
-        PersistenceConfig.getDatabase("foo");
+    public void shouldFailWhenNoSpecIsAssociated() {
+        PersistenceConfig.getDatabaseSpec("foo");
     }
 }

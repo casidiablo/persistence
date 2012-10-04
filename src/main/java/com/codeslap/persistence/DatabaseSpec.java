@@ -24,36 +24,54 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Class that defines a database (what tables it has, what are they relationships and how it is created/upgraded)
+ *
  * @author cristian
  */
-public class SqlPersistence {
+public class DatabaseSpec {
     private final List<Class<?>> mSqliteList = new ArrayList<Class<?>>();
     private final List<Class<?>> mAutoIncrementList = new ArrayList<Class<?>>();
     private final List<ManyToMany> mManyToManyList = new ArrayList<ManyToMany>();
     private final List<HasMany> mHasManyList = new ArrayList<HasMany>();
 
-    private final String mName;
     private final int mVersion;
-    private final DbOpenHelper mOpenHelper;
     private final List<Importer> mBeforeImporters = new ArrayList<Importer>();
     private final List<Importer> mAfterImporters = new ArrayList<Importer>();
+    DbOpenHelperBuilder mDbOpenHelperBuilder;
 
-    public SqlPersistence(String name, int version, DbOpenHelper openHelper) {
-        mName = name;
+    DatabaseSpec(int version) {
         mVersion = version;
-        mOpenHelper = openHelper;
     }
 
-    public String getName() {
-        return mName;
+    /**
+     * Sets a {@link DbOpenHelper} builder. Use this if you want to provide a custom way of
+     * creating/upgrading the database
+     *
+     * @param dbOpenHelperBuilder the {@link DbOpenHelperBuilder} implementation
+     * @return instance of current {@link DatabaseSpec} object
+     */
+    public DatabaseSpec setDbOpenHelperBuilder(DbOpenHelperBuilder dbOpenHelperBuilder) {
+        mDbOpenHelperBuilder = dbOpenHelperBuilder;
+        return this;
+    }
+
+    /**
+     * Use this to create a new {@link DbOpenHelper} implementation
+     */
+    public static interface DbOpenHelperBuilder {
+        /**
+         * This method must return a new {@link DbOpenHelper} implementation always.
+         *
+         * @param context the context used to create the open helper
+         * @param name    the name to provide to the open helper (database name)
+         * @param version the version to provide to the open helper (database name)
+         * @return new {@link DbOpenHelper} implementation
+         */
+        DbOpenHelper buildOpenHelper(Context context, String name, int version);
     }
 
     public int getVersion() {
         return mVersion;
-    }
-
-    public DbOpenHelper getOpenHelper() {
-        return mOpenHelper;
     }
 
     /**
@@ -94,7 +112,7 @@ public class SqlPersistence {
     /**
      * Use this to register classes that shall no have an autoincrement primary key. Use it only when you have
      * no control over that kind of class. If you do have control over the class, you shall use the normal
-     * {@link SqlPersistence#match(Class[])} method and the annotation {@link PrimaryKey} with the autoincrement
+     * {@link DatabaseSpec#match(Class[])} method and the annotation {@link PrimaryKey} with the autoincrement
      * argument set to <code>false</code>.
      *
      * @param classes the classes to register
@@ -110,10 +128,10 @@ public class SqlPersistence {
     /**
      * Use this to register many-to-many relationships. You shall no pass repeated relations (including those that
      * has the same classes but in different order). Classes in the relation will be passed to the
-     * {@link SqlPersistence#match(Class[])} method, which means that, by default, they will be
+     * {@link DatabaseSpec#match(Class[])} method, which means that, by default, they will be
      * treated as tables with an autoincrement primary key; if you want to avoid this behavior, use the
      * {@link PrimaryKey} annotation and customize your primary key. If you do not have control over the classes and
-     * want to avoid the autoincrement, use the alternative method {@link SqlPersistence#matchNotAutoIncrement(ManyToMany)}.
+     * want to avoid the autoincrement, use the alternative method {@link DatabaseSpec#matchNotAutoIncrement(ManyToMany)}.
      *
      * @param manyToMany an instance containing the many-to-many relation
      */
@@ -134,8 +152,8 @@ public class SqlPersistence {
     /**
      * Use this to register many-to-many relationships. You shall no pass repeated relations (including those that
      * has the same classes but in different order). Classes in the relation will be passed to the
-     * {@link SqlPersistence#matchNotAutoIncrement(Class[])} method. I recommend to use the
-     * {@link SqlPersistence#match(ManyToMany)} and {@link PrimaryKey} annotation if you have control over the
+     * {@link DatabaseSpec#matchNotAutoIncrement(Class[])} method. I recommend to use the
+     * {@link DatabaseSpec#match(ManyToMany)} and {@link PrimaryKey} annotation if you have control over the
      * classes to be registered.
      *
      * @param manyToMany an instance containing the many-to-many relation
@@ -149,9 +167,9 @@ public class SqlPersistence {
 
     /**
      * Registers a has-many relation. This will register the individual classes using the
-     * {@link SqlPersistence#match(Class[])} method which means that those classes will be treated as autoincrement.
+     * {@link DatabaseSpec#match(Class[])} method which means that those classes will be treated as autoincrement.
      * If you want to avoid this behavior, use the {@link PrimaryKey} annotation; if you do not have control
-     * over the registered classes, use the {@link SqlPersistence#matchNotAutoIncrement(ManyToMany)}
+     * over the registered classes, use the {@link DatabaseSpec#matchNotAutoIncrement(ManyToMany)}
      *
      * @param hasMany the has-many relationship to register.
      */
@@ -175,9 +193,9 @@ public class SqlPersistence {
 
     /**
      * Registers a has-many relation. This will register the individual classes using the
-     * {@link SqlPersistence#matchNotAutoIncrement(Class[])} method which means that those classes do not have an
+     * {@link DatabaseSpec#matchNotAutoIncrement(Class[])} method which means that those classes do not have an
      * autoincrement primary key. If you have control over the classes to register, I recommend to use the
-     * {@link SqlPersistence#match(HasMany)} method and the {@link PrimaryKey} annotation.
+     * {@link DatabaseSpec#match(HasMany)} method and the {@link PrimaryKey} annotation.
      *
      * @param hasMany the has-many relationship to register.
      */
@@ -324,6 +342,7 @@ public class SqlPersistence {
 
     /**
      * Execute sqlite statements before tables are created.
+     *
      * @param sqlStatements the statements to execute
      */
     public void beforeCreateImportFromString(String sqlStatements) {
@@ -357,6 +376,7 @@ public class SqlPersistence {
 
     /**
      * Execute sqlite statements after tables are created.
+     *
      * @param sqlStatements the statements to execute
      */
     public void afterCreateImportFromString(String sqlStatements) {
@@ -370,8 +390,6 @@ public class SqlPersistence {
     List<Importer> getBeforeImporters() {
         return mBeforeImporters;
     }
-
-    enum PersistenceType {SQLITE, PREFERENCES, UNKNOWN}
 
     enum Relationship {MANY_TO_MANY, HAS_MANY, UNKNOWN}
 
@@ -388,7 +406,7 @@ public class SqlPersistence {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SqlPersistence that = (SqlPersistence) o;
+        DatabaseSpec that = (DatabaseSpec) o;
 
         if (mVersion != that.mVersion) return false;
         if (mAutoIncrementList != null ? !mAutoIncrementList.equals(that.mAutoIncrementList) : that.mAutoIncrementList != null)
@@ -398,7 +416,6 @@ public class SqlPersistence {
         if (mManyToManyList != null ? !mManyToManyList.equals(that.mManyToManyList) : that.mManyToManyList != null)
             return false;
         if (mSqliteList != null ? !mSqliteList.equals(that.mSqliteList) : that.mSqliteList != null) return false;
-        if (mName != null ? !mName.equals(that.mName) : that.mName != null) return false;
 
         return true;
     }
@@ -409,16 +426,20 @@ public class SqlPersistence {
         result = 31 * result + (mAutoIncrementList != null ? mAutoIncrementList.hashCode() : 0);
         result = 31 * result + (mManyToManyList != null ? mManyToManyList.hashCode() : 0);
         result = 31 * result + (mHasManyList != null ? mHasManyList.hashCode() : 0);
-        result = 31 * result + (mName != null ? mName.hashCode() : 0);
         result = 31 * result + mVersion;
         return result;
     }
 
     @Override
     public String toString() {
-        return "SqlPersistence{" +
-                "name='" + mName + '\'' +
-                ", version=" + mVersion +
+        return "DatabaseSpec{" +
+                "mSqliteList=" + mSqliteList +
+                ", mAutoIncrementList=" + mAutoIncrementList +
+                ", mManyToManyList=" + mManyToManyList +
+                ", mHasManyList=" + mHasManyList +
+                ", mVersion=" + mVersion +
+                ", mBeforeImporters=" + mBeforeImporters +
+                ", mAfterImporters=" + mAfterImporters +
                 '}';
     }
 }

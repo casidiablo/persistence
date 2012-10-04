@@ -39,7 +39,7 @@ class SQLHelper {
 
     static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
 
-    static String getCreateTableSentence(String dbName, Class clazz) {
+    static String getCreateTableSentence(Class clazz, DatabaseSpec databaseSpec) {
         List<String> fieldSentences = new ArrayList<String>();
         // loop through all the fields and add sql statements
         Field[] declaredFields = SQLHelper.getDeclaredFields(clazz);
@@ -50,7 +50,7 @@ class SQLHelper {
                 String primaryKeySentence = getCreatePrimaryKey(field);
                 if (field.getType() == String.class) {// what types are supported
                     primaryKeySentence = primaryKeySentence.replace("INTEGER PRIMARY KEY", "TEXT PRIMARY KEY");
-                } else if (PersistenceConfig.getDatabase(dbName).isAutoincrement(clazz)) {
+                } else if (databaseSpec.isAutoincrement(clazz)) {
                     primaryKeySentence += " AUTOINCREMENT";
                 }
                 if (!columns.contains(columnName)) {
@@ -71,7 +71,7 @@ class SQLHelper {
         }
 
         // check whether this class belongs to a has-many relation, in which case we need to create an additional field
-        HasMany belongsTo = PersistenceConfig.getDatabase(dbName).belongsTo(clazz);
+        HasMany belongsTo = databaseSpec.belongsTo(clazz);
         if (belongsTo != null) {
             // if so, add a new field to the table creation statement to create the relation
             Class<?> containerClass = belongsTo.getContainerClass();
@@ -156,7 +156,7 @@ class SQLHelper {
         return String.format("%s TEXT%s", name, notNullSentence);
     }
 
-    static <T, G> String getWhere(String dbName, Class<?> theClass, T bean, List<String> args, G attachedTo) {
+    static <T, G> String getWhere(Class<?> theClass, T bean, List<String> args, G attachedTo, DatabaseSpec databaseSpec) {
         List<String> conditions = new ArrayList<String>();
         if (bean != null) {
             Class<?> clazz = bean.getClass();
@@ -204,10 +204,10 @@ class SQLHelper {
 
         // if there is an attachment
         if (attachedTo != null) {
-            switch (PersistenceConfig.getDatabase(dbName).getRelationship(attachedTo.getClass(), theClass)) {
+            switch (databaseSpec.getRelationship(attachedTo.getClass(), theClass)) {
                 case HAS_MANY: {
                     try {
-                        HasMany hasMany = PersistenceConfig.getDatabase(dbName).belongsTo(theClass);
+                        HasMany hasMany = databaseSpec.belongsTo(theClass);
                         Field primaryForeignKey = hasMany.getThroughField();
                         primaryForeignKey.setAccessible(true);
                         Object foreignValue = primaryForeignKey.get(attachedTo);
@@ -345,8 +345,8 @@ class SQLHelper {
         return columnName;
     }
 
-    public static <T> String buildUpdateStatement(T bean, Object sample) {
-        String where = getWhere(PersistenceConfig.sFirstDatabase, bean.getClass(), sample, null, null);
+    public static <T> String buildUpdateStatement(T bean, Object sample, DatabaseSpec databaseSpec) {
+        String where = getWhere(bean.getClass(), sample, null, null, databaseSpec);
         String set = getSet(bean);
         return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
     }
@@ -356,7 +356,7 @@ class SQLHelper {
         return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
     }
 
-    static <T, G> String getInsertStatement(T bean, G attachedTo, SqlPersistence persistence) {
+    static <T, G> String getInsertStatement(T bean, G attachedTo, DatabaseSpec persistence) {
         List<String> values = new ArrayList<String>();
         List<String> columns = null;
         if (!INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
@@ -380,7 +380,7 @@ class SQLHelper {
         return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
     }
 
-    private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, SqlPersistence persistence) {
+    private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, DatabaseSpec persistence) {
         if (bean == null) {
             return;
         }
@@ -483,7 +483,7 @@ class SQLHelper {
                 String msg = String.format("You cannot leave a table name empty (class %s)", theClass.getSimpleName());
                 throw new IllegalArgumentException(msg);
             }
-            if (tableName.indexOf(" ") >= 0) {
+            if (tableName.contains(" ")) {
                 String msg = String.format("Table name cannot have spaces: '%s'; found in class %s",
                         tableName, theClass.getSimpleName());
                 throw new IllegalArgumentException(msg);
@@ -554,12 +554,13 @@ class SQLHelper {
         return String.format(PRIMARY_KEY, getIdColumn(field));
     }
 
-    static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, String dbName, Class<? extends T> clazz, T sample, G attachedTo, Constraint constraint) {
+    static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> clazz, T sample, G attachedTo,
+                                               Constraint constraint, DatabaseSpec databaseSpec) {
         String[] selectionArgs = null;
         String where = null;
         if (sample != null || attachedTo != null) {
             ArrayList<String> args = new ArrayList<String>();
-            where = getWhere(dbName, clazz, sample, args, attachedTo);
+            where = getWhere(clazz, sample, args, attachedTo, databaseSpec);
             if (TextUtils.isEmpty(where)) {
                 where = null;
             } else {
@@ -579,7 +580,7 @@ class SQLHelper {
         return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
     }
 
-    static <T> String getFastInsertSqlHeader(T bean, SqlPersistence persistence) {
+    static <T> String getFastInsertSqlHeader(T bean, DatabaseSpec persistence) {
         ArrayList<String> values = new ArrayList<String>();
         ArrayList<String> columns = new ArrayList<String>();
         populateColumnsAndValues(bean, null, values, columns, persistence);
@@ -606,7 +607,7 @@ class SQLHelper {
         return result.toString();
     }
 
-    static <T> String getUnionInsertSql(T bean, SqlPersistence persistence) {
+    static <T> String getUnionInsertSql(T bean, DatabaseSpec persistence) {
         ArrayList<String> values = new ArrayList<String>();
         populateColumnsAndValues(bean, null, values, null, persistence);
         StringBuilder builder = new StringBuilder();

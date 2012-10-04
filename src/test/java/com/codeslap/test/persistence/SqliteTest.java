@@ -26,6 +26,8 @@ import org.junit.runner.RunWith;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * @author cristian
  */
@@ -33,23 +35,25 @@ import java.util.List;
 public abstract class SqliteTest {
 
     private SqlAdapter mAdapter;
-    private SqlPersistence mDatabase;
+    private DatabaseSpec mDatabaseSpec;
 
     @Before
     public void configure() {
         Robolectric.bindShadowClass(ShadowUriMatcher.class);
         Robolectric.bindShadowClass(ShadowContentUris.class);
         PersistenceConfig.clear();
-        mDatabase = PersistenceConfig.getDatabase("test.db", 1);
-        mDatabase.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
-                AnnotationNotAutoincrement.class, StringAsPrimaryKey.class);
-        mDatabase.match(new HasMany(PolyTheist.class, God.class));
-        mDatabase.match(new HasMany(Cow.class, Bug.class, true));
-        mDatabase.match(new ManyToMany(Author.class, Book.class));
-        mDatabase.match(new ManyToMany(Pet.class, Owner.class));
-        mDatabase.matchNotAutoIncrement(ExampleNotAutoincrement.class);
 
-        mAdapter = Persistence.getSqliteAdapter(new Activity());
+        mDatabaseSpec = PersistenceConfig.registerSpec(1);
+        assertEquals(mDatabaseSpec, PersistenceConfig.getDatabaseSpec());
+        mDatabaseSpec.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
+                AnnotationNotAutoincrement.class, StringAsPrimaryKey.class);
+        mDatabaseSpec.match(new HasMany(PolyTheist.class, God.class));
+        mDatabaseSpec.match(new HasMany(Cow.class, Bug.class, true));
+        mDatabaseSpec.match(new ManyToMany(Author.class, Book.class));
+        mDatabaseSpec.match(new ManyToMany(Pet.class, Owner.class));
+        mDatabaseSpec.matchNotAutoIncrement(ExampleNotAutoincrement.class);
+
+        mAdapter = Persistence.getAdapter(new Activity());
         mAdapter.truncate(ExampleAutoincrement.class, ExampleNotAutoincrement.class,
                 AnnotationAutoincrement.class, Book.class, God.class, PolyTheist.class,
                 Author.class, Pet.class, Owner.class, StringAsPrimaryKey.class,
@@ -60,8 +64,8 @@ public abstract class SqliteTest {
         return mAdapter;
     }
 
-    public SqlPersistence getDatabase() {
-        return mDatabase;
+    public DatabaseSpec getDatabase() {
+        return mDatabaseSpec;
     }
 
     @Table("automatic")

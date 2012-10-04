@@ -32,7 +32,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        SqlPersistence database = PersistenceConfig.getDatabase("database_name.db", 1);
+        SqlPersistence database = PersistenceConfig.registerSpec(/**db version**/1);
         database.match(Foo.class, Bar.class);
     }
 }
@@ -49,26 +49,15 @@ And add this to your manifest:
      ...
 ```
 
-Here `Foo` and `Bar` are [POJO][1]s that you will use through your app. Persistence library will automatically create
-sqlite tables for those classes, which will allow you to insert, query, update and delete data in a easy way:
+Here `Foo` and `Bar` are [POJO][1]s that you will use within your app. Persistence library will automatically create
+sqlite tables for those classes, which will allow you to insert, query, update and delete data easily:
 
-In order to interact with the database, you must use an implementation of the [SqlAdapter][2] interface. There are two
-implementations; you can get an instance of those implemantion this way:
+In order to interact with the database, you must get an implementation of the [SqlAdapter][2] interface. You can do
+so this way:
 
 ```java
-// 1. Standard implementation...
-SqlAdapter adapter = Persistence.getSqliteAdapter(context);
-// use the adapter and then...
-adapter.close();
-
-// 2. Quick implementation
-Persistence.quick(context).someMethod();
+SqlAdapter adapter = Persistence.getAdapter(context);
 ```
-
-Difference between standard and quick implementation is that quick adapter can be used only once and it will run
-clean-up tasks after it is executed. Use quick implementation when you just want to do a simple thing (e.g. inserting
-bean); use standard implementation if you want to do more things (e.g. inserting an object, then updating another and
-finally query some other data).
 
 ### Inserting/updating data
 
@@ -78,7 +67,7 @@ To insert a simple object to the database use the `store` method:
 // single insertion
 Foo foo = new Foo();
 // add data to your object foo.setExample(...);
-Persistence.quick(context).store(foo);
+adapter.store(foo);
 ```
 
  **Notice:** if you are inserting an object of type `Foo`, you must have already registered that class in the
@@ -89,7 +78,7 @@ If you want to store a collection of beans use the `storeCollection(list, listen
 ```java
 List<Foo> foos = new ArrayList();
 // foos.add(foo);
-Persistence.quick(context).storeCollection(null, new ProgressListener() {
+adapter.storeCollection(null, new ProgressListener() {
     @Override
     public void onProgressChange(int percentage) {
     }
@@ -98,7 +87,7 @@ Persistence.quick(context).storeCollection(null, new ProgressListener() {
 
 This is much more efficient than implementing a loop manually since this will not insert items one-by-one but instead
 will create a bulk insert statement. There is another version of this method called `storeUniqueCollection` which
-basically inserts and updates objects that you pass in the list, and delete from the database those items that are not
+basically inserts and updates objects that you pass into the list, and delete from the database those items that are not
 included in the list.
 
 When you insert an object whose primary key is not auto-increment, it will try to update it instead of inserting a new
@@ -111,7 +100,7 @@ sample.setName("vogota");
 City newCity = new City();
 newCity.setName("Bogotá");
 
-Persistence.quick(context).update(newCity, sample);
+adapter.update(newCity, sample);
 ```
 
 Notice that `update` method can also be used with raw SQL statements and Android wildcards.
@@ -124,31 +113,31 @@ You can query single objects or a collection of objects:
 // query a single item by example
 City city = new City();
 city.setName("Bogotá");
-City bogota = Persistence.quick(context).findFirst(city);
+City bogota = adapter.findFirst(city);
 ```
 
 You can also use raw SQL queries:
 
 ```java
-City bogota = Persistence.quick(context).findFirst(City.class, "name LIKE 'Bogotá'", null);
+City bogota = adapter.findFirst(City.class, "name LIKE 'Bogotá'", null);
 // although it is recommended to use Android's wildcards:
-City bogota = Persistence.quick(context).findFirst(City.class, "name LIKE ?", new String[]{"Bogotá"});
+City bogota = adapter.findFirst(City.class, "name LIKE ?", new String[]{"Bogotá"});
 ```
 
 Use `findAll` to get a list of objects that matches some conditions:
 
 ```java
 // Query all cities
-List<City> cities = Persistence.quick(context).findAll(City.class);
+List<City> cities = adapter.findAll(City.class);
 
 // Query cities that match a sample
 City sample = new City();
 sample.setCountryCode("CO");
-List<City> colombianCities = Persistence.quick(context).findAll(sample);
+List<City> colombianCities = adapter.findAll(sample);
 
 // You can set some constraints
 Constraint constraint = new Constraint().limit(3).groupBy("column").orderBy("name");
-List<City> someCities = Persistence.quick(context).findAll(sample, constraint);
+List<City> someCities = adapter.findAll(sample, constraint);
 ```
 
 ### Deleting data
@@ -157,12 +146,15 @@ Just use the `delete` method:
 
 ```java
 // this will truncate the table...
-Persistence.quick(context).delete(City.class, null, null);
+adapter.delete(City.class, null, null);
+
+// this is a better way to truncate a table...
+adapter.truncate(City.class);
 
 // this will delete the items that match the sample
 City sample = new City();
 sample.setCountryCode("CO");
-Persistence.quick(context).delete(sample);
+adapter.delete(sample);
 ```
 
 ### Feedback
