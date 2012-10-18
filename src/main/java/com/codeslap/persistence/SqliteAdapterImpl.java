@@ -570,6 +570,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
                 }
                 case HAS_MANY:
                     List list = (List) field.get(bean);
+                    if (list == null) {
+                        break;
+                    }
                     for (Object object : list) {
                         // prepare the object by setting the foreign value
                         String partialSqlStatement = getSqlStatement(object, tree, bean);
