@@ -447,10 +447,10 @@ class SQLHelper {
                             columns.add(hasMany.getForeignKey());
                         }
                         if (values != null) {
-                            if (persistence.isAutoincrement(theClass)) {
-                                values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
-                            } else {
+                            if (foreignValue != null && hasData(foreignValue.getClass(), foreignValue)) {
                                 values.add(String.valueOf(foreignValue));
+                            } else {
+                                values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
                             }
                         }
                     } catch (Exception ignored) {
