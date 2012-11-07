@@ -40,6 +40,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
     private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
+    private static final String TAG = "sqliteImpl";
 
     private final DatabaseSpec mDatabaseSpec;
     private final SqliteDb mDbHelper;
@@ -411,15 +412,31 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
     private synchronized void executeTransactions(List<String> transactions) {
         SQLiteDatabase database = mDbHelper.getDatabase();
+        boolean activeTransaction = false;
         try {
             database.execSQL("BEGIN TRANSACTION;");
-            for (String transaction : transactions) {
-                database.execSQL(transaction);
-            }
+            activeTransaction = true;
         } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            database.execSQL("COMMIT;");
+            PersistenceLogManager.e(TAG, "Could not initiate transaction", e);
+        }
+
+        // try to execute the statements and commit if, and only if,
+        // the BEGIN TRANSACTION; was successful
+        if (activeTransaction) {
+            for (String transaction : transactions) {
+                try {
+                    database.execSQL(transaction);
+                } catch (Exception e) {
+                    PersistenceLogManager.e(TAG, "Error executing transaction: " + transaction, e);
+                }
+            }
+            try {
+                database.execSQL("COMMIT;");
+            } catch (Exception e) {
+                // we are doomed; yes, we are. there was an active transaction and yet
+                // transaction could not be committed.
+                PersistenceLogManager.e(TAG, "Could not commit transaction", e);
+            }
         }
     }
 

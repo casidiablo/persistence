@@ -48,6 +48,7 @@ public class PersistenceLogManager {
 
     interface Logger {
         String getTag();
+
         boolean active();
     }
 
@@ -75,6 +76,21 @@ public class PersistenceLogManager {
         for (Logger logger : loggers) {
             if (logger.active()) {
                 Log.e(String.format("%s:persistence:%s", logger.getTag(), tag), msg);
+            }
+        }
+    }
+
+    /**
+     * Sends an error message to the log
+     *
+     * @param tag Tag to use
+     * @param msg Message to send
+     * @param t   a throwable to show in the log
+     */
+    static void e(String tag, String msg, Throwable t) {
+        for (Logger logger : loggers) {
+            if (logger.active()) {
+                Log.e(String.format("%s:persistence:%s", logger.getTag(), tag), msg, t);
             }
         }
     }
