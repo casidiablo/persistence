@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 CodeSlap
+ * Copyright 2013 CodeSlap
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -409,23 +409,23 @@ public class DatabaseSpec {
         DatabaseSpec that = (DatabaseSpec) o;
 
         if (mVersion != that.mVersion) return false;
-        if (mAutoIncrementList != null ? !mAutoIncrementList.equals(that.mAutoIncrementList) : that.mAutoIncrementList != null)
+        if (!mAutoIncrementList.equals(that.mAutoIncrementList))
             return false;
-        if (mHasManyList != null ? !mHasManyList.equals(that.mHasManyList) : that.mHasManyList != null)
+        if (!mHasManyList.equals(that.mHasManyList))
             return false;
-        if (mManyToManyList != null ? !mManyToManyList.equals(that.mManyToManyList) : that.mManyToManyList != null)
+        if (!mManyToManyList.equals(that.mManyToManyList))
             return false;
-        if (mSqliteList != null ? !mSqliteList.equals(that.mSqliteList) : that.mSqliteList != null) return false;
+        if (!mSqliteList.equals(that.mSqliteList)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = mSqliteList != null ? mSqliteList.hashCode() : 0;
-        result = 31 * result + (mAutoIncrementList != null ? mAutoIncrementList.hashCode() : 0);
-        result = 31 * result + (mManyToManyList != null ? mManyToManyList.hashCode() : 0);
-        result = 31 * result + (mHasManyList != null ? mHasManyList.hashCode() : 0);
+        int result = mSqliteList.hashCode();
+        result = 31 * result + (mAutoIncrementList.hashCode());
+        result = 31 * result + (mManyToManyList.hashCode());
+        result = 31 * result + (mHasManyList.hashCode());
         result = 31 * result + mVersion;
         return result;
     }

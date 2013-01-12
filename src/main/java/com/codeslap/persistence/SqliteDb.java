@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 CodeSlap
+ * Copyright 2013 CodeSlap
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ class SqliteDb {
         if (databaseSpec.mDbOpenHelperBuilder != null) {
             mDbHelper = databaseSpec.mDbOpenHelperBuilder.buildOpenHelper(context, name, databaseSpec.getVersion());
         } else {
-            mDbHelper = new Helper(context, name, databaseSpec.getVersion());
+            mDbHelper = new DefaultOpenHelper(context, name, databaseSpec.getVersion());
         }
         mDbHelper.setDatabaseSpec(databaseSpec);
         PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database...", name));
@@ -56,13 +56,13 @@ class SqliteDb {
         return mDbHelper.getWritableDatabase();
     }
 
-    private static class Helper extends DbOpenHelper {
-        public Helper(Context context, String name, int version) {
+    private static class DefaultOpenHelper extends DbOpenHelper {
+        public DefaultOpenHelper(Context context, String name, int version) {
             super(context, name, version);
         }
 
         @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        public void onUpgradeDatabase(SQLiteDatabase db, int oldVersion, int newVersion) {
             // Here we will delete the whole database and recreate it
             Cursor cursor = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " +
                     "AND name != 'sqlite_sequence';", null);
@@ -81,7 +81,9 @@ class SqliteDb {
                 // sometimes the sqlite_sequence has not been created yet
             }
             onCreate(db);
-            cursor.close();
+            if (cursor != null) {
+                cursor.close();
+            }
         }
     }
 }
