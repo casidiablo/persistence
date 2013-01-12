@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 CodeSlap
+ * Copyright 2013 CodeSlap
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,11 +61,11 @@ public class ManyToMany {
     }
 
     String getMainKey() {
-        return new StringBuilder().append(SQLHelper.getTableName(mClassA)).append("_").append(mClassAPrimaryKey).toString();
+        return joinTableNames(SQLHelper.getTableName(mClassA), mClassAPrimaryKey);
     }
 
     String getSecondaryKey() {
-        return new StringBuilder().append(SQLHelper.getTableName(mClassB)).append("_").append(mClassBPrimaryKey).toString();
+        return joinTableNames(SQLHelper.getTableName(mClassB), mClassBPrimaryKey);
     }
 
     /**
@@ -74,20 +74,19 @@ public class ManyToMany {
      * @return name of the joined class
      */
     static String buildTableName(Class<?> classA, Class<?> classB) {
-        if (classA.getSimpleName().compareToIgnoreCase(classB.getSimpleName()) <= 0) {
-            return new StringBuilder().append(SQLHelper.getTableName(classA)).append("_").append(SQLHelper.getTableName(classB)).toString();
+        String classATableName = SQLHelper.getTableName(classA);
+        String classBTableName = SQLHelper.getTableName(classB);
+        if (classATableName.compareToIgnoreCase(classBTableName) <= 0) {
+            return joinTableNames(classATableName, classBTableName);
         }
-        return new StringBuilder().append(SQLHelper.getTableName(classB)).append("_").append(SQLHelper.getTableName(classA)).toString();
+        return joinTableNames(classBTableName, classATableName);
     }
 
     /**
      * @return name of the joined class
      */
-    String getTableName() {
-        if (mClassA.getSimpleName().compareToIgnoreCase(mClassB.getSimpleName()) <= 0) {
-            return new StringBuilder().append(SQLHelper.getTableName(mClassA)).append("_").append(SQLHelper.getTableName(mClassB)).toString();
-        }
-        return new StringBuilder().append(SQLHelper.getTableName(mClassB)).append("_").append(SQLHelper.getTableName(mClassA)).toString();
+    public String getTableName() {
+        return buildTableName(mClassA, mClassB);
     }
 
     @Override
@@ -121,5 +120,9 @@ public class ManyToMany {
         return "ManyToMany relation between " + mClassA.getSimpleName() +
                 " and " + mClassB.getSimpleName() + ", using " + mClassAPrimaryKey +
                 " and " + mClassBPrimaryKey + " respectively";
+    }
+
+    private static String joinTableNames(String classATableName, String classBTableName) {
+        return new StringBuilder().append(classATableName).append("_").append(classBTableName).toString();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 CodeSlap
+ * Copyright 2013 CodeSlap
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
-class SQLHelper {
+public class SQLHelper {
 
     static final String ID = "id";
     static final String _ID = "_id";
@@ -320,7 +320,7 @@ class SQLHelper {
      * @param field field to get the column name from
      * @return gets the column name version of the specified field
      */
-    static String getColumnName(Field field) {
+    public static String getColumnName(Field field) {
         if (COLUMN_NAMES_CACHE.containsKey(field)) {
             return COLUMN_NAMES_CACHE.get(field);
         }
@@ -345,7 +345,7 @@ class SQLHelper {
         return columnName;
     }
 
-    public static <T> String buildUpdateStatement(T bean, Object sample, DatabaseSpec databaseSpec) {
+    static <T> String buildUpdateStatement(T bean, Object sample, DatabaseSpec databaseSpec) {
         String where = getWhere(bean.getClass(), sample, null, null, databaseSpec);
         String set = getSet(bean);
         return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
@@ -471,7 +471,7 @@ class SQLHelper {
         return field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).forceName();
     }
 
-    static String getTableName(Class<?> theClass) {
+    public static String getTableName(Class<?> theClass) {
         if (TABLE_NAMES_CACHE.containsKey(theClass)) {
             return TABLE_NAMES_CACHE.get(theClass);
         }
@@ -521,7 +521,7 @@ class SQLHelper {
      * @param theClass the class to the get primary key from
      * @return the primary key from a class
      */
-    public static String getPrimaryKey(Class<?> theClass) {
+    static String getPrimaryKey(Class<?> theClass) {
         for (Field field : getDeclaredFields(theClass)) {
             if (isPrimaryKey(field)) {
                 return field.getName();
@@ -534,13 +534,22 @@ class SQLHelper {
      * @param theClass the class to the get primary key from
      * @return the primary key field from a class
      */
-    public static Field getPrimaryKeyField(Class<?> theClass) {
+    static Field getPrimaryKeyField(Class<?> theClass) {
         for (Field field : getDeclaredFields(theClass)) {
             if (isPrimaryKey(field)) {
                 return field;
             }
         }
         throw new IllegalStateException("Class " + theClass + " does not have a primary key");
+    }
+
+    /**
+     * @param theClass the class to inspect
+     * @return the primary key column name
+     */
+    public static String getPrimaryKeyColumnName(Class<?> theClass) {
+        Field collectionId = getPrimaryKeyField(theClass);
+        return getIdColumn(collectionId);
     }
 
     static String getIdColumn(Field field) {
