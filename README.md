@@ -12,7 +12,7 @@ In order to use this library from you Android project using maven your pom shoul
         <dependency>
             <groupId>com.codeslap</groupId>
             <artifactId>persistence</artifactId>
-            <version>0.9.10</version>
+            <version>0.9.22</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
@@ -32,7 +32,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        SqlPersistence database = PersistenceConfig.registerSpec(/**db version**/1);
+        DatabaseSpec database = PersistenceConfig.registerSpec(/**db version**/1);
         database.match(Foo.class, Bar.class);
     }
 }
