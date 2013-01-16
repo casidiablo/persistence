@@ -124,6 +124,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
         Field idField = SQLHelper.getPrimaryKeyField(theClass);
         // if it is autoincrement, we will try to populate the id field with the inserted id
         if (mDatabaseSpec.isAutoincrement(theClass)) {
+            if(idField.getType() != Long.class && idField.getType() != long.class){
+                throw new IllegalStateException("Your primary key is currently '" + idField.getType() + "' but 'long' was expected");
+            }
             Cursor lastId = mDbHelper.getDatabase().query("sqlite_sequence", new String[]{"seq"}, "name = ?",
                     new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
             if (lastId != null && lastId.moveToFirst()) {
