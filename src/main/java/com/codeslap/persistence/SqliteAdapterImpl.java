@@ -135,6 +135,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
                         idField.set(bean, id);
                     } catch (IllegalAccessException e) {
                         e.printStackTrace();
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
                     }
                 }
                 return id;
