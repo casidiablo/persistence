@@ -1,5 +1,7 @@
-Yet another persistence library for Android. This library works as a SQLite wrapper and allows you to easily create,
-query and work with schemas based on objects.
+[![Build Status](https://travis-ci.org/casidiablo/persistence.png?branch=master)](https://travis-ci.org/casidiablo/persistence)
+
+This library works as a `SQLite` wrapper and allows you to easily create, query and work with schemas based on objects. This means
+you can forget about handling queries and Cursors manually, and work directly with Java classes.
 
 ###Maven integration
 
@@ -12,7 +14,7 @@ In order to use this library from you Android project using maven your pom shoul
         <dependency>
             <groupId>com.codeslap</groupId>
             <artifactId>persistence</artifactId>
-            <version>0.9.22</version>
+            <version>0.9.23</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
@@ -23,7 +25,7 @@ In order to use this library from you Android project using maven your pom shoul
 
 Refer to the downloads section to get a JAR to import to your project.
 
-###How it works?
+##Get started
 
 Create a class that extends `android.app.Application` like this:
 
@@ -157,6 +159,10 @@ sample.setCountryCode("CO");
 adapter.delete(sample);
 ```
 
+### Examples
+
+Looking for examples? You might take a look at [Github Jobs][3] app.
+
 ### Feedback
 
 If you have any questions or suggestions do not hesitate to sending me an email about it (cristian@elhacker.net).
@@ -164,3 +170,4 @@ Keep in mind that this is project is in beta phase and I do not warranty it will
 
   [1]: http://en.wikipedia.org/wiki/Plain_Old_Java_Object
   [2]: https://github.com/casidiablo/persistence/blob/master/src/main/java/com/codeslap/persistence/SqlAdapter.java
+  [3]: http://github.com/casidiablo/github-jobs
