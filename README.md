@@ -1,9 +1,10 @@
-[![Build Status](https://travis-ci.org/casidiablo/persistence.png?branch=master)](https://travis-ci.org/casidiablo/persistence)
-
 This library works as a `SQLite` wrapper and allows you to easily create, query and work with schemas based on objects. This means
 you can forget about handling queries and Cursors manually, and work directly with Java classes.
 
-###Maven integration
+Maven integration
+=================
+
+[![Build Status](https://travis-ci.org/casidiablo/persistence.png?branch=master)](https://travis-ci.org/casidiablo/persistence)
 
 In order to use this library from you Android project using maven your pom should look like this:
 
@@ -25,7 +26,8 @@ In order to use this library from you Android project using maven your pom shoul
 
 Refer to the downloads section to get a JAR to import to your project.
 
-##Get started
+Get started
+===========
 
 Create a class that extends `android.app.Application` like this:
 
