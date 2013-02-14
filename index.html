@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Persistence by casidiablo</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Persistence</h1>
+        <p>Android persistence library</p>
+        <p class="view"><a href="https://github.com/casidiablo/persistence">View the Project on GitHub <small>casidiablo/persistence</small></a></p>
+        <ul>
+          <li><a href="https://github.com/casidiablo/persistence/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/casidiablo/persistence/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/casidiablo/persistence">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <p>This library works as a <code>SQLite</code> wrapper and allows you to easily create, query and work with schemas based on objects. This means
+you can forget about handling queries and Cursors manually, and work directly with Java classes.</p>
+
+<h1>Get started</h1>
+
+<p>Create a class that extends <code>android.app.Application</code> like this:</p>
+
+<div class="highlight"><pre><span class="kd">public</span> <span class="kd">class</span> <span class="nc">App</span> <span class="kd">extends</span> <span class="n">Application</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onCreate</span><span class="o">()</span> <span class="o">{</span>
+        <span class="kd">super</span><span class="o">.</span><span class="na">onCreate</span><span class="o">();</span>
+        <span class="n">DatabaseSpec</span> <span class="n">database</span> <span class="o">=</span> <span class="n">PersistenceConfig</span><span class="o">.</span><span class="na">registerSpec</span><span class="o">(</span><span class="cm">/**db version**/</span><span class="mi">1</span><span class="o">);</span>
+        <span class="n">database</span><span class="o">.</span><span class="na">match</span><span class="o">(</span><span class="n">Foo</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">Bar</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p>And add this to your manifest:</p>
+
+<div class="highlight"><pre><span class="nt">&lt;manifest</span> <span class="na">xmlns:android=</span><span class="s">"http://schemas.android.com/apk/res/android"</span>
+          <span class="na">package=</span><span class="s">"your.package.name"</span>
+          <span class="err">...</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;application</span> <span class="err">...</span>
+                 <span class="na">android:name=</span><span class="s">"your.package.name.App"</span><span class="nt">&gt;</span>
+     ...
+</pre></div>
+
+<p>Here <code>Foo</code> and <code>Bar</code> are <a href="http://en.wikipedia.org/wiki/Plain_Old_Java_Object">POJO</a>s that you will use within your app. Persistence library will automatically create
+sqlite tables for those classes, which will allow you to insert, query, update and delete data easily:</p>
+
+<p>In order to interact with the database, you must get an implementation of the <a href="https://github.com/casidiablo/persistence/blob/master/src/main/java/com/codeslap/persistence/SqlAdapter.java">SqlAdapter</a> interface. You can do
+so this way:</p>
+
+<div class="highlight"><pre><span class="n">SqlAdapter</span> <span class="n">adapter</span> <span class="o">=</span> <span class="n">Persistence</span><span class="o">.</span><span class="na">getAdapter</span><span class="o">(</span><span class="n">context</span><span class="o">);</span>
+</pre></div>
+
+<h3>Inserting/updating data</h3>
+
+<p>To insert a simple object to the database use the <code>store</code> method:</p>
+
+<div class="highlight"><pre><span class="c1">// single insertion</span>
+<span class="n">Foo</span> <span class="n">foo</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Foo</span><span class="o">();</span>
+<span class="c1">// add data to your object foo.setExample(...);</span>
+<span class="n">adapter</span><span class="o">.</span><span class="na">store</span><span class="o">(</span><span class="n">foo</span><span class="o">);</span>
+</pre></div>
+
+<p><strong>Notice:</strong> if you are inserting an object of type <code>Foo</code>, you must have already registered that class in the
+ <em><code>Application</code> class</em>.</p>
+
+<p>If you want to store a collection of beans use the <code>storeCollection(list, listener)</code> method:</p>
+
+<div class="highlight"><pre><span class="n">List</span><span class="o">&lt;</span><span class="n">Foo</span><span class="o">&gt;</span> <span class="n">foos</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">();</span>
+<span class="c1">// foos.add(foo);</span>
+<span class="n">adapter</span><span class="o">.</span><span class="na">storeCollection</span><span class="o">(</span><span class="kc">null</span><span class="o">,</span> <span class="k">new</span> <span class="n">ProgressListener</span><span class="o">()</span> <span class="o">{</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onProgressChange</span><span class="o">(</span><span class="kt">int</span> <span class="n">percentage</span><span class="o">)</span> <span class="o">{</span>
+    <span class="o">}</span>
+<span class="o">});</span>
+</pre></div>
+
+<p>This is much more efficient than implementing a loop manually since this will not insert items one-by-one but instead
+will create a bulk insert statement. There is another version of this method called <code>storeUniqueCollection</code> which
+basically inserts and updates objects that you pass into the list, and delete from the database those items that are not
+included in the list.</p>
+
+<p>When you insert an object whose primary key is not auto-increment, it will try to update it instead of inserting a new
+one. In other cases use the <code>update</code> method:</p>
+
+<div class="highlight"><pre><span class="n">City</span> <span class="n">sample</span> <span class="o">=</span> <span class="k">new</span> <span class="n">City</span><span class="o">();</span>
+<span class="n">sample</span><span class="o">.</span><span class="na">setName</span><span class="o">(</span><span class="s">"vogota"</span><span class="o">);</span>
+
+<span class="n">City</span> <span class="n">newCity</span> <span class="o">=</span> <span class="k">new</span> <span class="n">City</span><span class="o">();</span>
+<span class="n">newCity</span><span class="o">.</span><span class="na">setName</span><span class="o">(</span><span class="s">"Bogotá"</span><span class="o">);</span>
+
+<span class="n">adapter</span><span class="o">.</span><span class="na">update</span><span class="o">(</span><span class="n">newCity</span><span class="o">,</span> <span class="n">sample</span><span class="o">);</span>
+</pre></div>
+
+<p>Notice that <code>update</code> method can also be used with raw SQL statements and Android wildcards.</p>
+
+<h3>Querying data</h3>
+
+<p>You can query single objects or a collection of objects:</p>
+
+<div class="highlight"><pre><span class="c1">// query a single item by example</span>
+<span class="n">City</span> <span class="n">city</span> <span class="o">=</span> <span class="k">new</span> <span class="n">City</span><span class="o">();</span>
+<span class="n">city</span><span class="o">.</span><span class="na">setName</span><span class="o">(</span><span class="s">"Bogotá"</span><span class="o">);</span>
+<span class="n">City</span> <span class="n">bogota</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="na">findFirst</span><span class="o">(</span><span class="n">city</span><span class="o">);</span>
+</pre></div>
+
+<p>You can also use raw SQL queries:</p>
+
+<div class="highlight"><pre><span class="n">City</span> <span class="n">bogota</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="na">findFirst</span><span class="o">(</span><span class="n">City</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="s">"name LIKE 'Bogotá'"</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+<span class="c1">// although it is recommended to use Android's wildcards:</span>
+<span class="n">City</span> <span class="n">bogota</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="na">findFirst</span><span class="o">(</span><span class="n">City</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="s">"name LIKE ?"</span><span class="o">,</span> <span class="k">new</span> <span class="n">String</span><span class="o">[]{</span><span class="s">"Bogotá"</span><span class="o">});</span>
+</pre></div>
+
+<p>Use <code>findAll</code> to get a list of objects that matches some conditions:</p>
+
+<div class="highlight"><pre><span class="c1">// Query all cities</span>
+<span class="n">List</span><span class="o">&lt;</span><span class="n">City</span><span class="o">&gt;</span> <span class="n">cities</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="na">findAll</span><span class="o">(</span><span class="n">City</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+
+<span class="c1">// Query cities that match a sample</span>
+<span class="n">City</span> <span class="n">sample</span> <span class="o">=</span> <span class="k">new</span> <span class="n">City</span><span class="o">();</span>
+<span class="n">sample</span><span class="o">.</span><span class="na">setCountryCode</span><span class="o">(</span><span class="s">"CO"</span><span class="o">);</span>
+<span class="n">List</span><span class="o">&lt;</span><span class="n">City</span><span class="o">&gt;</span> <span class="n">colombianCities</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="na">findAll</span><span class="o">(</span><span class="n">sample</span><span class="o">);</span>
+
+<span class="c1">// You can set some constraints</span>
+<span class="n">Constraint</span> <span class="n">constraint</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Constraint</span><span class="o">().</span><span class="na">limit</span><span class="o">(</span><span class="mi">3</span><span class="o">).</span><span class="na">groupBy</span><span class="o">(</span><span class="s">"column"</span><span class="o">).</span><span class="na">orderBy</span><span class="o">(</span><span class="s">"name"</span><span class="o">);</span>
+<span class="n">List</span><span class="o">&lt;</span><span class="n">City</span><span class="o">&gt;</span> <span class="n">someCities</span> <span class="o">=</span> <span class="n">adapter</span><span class="o">.</span><span class="na">findAll</span><span class="o">(</span><span class="n">sample</span><span class="o">,</span> <span class="n">constraint</span><span class="o">);</span>
+</pre></div>
+
+<h3>Deleting data</h3>
+
+<p>Just use the <code>delete</code> method:</p>
+
+<div class="highlight"><pre><span class="c1">// this will truncate the table...</span>
+<span class="n">adapter</span><span class="o">.</span><span class="na">delete</span><span class="o">(</span><span class="n">City</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="kc">null</span><span class="o">,</span> <span class="kc">null</span><span class="o">);</span>
+
+<span class="c1">// this is a better way to truncate a table...</span>
+<span class="n">adapter</span><span class="o">.</span><span class="na">truncate</span><span class="o">(</span><span class="n">City</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+
+<span class="c1">// this will delete the items that match the sample</span>
+<span class="n">City</span> <span class="n">sample</span> <span class="o">=</span> <span class="k">new</span> <span class="n">City</span><span class="o">();</span>
+<span class="n">sample</span><span class="o">.</span><span class="na">setCountryCode</span><span class="o">(</span><span class="s">"CO"</span><span class="o">);</span>
+<span class="n">adapter</span><span class="o">.</span><span class="na">delete</span><span class="o">(</span><span class="n">sample</span><span class="o">);</span>
+</pre></div>
+
+<h1>Maven integration</h1>
+
+<p><a href="https://travis-ci.org/casidiablo/persistence"><img src="https://travis-ci.org/casidiablo/persistence.png?branch=master" alt="Build Status"></a></p>
+
+<p>In order to use this library from you Android project using maven your pom should look like this:</p>
+
+<div class="highlight"><pre><span class="cp">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="nt">&lt;project</span> <span class="err">...</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;dependencies&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>com.codeslap<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>persistence<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>0.9.23<span class="nt">&lt;/version&gt;</span>
+            <span class="nt">&lt;scope&gt;</span>compile<span class="nt">&lt;/scope&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;/dependencies&gt;</span>
+<span class="nt">&lt;/project&gt;</span>
+</pre></div>
+
+<h3>Normal integration</h3>
+
+<p>Refer to the downloads section to get a JAR to import to your project.</p>
+
+<h3>Examples</h3>
+
+<p>Looking for examples? You might take a look at <a href="http://github.com/casidiablo/github-jobs">Github Jobs</a> app.</p>
+
+<h3>Feedback</h3>
+
+<p>If you have any questions or suggestions do not hesitate to sending me an email about it (<a href="mailto:cristian@elhacker.net">cristian@elhacker.net</a>).
+Keep in mind that this is project is in beta phase and I do not warranty it will work as expected.</p>
+      </section>
+    </div>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/casidiablo">casidiablo</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
