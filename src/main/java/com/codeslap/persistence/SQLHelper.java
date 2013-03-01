@@ -39,7 +39,7 @@ public class SQLHelper {
 
     static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
 
-    static String getCreateTableSentence(Class clazz, DatabaseSpec databaseSpec) {
+    public static String getCreateTableSentence(Class clazz, DatabaseSpec databaseSpec) {
         List<String> fieldSentences = new ArrayList<String>();
         // loop through all the fields and add sql statements
         Field[] declaredFields = SQLHelper.getDeclaredFields(clazz);
