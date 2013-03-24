@@ -18,7 +18,6 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -29,34 +28,33 @@ import java.io.InputStream;
  */
 class AssetsImporter implements Importer {
 
-    public static final String TAG = AssetsImporter.class.toString();
+  public static final String TAG = AssetsImporter.class.toString();
 
-    private final Context mContext;
-    private final String mPath;
+  private final Context mContext;
+  private final String mPath;
 
-    AssetsImporter(Context context, String path) {
-        mContext = context;
-        mPath = path;
+  AssetsImporter(Context context, String path) {
+    mContext = context;
+    mPath = path;
+  }
+
+  @Override public void execute(SQLiteDatabase database) {
+    long init = System.currentTimeMillis();
+    PersistenceLogManager.d(TAG, StrUtil.concat("Importing ", mPath));
+
+    new StreamImporter(getInputStream()).execute(database);
+
+    long end = System.currentTimeMillis();
+    PersistenceLogManager.d(TAG, StrUtil.concat("Took ", end - init, "ms to import ", mPath));
+  }
+
+  private InputStream getInputStream() {
+    InputStream is = null;
+    try {
+      is = mContext.getAssets().open(mPath);
+    } catch (IOException e) {
+      e.printStackTrace();
     }
-
-    @Override
-    public void execute(SQLiteDatabase database) {
-        long init = System.currentTimeMillis();
-        PersistenceLogManager.d(TAG, StrUtil.concat("Importing ", mPath));
-
-        new StreamImporter(getInputStream()).execute(database);
-
-        long end = System.currentTimeMillis();
-        PersistenceLogManager.d(TAG, StrUtil.concat("Took ", end - init, "ms to import ", mPath));
-    }
-
-    private InputStream getInputStream() {
-        InputStream is = null;
-        try {
-            is = mContext.getAssets().open(mPath);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return is;
-    }
+    return is;
+  }
 }

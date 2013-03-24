@@ -16,10 +16,8 @@
 
 package com.codeslap.test.persistence;
 
-import com.codeslap.persistence.SqlAdapter;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,184 +30,184 @@ import static org.junit.Assert.assertTrue;
  * @author cristian
  */
 public class DeleteTest extends SqliteTest {
-    @Test
-    public void testDelete() {
-        // let's first insert a collection of data
-        List<ExampleAutoincrement> collection = new ArrayList<ExampleAutoincrement>();
-        Random random = new Random();
-        for (int i = 0; i < 100; i++) {
-            ExampleAutoincrement foo = new ExampleAutoincrement();
-            foo.name = "Foo Bar " + random.nextInt();
-            foo.number = random.nextInt();
-            foo.decimal = random.nextFloat();
-            foo.bool = random.nextBoolean();
-            foo.blob = foo.name.getBytes();
-            collection.add(foo);
-        }
-        getAdapter().storeCollection(collection, null);
-
-        // now let's delete some data!
-        int deleted = getAdapter().delete(collection.get(0));
-        assertEquals(1, deleted);
-
-        ExampleAutoincrement foo = collection.get(1);
-        foo.name = null;
-        assertTrue(getAdapter().delete(foo) > 0);
-        foo.name = "Something";
-        assertTrue(getAdapter().delete(foo) == 0);
-
-        int count = getAdapter().count(ExampleAutoincrement.class);
-        assertTrue(count > 0);
-
-        deleted = getAdapter().delete(ExampleAutoincrement.class, "name LIKE ?", new String[]{"Foo%"});
-        assertTrue(deleted > 0);
-
-        count = getAdapter().count(ExampleAutoincrement.class);
-        assertEquals(0, count);
+  @Test
+  public void testDelete() {
+    // let's first insert a collection of data
+    List<ExampleAutoincrement> collection = new ArrayList<ExampleAutoincrement>();
+    Random random = new Random();
+    for (int i = 0; i < 100; i++) {
+      ExampleAutoincrement foo = new ExampleAutoincrement();
+      foo.name = "Foo Bar " + random.nextInt();
+      foo.number = random.nextInt();
+      foo.decimal = random.nextFloat();
+      foo.bool = random.nextBoolean();
+      foo.blob = foo.name.getBytes();
+      collection.add(foo);
     }
+    getAdapter().storeCollection(collection, null);
 
-    @Test
-    public void testDeleteAnnotations() {
-        // let's first insert a collection of data
-        List<AnnotationAutoincrement> collection = new ArrayList<AnnotationAutoincrement>();
-        Random random = new Random();
-        for (int i = 0; i < 100; i++) {
-            AnnotationAutoincrement foo = new AnnotationAutoincrement();
-            foo.name = "Foo Bar " + random.nextInt();
-            foo.number = random.nextInt();
-            foo.decimal = random.nextFloat();
-            foo.bool = random.nextBoolean();
-            collection.add(foo);
-        }
-        getAdapter().storeCollection(collection, null);
+    // now let's delete some data!
+    int deleted = getAdapter().delete(collection.get(0));
+    assertEquals(1, deleted);
 
-        // now let's delete some data!
-        int deleted = getAdapter().delete(collection.get(0));
-        assertEquals(1, deleted);
+    ExampleAutoincrement foo = collection.get(1);
+    foo.name = null;
+    assertTrue(getAdapter().delete(foo) > 0);
+    foo.name = "Something";
+    assertTrue(getAdapter().delete(foo) == 0);
 
-        AnnotationAutoincrement foo = collection.get(1);
-        foo.name = null;
-        assertTrue(getAdapter().delete(foo) > 0);
+    int count = getAdapter().count(ExampleAutoincrement.class);
+    assertTrue(count > 0);
 
-        int count = getAdapter().count(AnnotationAutoincrement.class);
-        assertTrue(count > 0);
+    deleted = getAdapter().delete(ExampleAutoincrement.class, "name LIKE ?", new String[]{"Foo%"});
+    assertTrue(deleted > 0);
 
-        deleted = getAdapter().delete(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo%"});
-        assertTrue(deleted > 0);
+    count = getAdapter().count(ExampleAutoincrement.class);
+    assertEquals(0, count);
+  }
 
-        count = getAdapter().count(AnnotationAutoincrement.class);
-        assertEquals(0, count);
+  @Test
+  public void testDeleteAnnotations() {
+    // let's first insert a collection of data
+    List<AnnotationAutoincrement> collection = new ArrayList<AnnotationAutoincrement>();
+    Random random = new Random();
+    for (int i = 0; i < 100; i++) {
+      AnnotationAutoincrement foo = new AnnotationAutoincrement();
+      foo.name = "Foo Bar " + random.nextInt();
+      foo.number = random.nextInt();
+      foo.decimal = random.nextFloat();
+      foo.bool = random.nextBoolean();
+      collection.add(foo);
     }
+    getAdapter().storeCollection(collection, null);
 
-    @Test
-    public void testDeleteHasMany() {
-        God jesus = new God();
-        jesus.name = "Jesus";
-        God thor = new God();
-        thor.name = "Thor";
+    // now let's delete some data!
+    int deleted = getAdapter().delete(collection.get(0));
+    assertEquals(1, deleted);
 
-        PolyTheist dummy = new PolyTheist();
-        dummy.gods = Arrays.asList(thor, jesus);
+    AnnotationAutoincrement foo = collection.get(1);
+    foo.name = null;
+    assertTrue(getAdapter().delete(foo) > 0);
 
-        getAdapter().store(dummy);
+    int count = getAdapter().count(AnnotationAutoincrement.class);
+    assertTrue(count > 0);
 
-        Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(God.class).size());
+    deleted = getAdapter().delete(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo%"});
+    assertTrue(deleted > 0);
 
-        getAdapter().delete(PolyTheist.class, null, null);
+    count = getAdapter().count(AnnotationAutoincrement.class);
+    assertEquals(0, count);
+  }
 
-        Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(God.class).size());
-    }
+  @Test
+  public void testDeleteHasMany() {
+    God jesus = new God();
+    jesus.name = "Jesus";
+    God thor = new God();
+    thor.name = "Thor";
 
-    @Test
-    public void testDeleteHasManyOnCascade() {
-        God jesus = new God();
-        jesus.name = "Jesus";
-        God thor = new God();
-        thor.name = "Thor";
+    PolyTheist dummy = new PolyTheist();
+    dummy.gods = Arrays.asList(thor, jesus);
 
-        PolyTheist dummy = new PolyTheist();
-        dummy.gods = Arrays.asList(thor, jesus);
+    getAdapter().store(dummy);
 
-        getAdapter().store(dummy);
+    Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(God.class).size());
 
-        Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(God.class).size());
+    getAdapter().delete(PolyTheist.class, null, null);
 
-        getAdapter().delete(PolyTheist.class, null, null, true);
+    Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(God.class).size());
+  }
 
-        Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-        Assert.assertEquals(0, getAdapter().findAll(God.class).size());
-    }
+  @Test
+  public void testDeleteHasManyOnCascade() {
+    God jesus = new God();
+    jesus.name = "Jesus";
+    God thor = new God();
+    thor.name = "Thor";
 
-    @Test
-    public void testDeleteManyToMany() {
-        Book puta = new Book();
-        puta.id = 1;
-        puta.name = "La puta de Babilonia";
+    PolyTheist dummy = new PolyTheist();
+    dummy.gods = Arrays.asList(thor, jesus);
 
-        Book vida = new Book();
-        vida.id = 2;
-        vida.name = "El Don de la Vida";
+    getAdapter().store(dummy);
 
-        Author author = new Author();
-        author.name = "Fernando Vallejo";
-        author.books = Arrays.asList(puta, vida);
+    Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(God.class).size());
 
-        Author william = new Author();
-        william.name = "William Ospina";
-        william.books = Arrays.asList(puta);
+    getAdapter().delete(PolyTheist.class, null, null, true);
 
-        getAdapter().store(author);
-        getAdapter().store(william);
+    Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
+    Assert.assertEquals(0, getAdapter().findAll(God.class).size());
+  }
 
-        Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+  @Test
+  public void testDeleteManyToMany() {
+    Book puta = new Book();
+    puta.id = 1;
+    puta.name = "La puta de Babilonia";
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
+    Book vida = new Book();
+    vida.id = 2;
+    vida.name = "El Don de la Vida";
 
-        Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+    Author author = new Author();
+    author.name = "Fernando Vallejo";
+    author.books = Arrays.asList(puta, vida);
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
+    Author william = new Author();
+    william.name = "William Ospina";
+    william.books = Arrays.asList(puta);
 
-        Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
-    }
+    getAdapter().store(author);
+    getAdapter().store(william);
 
-    @Test
-    public void testDeleteManyToManyOnCascade() {
-        Book puta = new Book();
-        puta.id = 1;
-        puta.name = "La puta de Babilonia";
+    Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
 
-        Book vida = new Book();
-        vida.id = 2;
-        vida.name = "El Don de la Vida";
+    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
 
-        Author author = new Author();
-        author.name = "Fernando Vallejo";
-        author.books = Arrays.asList(puta, vida);
+    Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
 
-        Author william = new Author();
-        william.name = "William Ospina";
-        william.books = Arrays.asList(puta);
+    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
 
-        getAdapter().store(author);
-        getAdapter().store(william);
+    Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+  }
 
-        Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
-        Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+  @Test
+  public void testDeleteManyToManyOnCascade() {
+    Book puta = new Book();
+    puta.id = 1;
+    puta.name = "La puta de Babilonia";
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
+    Book vida = new Book();
+    vida.id = 2;
+    vida.name = "El Don de la Vida";
 
-        Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
-        Assert.assertEquals(1, getAdapter().findAll(Book.class).size());
+    Author author = new Author();
+    author.name = "Fernando Vallejo";
+    author.books = Arrays.asList(puta, vida);
 
-        getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
+    Author william = new Author();
+    william.name = "William Ospina";
+    william.books = Arrays.asList(puta);
 
-        Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
-        Assert.assertEquals(0, getAdapter().findAll(Book.class).size());
-    }
+    getAdapter().store(author);
+    getAdapter().store(william);
+
+    Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
+    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+
+    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
+
+    Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
+    Assert.assertEquals(1, getAdapter().findAll(Book.class).size());
+
+    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
+
+    Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
+    Assert.assertEquals(0, getAdapter().findAll(Book.class).size());
+  }
 }

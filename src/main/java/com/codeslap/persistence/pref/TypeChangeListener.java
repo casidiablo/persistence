@@ -17,44 +17,44 @@
 package com.codeslap.persistence.pref;
 
 import android.content.SharedPreferences;
-import android.preference.*;
+import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 
 /**
  * @author cristian
  */
 class TypeChangeListener implements android.preference.Preference.OnPreferenceChangeListener {
-    private final Class<?> mType;
-    private Preference.OnPreferenceChangeListener mOnPreferenceChangeListener;
+  private final Class<?> mType;
+  private Preference.OnPreferenceChangeListener mOnPreferenceChangeListener;
 
-    TypeChangeListener(Class<?> type) {
-        mType = type;
-    }
+  TypeChangeListener(Class<?> type) {
+    mType = type;
+  }
 
-    @Override
-    public boolean onPreferenceChange(android.preference.Preference preference, Object o) {
-        SharedPreferences.Editor editor = preference.getEditor();
-        String key = preference.getKey();
-        if (mType == int.class) {
-            editor.putInt(key, Integer.parseInt((String) o));
-        } else if (mType == float.class) {
-            editor.putFloat(key, Float.parseFloat((String) o));
-        } else if (mType == long.class) {
-            editor.putLong(key, Long.parseLong((String) o));
-        } else if (mType == boolean.class) {
-            editor.putBoolean(key, (Boolean) o);
-            ((CheckBoxPreference) preference).setChecked((Boolean) o);
-        } else if (mType == String.class) {
-            editor.putString(key, (String) o);
-        }
-        editor.commit();
-        if (mOnPreferenceChangeListener != null) {
-            return mOnPreferenceChangeListener.onPreferenceChange(preference, o);
-        }
-        return false;
+  @Override
+  public boolean onPreferenceChange(android.preference.Preference preference, Object o) {
+    SharedPreferences.Editor editor = preference.getEditor();
+    String key = preference.getKey();
+    if (mType == int.class) {
+      editor.putInt(key, Integer.parseInt((String) o));
+    } else if (mType == float.class) {
+      editor.putFloat(key, Float.parseFloat((String) o));
+    } else if (mType == long.class) {
+      editor.putLong(key, Long.parseLong((String) o));
+    } else if (mType == boolean.class) {
+      editor.putBoolean(key, (Boolean) o);
+      ((CheckBoxPreference) preference).setChecked((Boolean) o);
+    } else if (mType == String.class) {
+      editor.putString(key, (String) o);
     }
+    editor.commit();
+    if (mOnPreferenceChangeListener != null) {
+      return mOnPreferenceChangeListener.onPreferenceChange(preference, o);
+    }
+    return false;
+  }
 
-    public void setOnPreferenceChangeListener(Preference.OnPreferenceChangeListener onPreferenceChangeListener) {
-        mOnPreferenceChangeListener = onPreferenceChangeListener;
-    }
+  public void setOnPreferenceChangeListener(Preference.OnPreferenceChangeListener onPreferenceChangeListener) {
+    mOnPreferenceChangeListener = onPreferenceChangeListener;
+  }
 }

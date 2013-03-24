@@ -20,116 +20,116 @@ package com.codeslap.persistence.pref;
  * @author cristian
  */
 class PrefMetadata {
-    private int title, summary, order, dialogTitle, dialogMessage, dialogIcon, entries, entryValues;
-    private Class<?> type;
-    private String defaultValue;
-    private String key, dependency;
+  private int title, summary, order, dialogTitle, dialogMessage, dialogIcon, entries, entryValues;
+  private Class<?> type;
+  private String defaultValue;
+  private String key, dependency;
 
-    public PrefMetadata setTitle(int title) {
-        this.title = title;
-        return this;
-    }
+  public PrefMetadata setTitle(int title) {
+    this.title = title;
+    return this;
+  }
 
-    public PrefMetadata setSummary(int summary) {
-        this.summary = summary;
-        return this;
-    }
+  public PrefMetadata setSummary(int summary) {
+    this.summary = summary;
+    return this;
+  }
 
-    public PrefMetadata setOrder(int order) {
-        this.order = order;
-        return this;
-    }
+  public PrefMetadata setOrder(int order) {
+    this.order = order;
+    return this;
+  }
 
-    public PrefMetadata setType(Class<?> type) {
-        this.type = type;
-        return this;
-    }
+  public PrefMetadata setType(Class<?> type) {
+    this.type = type;
+    return this;
+  }
 
-    public PrefMetadata setDefaultValue(String defaultValue) {
-        this.defaultValue = defaultValue;
-        return this;
-    }
+  public PrefMetadata setDefaultValue(String defaultValue) {
+    this.defaultValue = defaultValue;
+    return this;
+  }
 
-    public PrefMetadata setKey(String key) {
-        this.key = key;
-        return this;
-    }
+  public PrefMetadata setKey(String key) {
+    this.key = key;
+    return this;
+  }
 
-    public PrefMetadata setDialogIcon(int dialogIcon) {
-        this.dialogIcon = dialogIcon;
-        return this;
-    }
+  public PrefMetadata setDialogIcon(int dialogIcon) {
+    this.dialogIcon = dialogIcon;
+    return this;
+  }
 
-    public PrefMetadata setDialogMessage(int dialogMessage) {
-        this.dialogMessage = dialogMessage;
-        return this;
-    }
+  public PrefMetadata setDialogMessage(int dialogMessage) {
+    this.dialogMessage = dialogMessage;
+    return this;
+  }
 
-    public PrefMetadata setDialogTitle(int dialogTitle) {
-        this.dialogTitle = dialogTitle;
-        return this;
-    }
+  public PrefMetadata setDialogTitle(int dialogTitle) {
+    this.dialogTitle = dialogTitle;
+    return this;
+  }
 
-    public PrefMetadata setEntries(int entries) {
-        this.entries = entries;
-        return this;
-    }
+  public PrefMetadata setEntries(int entries) {
+    this.entries = entries;
+    return this;
+  }
 
-    public PrefMetadata setEntryValues(int entryValues) {
-        this.entryValues = entryValues;
-        return this;
-    }
+  public PrefMetadata setEntryValues(int entryValues) {
+    this.entryValues = entryValues;
+    return this;
+  }
 
-    public PrefMetadata setDependency(String dependency) {
-        this.dependency = dependency;
-        return this;
-    }
+  public PrefMetadata setDependency(String dependency) {
+    this.dependency = dependency;
+    return this;
+  }
 
-    public String getDependency() {
-        return dependency;
-    }
+  public String getDependency() {
+    return dependency;
+  }
 
-    public int getTitle() {
-        return title;
-    }
+  public int getTitle() {
+    return title;
+  }
 
-    public int getSummary() {
-        return summary;
-    }
+  public int getSummary() {
+    return summary;
+  }
 
-    public int getOrder() {
-        return order;
-    }
+  public int getOrder() {
+    return order;
+  }
 
-    public int getDialogTitle() {
-        return dialogTitle;
-    }
+  public int getDialogTitle() {
+    return dialogTitle;
+  }
 
-    public int getDialogMessage() {
-        return dialogMessage;
-    }
+  public int getDialogMessage() {
+    return dialogMessage;
+  }
 
-    public int getDialogIcon() {
-        return dialogIcon;
-    }
+  public int getDialogIcon() {
+    return dialogIcon;
+  }
 
-    public Class<?> getType() {
-        return type;
-    }
+  public Class<?> getType() {
+    return type;
+  }
 
-    public String getDefaultValue() {
-        return defaultValue;
-    }
+  public String getDefaultValue() {
+    return defaultValue;
+  }
 
-    public String getKey() {
-        return key;
-    }
+  public String getKey() {
+    return key;
+  }
 
-    public int getEntries() {
-        return entries;
-    }
+  public int getEntries() {
+    return entries;
+  }
 
-    public int getEntryValues() {
-        return entryValues;
-    }
+  public int getEntryValues() {
+    return entryValues;
+  }
 }

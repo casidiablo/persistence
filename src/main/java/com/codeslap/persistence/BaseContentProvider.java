@@ -24,7 +24,6 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,118 +43,118 @@ import java.util.Map;
  */
 public abstract class BaseContentProvider extends ContentProvider {
 
-    private static UriMatcher sUriMatcher;
-    private static final Map<Integer, String> TABLE_NAME_IDS = new HashMap<Integer, String>();
+  private static UriMatcher sUriMatcher;
+  private static final Map<Integer, String> TABLE_NAME_IDS = new HashMap<Integer, String>();
 
-    private DatabaseSpec mDatabaseSpec;
+  private DatabaseSpec mDatabaseSpec;
 
-    @Override
-    public boolean onCreate() {
-        mDatabaseSpec = PersistenceConfig.getDatabaseSpec(getDatabaseSpecId());
-        sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+  @Override
+  public boolean onCreate() {
+    mDatabaseSpec = PersistenceConfig.getDatabaseSpec(getDatabaseSpecId());
+    sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
-        // get the list of registered classes and add them to the matcher
-        List<Class<?>> objects = mDatabaseSpec.getSqliteClasses();
-        int id = 1;
-        for (Class<?> theClass : objects) {
-            String tableName = SQLHelper.getTableName(theClass);
-            TABLE_NAME_IDS.put(id, tableName);
-            sUriMatcher.addURI(getAuthority(), tableName, id);
-            id++;
-        }
-        return true;
+    // get the list of registered classes and add them to the matcher
+    List<Class<?>> objects = mDatabaseSpec.getSqliteClasses();
+    int id = 1;
+    for (Class<?> theClass : objects) {
+      String tableName = SQLHelper.getTableName(theClass);
+      TABLE_NAME_IDS.put(id, tableName);
+      sUriMatcher.addURI(getAuthority(), tableName, id);
+      id++;
+    }
+    return true;
+  }
+
+  @Override
+  public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    int id = sUriMatcher.match(uri);
+    if (!TABLE_NAME_IDS.containsKey(id)) {
+      throw new IllegalArgumentException("Unknown URI " + uri);
+    }
+    String tableName = TABLE_NAME_IDS.get(id);
+    Cursor cursor = getDatabase().query(tableName, projection, selection, selectionArgs, null, null, sortOrder, null);
+    cursor.setNotificationUri(getContext().getContentResolver(), uri);
+    return cursor;
+  }
+
+  @Override
+  public String getType(Uri uri) {
+    int id = sUriMatcher.match(uri);
+    String tableName = TABLE_NAME_IDS.get(id);
+    return "vnd.android.cursor.dir/vnd." + tableName.replace("_", ".");
+  }
+
+  @Override
+  public Uri insert(Uri uri, ContentValues initialValues) {
+    int id = sUriMatcher.match(uri);
+    if (!TABLE_NAME_IDS.containsKey(id)) {
+      throw new IllegalArgumentException("Unknown URI " + uri + "; id " + id + "; " + TABLE_NAME_IDS);
     }
 
-    @Override
-    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        int id = sUriMatcher.match(uri);
-        if (!TABLE_NAME_IDS.containsKey(id)) {
-            throw new IllegalArgumentException("Unknown URI " + uri);
-        }
-        String tableName = TABLE_NAME_IDS.get(id);
-        Cursor cursor = getDatabase().query(tableName, projection, selection, selectionArgs, null, null, sortOrder, null);
-        cursor.setNotificationUri(getContext().getContentResolver(), uri);
-        return cursor;
+    if (initialValues == null) {
+      initialValues = new ContentValues();
     }
 
-    @Override
-    public String getType(Uri uri) {
-        int id = sUriMatcher.match(uri);
-        String tableName = TABLE_NAME_IDS.get(id);
-        return "vnd.android.cursor.dir/vnd." + tableName.replace("_", ".");
+    String tableName = TABLE_NAME_IDS.get(id);
+    long rowId = getDatabase().insert(tableName, null, initialValues);
+    if (rowId > 0) {
+      Uri CONTENT_URI = Uri.parse(StrUtil.concat("content://", getAuthority(), "/", tableName));
+      Uri beanUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+      getContext().getContentResolver().notifyChange(beanUri, null);
+      return beanUri;
     }
 
-    @Override
-    public Uri insert(Uri uri, ContentValues initialValues) {
-        int id = sUriMatcher.match(uri);
-        if (!TABLE_NAME_IDS.containsKey(id)) {
-            throw new IllegalArgumentException("Unknown URI " + uri + "; id " + id + "; " + TABLE_NAME_IDS);
-        }
+    throw new SQLException("Failed to insert row into " + uri);
+  }
 
-        if (initialValues == null) {
-            initialValues = new ContentValues();
-        }
-
-        String tableName = TABLE_NAME_IDS.get(id);
-        long rowId = getDatabase().insert(tableName, null, initialValues);
-        if (rowId > 0) {
-            Uri CONTENT_URI = Uri.parse(StrUtil.concat("content://", getAuthority(), "/", tableName));
-            Uri beanUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
-            getContext().getContentResolver().notifyChange(beanUri, null);
-            return beanUri;
-        }
-
-        throw new SQLException("Failed to insert row into " + uri);
+  @Override
+  public int delete(Uri uri, String where, String[] whereArgs) {
+    int id = sUriMatcher.match(uri);
+    if (!TABLE_NAME_IDS.containsKey(id)) {
+      throw new IllegalArgumentException("Unknown URI " + uri);
     }
 
-    @Override
-    public int delete(Uri uri, String where, String[] whereArgs) {
-        int id = sUriMatcher.match(uri);
-        if (!TABLE_NAME_IDS.containsKey(id)) {
-            throw new IllegalArgumentException("Unknown URI " + uri);
-        }
+    String tableName = TABLE_NAME_IDS.get(id);
+    int count = getDatabase().delete(tableName, where, whereArgs);
 
-        String tableName = TABLE_NAME_IDS.get(id);
-        int count = getDatabase().delete(tableName, where, whereArgs);
+    getContext().getContentResolver().notifyChange(uri, null);
+    return count;
+  }
 
-        getContext().getContentResolver().notifyChange(uri, null);
-        return count;
+  @Override
+  public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
+    int id = sUriMatcher.match(uri);
+    if (!TABLE_NAME_IDS.containsKey(id)) {
+      throw new IllegalArgumentException("Unknown URI " + uri);
     }
 
-    @Override
-    public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
-        int id = sUriMatcher.match(uri);
-        if (!TABLE_NAME_IDS.containsKey(id)) {
-            throw new IllegalArgumentException("Unknown URI " + uri);
-        }
+    String tableName = TABLE_NAME_IDS.get(id);
+    int count = getDatabase().update(tableName, values, where, whereArgs);
+    getContext().getContentResolver().notifyChange(uri, null);
+    return count;
+  }
 
-        String tableName = TABLE_NAME_IDS.get(id);
-        int count = getDatabase().update(tableName, values, where, whereArgs);
-        getContext().getContentResolver().notifyChange(uri, null);
-        return count;
-    }
+  private SQLiteDatabase getDatabase() {
+    SqliteDb helper = SqliteDb.getInstance(getContext(), getDatabaseName(), mDatabaseSpec);
+    return helper.getDatabase();
+  }
 
-    private SQLiteDatabase getDatabase() {
-        SqliteDb helper = SqliteDb.getInstance(getContext(), getDatabaseName(), mDatabaseSpec);
-        return helper.getDatabase();
-    }
+  public static Uri buildBaseUri(String authority, Class<?> theClass) {
+    return Uri.parse(StrUtil.concat("content://", authority, "/", SQLHelper.getTableName(theClass)));
+  }
 
-    public static Uri buildBaseUri(String authority, Class<?> theClass) {
-        return Uri.parse(StrUtil.concat("content://", authority, "/", SQLHelper.getTableName(theClass)));
-    }
+  /**
+   * @return the name of the database where the tables of this content provider are
+   */
+  public abstract String getDatabaseName();
 
-    /**
-     * @return the name of the database where the tables of this content provider are
-     */
-    public abstract String getDatabaseName();
+  /**
+   * @return the id of the database spec
+   */
+  public abstract String getDatabaseSpecId();
 
-    /**
-     * @return the id of the database spec
-     */
-    public abstract String getDatabaseSpecId();
-
-    /**
-     * @return the authority that will be used in the Uri's
-     */
-    protected abstract String getAuthority();
+  /**
+   * @return the authority that will be used in the Uri's
+   */
+  protected abstract String getAuthority();
 }

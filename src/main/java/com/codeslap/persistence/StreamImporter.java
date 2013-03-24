@@ -17,7 +17,6 @@
 package com.codeslap.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,34 +26,34 @@ import java.io.InputStreamReader;
  * @author cristian
  */
 class StreamImporter implements Importer {
-    private final InputStream mInputStream;
+  private final InputStream mInputStream;
 
-    public StreamImporter(InputStream inputStream) {
-        mInputStream = inputStream;
-    }
+  public StreamImporter(InputStream inputStream) {
+    mInputStream = inputStream;
+  }
 
-    @Override
-    public void execute(SQLiteDatabase database) {
-        if (mInputStream == null) {
-            return;
-        }
-        // now read the input line by line
-        BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
-        try {
-            String line;
-            StringBuilder toExecute = new StringBuilder();
-            while ((line = reader.readLine()) != null) {
-                if ("BEGIN TRANSACTION;".equalsIgnoreCase(line) || "COMMIT;".equalsIgnoreCase(line)) {
-                    continue;
-                }
-                toExecute.append(line);
-                if (line.trim().endsWith(";")) {
-                    database.execSQL(toExecute.toString());
-                    toExecute = new StringBuilder();
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+  @Override
+  public void execute(SQLiteDatabase database) {
+    if (mInputStream == null) {
+      return;
     }
+    // now read the input line by line
+    BufferedReader reader = new BufferedReader(new InputStreamReader(mInputStream));
+    try {
+      String line;
+      StringBuilder toExecute = new StringBuilder();
+      while ((line = reader.readLine()) != null) {
+        if ("BEGIN TRANSACTION;".equalsIgnoreCase(line) || "COMMIT;".equalsIgnoreCase(line)) {
+          continue;
+        }
+        toExecute.append(line);
+        if (line.trim().endsWith(";")) {
+          database.execSQL(toExecute.toString());
+          toExecute = new StringBuilder();
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
 }

@@ -26,76 +26,75 @@ import java.lang.annotation.Target;
  *
  * @author cristian
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 public @interface Preference {
-    /**
-     * @return the key to use in this preference
-     */
-    String value();
+  /**
+   * @return the key to use in this preference
+   */
+  String value();
 
-    /**
-     * @return default value to use
-     */
-    String defaultValue() default "";
+  /**
+   * @return default value to use
+   */
+  String defaultValue() default "";
 
-    /**
-     * @return Android string resource to use when the summary is needed
-     */
-    int summary() default 0;
+  /**
+   * @return Android string resource to use when the summary is needed
+   */
+  int summary() default 0;
 
-    /**
-     * @return Android string resource to use when the tittle is needed
-     */
-    int title() default 0;
+  /**
+   * @return Android string resource to use when the tittle is needed
+   */
+  int title() default 0;
 
-    /**
-     * @return Android string resource to use when the dialog title is needed
-     */
-    int dialogTitle() default 0;
+  /**
+   * @return Android string resource to use when the dialog title is needed
+   */
+  int dialogTitle() default 0;
 
-    /**
-     * @return Android string resource to use when the dialog message is needed
-     */
-    int dialogMessage() default 0;
+  /**
+   * @return Android string resource to use when the dialog message is needed
+   */
+  int dialogMessage() default 0;
 
-    /**
-     * @return Android drawable resource to use when the dialog icon is needed
-     */
-    int dialogIcon() default 0;
+  /**
+   * @return Android drawable resource to use when the dialog icon is needed
+   */
+  int dialogIcon() default 0;
 
-    /**
-     * @return Android string resource to wrap this preference
-     */
-    int category() default -1;
+  /**
+   * @return Android string resource to wrap this preference
+   */
+  int category() default -1;
 
-    /**
-     * @return order in the preference screen
-     */
-    int order() default -1;
+  /**
+   * @return order in the preference screen
+   */
+  int order() default -1;
 
-    /**
-     * @return order in the set of categories
-     */
-    int categoryOrder() default -1;
+  /**
+   * @return order in the set of categories
+   */
+  int categoryOrder() default -1;
 
-    /**
-     * @return the key of a preference that this preference depends on
-     */
-    String dependency() default "";
+  /**
+   * @return the key of a preference that this preference depends on
+   */
+  String dependency() default "";
 
-    /**
-     * @return true if this key must be ignored when building a preference screen
-     */
-    boolean ignore() default false;
+  /**
+   * @return true if this key must be ignored when building a preference screen
+   */
+  boolean ignore() default false;
 
-    /**
-     * @return array resource pointing to the list of entries
-     */
-    int entries() default 0;
+  /**
+   * @return array resource pointing to the list of entries
+   */
+  int entries() default 0;
 
-    /**
-     * @return array resource pointing to the list of entry values
-     */
-    int entryValues() default 0;
+  /**
+   * @return array resource pointing to the list of entry values
+   */
+  int entryValues() default 0;
 }

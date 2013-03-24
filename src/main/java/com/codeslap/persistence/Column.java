@@ -25,28 +25,27 @@ import java.lang.annotation.Target;
  * Using this annotation, it is possible to customize the basic column data that will be associated
  * with an specific field
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 public @interface Column {
-    String NULL = "This is a default value... you are not going to use this, do you?";
+  String NULL = "This is a default value... you are not going to use this, do you?";
 
-    /**
-     * @return the column name
-     */
-    String value();
+  /**
+   * @return the column name
+   */
+  String value();
 
-    /**
-     * @return true if you do not want to allow this field to be null
-     */
-    boolean notNull() default false;
+  /**
+   * @return true if you do not want to allow this field to be null
+   */
+  boolean notNull() default false;
 
-    /**
-     * @return the value to set to this element when no argument is assigned. This works for TEXT columns only.
-     */
-    String defaultValue() default NULL;
+  /**
+   * @return the value to set to this element when no argument is assigned. This works for TEXT columns only.
+   */
+  String defaultValue() default NULL;
 
-    /**
-     * @return true if the name of this column must be forced. Useful when handling primary keys whose name is not _id
-     */
-    boolean forceName() default false;
+  /**
+   * @return true if the name of this column must be forced. Useful when handling primary keys whose name is not _id
+   */
+  boolean forceName() default false;
 }

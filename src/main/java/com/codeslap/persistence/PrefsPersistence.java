@@ -24,17 +24,17 @@ import java.util.List;
  */
 @SuppressWarnings("UnusedDeclaration")
 public class PrefsPersistence {
-    private final List<Class<?>> PREFS_MAP = new ArrayList<Class<?>>();
+  private final List<Class<?>> PREFS_MAP = new ArrayList<Class<?>>();
 
-    public void match(Class<?>... types) {
-        for (Class<?> type : types) {
-            if (!PREFS_MAP.contains(type)) {
-                PREFS_MAP.add(type);
-            }
-        }
+  public void match(Class<?>... types) {
+    for (Class<?> type : types) {
+      if (!PREFS_MAP.contains(type)) {
+        PREFS_MAP.add(type);
+      }
     }
+  }
 
-    boolean belongsToPreferences(Class<?> clazz) {
-        return PREFS_MAP.contains(clazz);
-    }
+  boolean belongsToPreferences(Class<?> clazz) {
+    return PREFS_MAP.contains(clazz);
+  }
 }

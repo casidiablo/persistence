@@ -25,5 +25,5 @@ import android.database.sqlite.SQLiteDatabase;
  * @author cristian
  */
 interface Importer {
-    void execute(SQLiteDatabase database);
+  void execute(SQLiteDatabase database);
 }

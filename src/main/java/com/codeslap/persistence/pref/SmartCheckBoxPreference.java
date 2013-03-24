@@ -22,19 +22,19 @@ import android.preference.CheckBoxPreference;
 /**
  * @author cristian
  */
-public class SmartCheckBoxPreference extends CheckBoxPreference{
-    public SmartCheckBoxPreference(Context context) {
-        super(context);
-        setOnPreferenceChangeListener(new TypeChangeListener(boolean.class));
-    }
+public class SmartCheckBoxPreference extends CheckBoxPreference {
+  public SmartCheckBoxPreference(Context context) {
+    super(context);
+    setOnPreferenceChangeListener(new TypeChangeListener(boolean.class));
+  }
 
-    @Override
-    public void setOnPreferenceChangeListener(OnPreferenceChangeListener onPreferenceChangeListener) {
-        if (onPreferenceChangeListener instanceof TypeChangeListener) {
-            super.setOnPreferenceChangeListener(onPreferenceChangeListener);
-        } else {
-            TypeChangeListener listener = (TypeChangeListener) getOnPreferenceChangeListener();
-            listener.setOnPreferenceChangeListener(onPreferenceChangeListener);
-        }
+  @Override
+  public void setOnPreferenceChangeListener(OnPreferenceChangeListener onPreferenceChangeListener) {
+    if (onPreferenceChangeListener instanceof TypeChangeListener) {
+      super.setOnPreferenceChangeListener(onPreferenceChangeListener);
+    } else {
+      TypeChangeListener listener = (TypeChangeListener) getOnPreferenceChangeListener();
+      listener.setOnPreferenceChangeListener(onPreferenceChangeListener);
     }
+  }
 }

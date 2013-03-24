@@ -22,7 +22,6 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.text.TextUtils;
-
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,67 +35,67 @@ import java.util.WeakHashMap;
  */
 public abstract class SuggestionsProvider<T> extends ContentProvider {
 
-    private static final Map<Object, SoftReference<SuggestionInfo>> suggestions = new WeakHashMap<Object, SoftReference<SuggestionInfo>>();
+  private static final Map<Object, SoftReference<SuggestionInfo>> suggestions = new WeakHashMap<Object, SoftReference<SuggestionInfo>>();
 
-    @Override
-    public boolean onCreate() {
-        return true;
+  @Override
+  public boolean onCreate() {
+    return true;
+  }
+
+  @Override
+  public String getType(Uri uri) {
+    return "vnd.android.cursor.item/vnd." + getContext().getPackageName() + "." + getClass().getSimpleName();
+  }
+
+  @Override
+  public Cursor query(Uri uri, String[] projection, String where, String[] whereArgs, String sortOrder) {
+    // retrieve elements using the search filter
+    List<T> findAll = new ArrayList<T>();
+    String query = uri.getLastPathSegment();
+    if (!SearchManager.SUGGEST_URI_PATH_QUERY.equals(query) && !TextUtils.isEmpty(query)) {
+      List<T> ts = queryItems(query);
+      findAll.addAll(ts);
     }
 
-    @Override
-    public String getType(Uri uri) {
-        return "vnd.android.cursor.item/vnd." + getContext().getPackageName() + "." + getClass().getSimpleName();
+    // build the list of suggestions
+    List<SuggestionInfo> suggestionInfos = new ArrayList<SuggestionInfo>();
+    for (T object : findAll) {
+      SoftReference<SuggestionInfo> soft;
+      if (suggestions.containsKey(object) && suggestions.get(object).get() != null) {
+        soft = suggestions.get(object);
+      } else {
+        soft = new SoftReference<SuggestionInfo>(buildSuggestionInfo(object));
+        suggestions.put(object, soft);
+      }
+      suggestionInfos.add(soft.get());
     }
+    return new SuggestionsCursor(suggestionInfos);
+  }
 
-    @Override
-    public Cursor query(Uri uri, String[] projection, String where, String[] whereArgs, String sortOrder) {
-        // retrieve elements using the search filter
-        List<T> findAll = new ArrayList<T>();
-        String query = uri.getLastPathSegment();
-        if (!SearchManager.SUGGEST_URI_PATH_QUERY.equals(query) && !TextUtils.isEmpty(query)) {
-            List<T> ts = queryItems(query);
-            findAll.addAll(ts);
-        }
+  @Override
+  public Uri insert(Uri uri, ContentValues contentValues) {
+    return null;
+  }
 
-        // build the list of suggestions
-        List<SuggestionInfo> suggestionInfos = new ArrayList<SuggestionInfo>();
-        for (T object : findAll) {
-            SoftReference<SuggestionInfo> soft;
-            if (suggestions.containsKey(object) && suggestions.get(object).get() != null) {
-                soft = suggestions.get(object);
-            } else {
-                soft = new SoftReference<SuggestionInfo>(buildSuggestionInfo(object));
-                suggestions.put(object, soft);
-            }
-            suggestionInfos.add(soft.get());
-        }
-        return new SuggestionsCursor(suggestionInfos);
-    }
+  @Override
+  public int delete(Uri uri, String s, String[] strings) {
+    return 0;
+  }
 
-    @Override
-    public Uri insert(Uri uri, ContentValues contentValues) {
-        return null;
-    }
+  @Override
+  public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
+    return 0;
+  }
 
-    @Override
-    public int delete(Uri uri, String s, String[] strings) {
-        return 0;
-    }
+  /**
+   * @param query the string to search for
+   * @return a not-null list of elements that matches the query
+   */
+  public abstract List<T> queryItems(String query);
 
-    @Override
-    public int update(Uri uri, ContentValues contentValues, String s, String[] strings) {
-        return 0;
-    }
-
-    /**
-     * @param query the string to search for
-     * @return a not-null list of elements that matches the query
-     */
-    public abstract List<T> queryItems(String query);
-
-    /**
-     * @param object the sample object
-     * @return a suggestion based on a sample object. You must use the {@link SuggestionInfo.Builder}
-     */
-    public abstract SuggestionInfo buildSuggestionInfo(T object);
+  /**
+   * @param object the sample object
+   * @return a suggestion based on a sample object. You must use the {@link SuggestionInfo.Builder}
+   */
+  public abstract SuggestionInfo buildSuggestionInfo(T object);
 }

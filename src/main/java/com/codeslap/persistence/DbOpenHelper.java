@@ -19,7 +19,6 @@ package com.codeslap.persistence;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-
 import java.util.List;
 
 /**
@@ -29,62 +28,62 @@ import java.util.List;
  * @author cristian
  */
 public abstract class DbOpenHelper extends SQLiteOpenHelper {
-    private DatabaseSpec mDatabaseSpec;
+  private DatabaseSpec mDatabaseSpec;
 
-    public DbOpenHelper(Context context, String name, int version) {
-        super(context, name, null, version);
+  public DbOpenHelper(Context context, String name, int version) {
+    super(context, name, null, version);
+  }
+
+  public void setDatabaseSpec(DatabaseSpec databaseSpec) {
+    mDatabaseSpec = databaseSpec;
+  }
+
+  @Override
+  public void onCreate(SQLiteDatabase sqLiteDatabase) {
+    if (mDatabaseSpec == null) {
+      throw new IllegalStateException("Database specification cannot be null at this point. Let's cry.");
     }
 
-    public void setDatabaseSpec(DatabaseSpec databaseSpec) {
-        mDatabaseSpec = databaseSpec;
+    // if there is something to import before creation, let's do it
+    List<Importer> importers = mDatabaseSpec.getBeforeImporters();
+    for (Importer importer : importers) {
+      importer.execute(sqLiteDatabase);
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        if (mDatabaseSpec == null) {
-            throw new IllegalStateException("Database specification cannot be null at this point. Let's cry.");
-        }
+    // create all tables for the current database spec
+    createTables(sqLiteDatabase);
 
-        // if there is something to import before creation, let's do it
-        List<Importer> importers = mDatabaseSpec.getBeforeImporters();
-        for (Importer importer : importers) {
-            importer.execute(sqLiteDatabase);
-        }
-
-        // create all tables for the current database spec
-        createTables(sqLiteDatabase);
-
-        // if there is something to import after creation, let's do it
-        importers = mDatabaseSpec.getAfterImporters();
-        for (Importer importer : importers) {
-            importer.execute(sqLiteDatabase);
-        }
+    // if there is something to import after creation, let's do it
+    importers = mDatabaseSpec.getAfterImporters();
+    for (Importer importer : importers) {
+      importer.execute(sqLiteDatabase);
     }
+  }
 
-    @Override
-    public final void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
-        onUpgradeDatabase(sqLiteDatabase, oldVersion, newVersion);
-        createTables(sqLiteDatabase);
+  @Override
+  public final void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
+    onUpgradeDatabase(sqLiteDatabase, oldVersion, newVersion);
+    createTables(sqLiteDatabase);
+  }
+
+  protected void createTables(SQLiteDatabase sqLiteDatabase) {
+    List<Class<?>> objects = mDatabaseSpec.getSqliteClasses();
+    for (Class<?> clazz : objects) {
+      sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(clazz, mDatabaseSpec));
     }
-
-    protected void createTables(SQLiteDatabase sqLiteDatabase) {
-        List<Class<?>> objects = mDatabaseSpec.getSqliteClasses();
-        for (Class<?> clazz : objects) {
-            sqLiteDatabase.execSQL(SQLHelper.getCreateTableSentence(clazz, mDatabaseSpec));
-        }
-        // create all extra table for many to many relations
-        List<ManyToMany> sqliteManyToMany = mDatabaseSpec.getSqliteManyToMany();
-        for (ManyToMany manyToMany : sqliteManyToMany) {
-            sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
-        }
+    // create all extra table for many to many relations
+    List<ManyToMany> sqliteManyToMany = mDatabaseSpec.getSqliteManyToMany();
+    for (ManyToMany manyToMany : sqliteManyToMany) {
+      sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
     }
+  }
 
-    /**
-     * Use this when a change to the database schema is needed.
-     *
-     * @param sqLiteDatabase the current sqlite database instance
-     * @param oldVersion     the previous database version
-     * @param newVersion     the next database version
-     */
-    public abstract void onUpgradeDatabase(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion);
+  /**
+   * Use this when a change to the database schema is needed.
+   *
+   * @param sqLiteDatabase the current sqlite database instance
+   * @param oldVersion     the previous database version
+   * @param newVersion     the next database version
+   */
+  public abstract void onUpgradeDatabase(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion);
 }

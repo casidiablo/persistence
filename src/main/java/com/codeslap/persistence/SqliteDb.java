@@ -20,7 +20,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,60 +29,59 @@ import java.util.Map;
  * created yet, or update it in case the version number changes.
  */
 class SqliteDb {
-    private static final String TAG = SqliteDb.class.getSimpleName();
-    private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
-    private final DbOpenHelper mDbHelper;
+  private static final String TAG = SqliteDb.class.getSimpleName();
+  private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
+  private final DbOpenHelper mDbHelper;
 
-    private SqliteDb(Context context, String name, DatabaseSpec databaseSpec) {
-        if (databaseSpec.mDbOpenHelperBuilder != null) {
-            mDbHelper = databaseSpec.mDbOpenHelperBuilder.buildOpenHelper(context, name, databaseSpec.getVersion());
-        } else {
-            mDbHelper = new DefaultOpenHelper(context, name, databaseSpec.getVersion());
-        }
-        mDbHelper.setDatabaseSpec(databaseSpec);
-        PersistenceLogManager.d(TAG, StrUtil.concat("Opening ", name, " database..."));
+  private SqliteDb(Context context, String name, DatabaseSpec databaseSpec) {
+    if (databaseSpec.mDbOpenHelperBuilder != null) {
+      mDbHelper = databaseSpec.mDbOpenHelperBuilder.buildOpenHelper(context, name, databaseSpec.getVersion());
+    } else {
+      mDbHelper = new DefaultOpenHelper(context, name, databaseSpec.getVersion());
+    }
+    mDbHelper.setDatabaseSpec(databaseSpec);
+    PersistenceLogManager.d(TAG, StrUtil.concat("Opening ", name, " database..."));
+  }
+
+  static synchronized SqliteDb getInstance(Context context, String name, DatabaseSpec databaseSpec) {
+    String key = name + databaseSpec.getVersion();
+    if (!instances.containsKey(key)) {
+      instances.put(key, new SqliteDb(context, name, databaseSpec));
+    }
+    return instances.get(key);
+  }
+
+  public SQLiteDatabase getDatabase() {
+    return mDbHelper.getWritableDatabase();
+  }
+
+  private static class DefaultOpenHelper extends DbOpenHelper {
+    public DefaultOpenHelper(Context context, String name, int version) {
+      super(context, name, version);
     }
 
-    static synchronized SqliteDb getInstance(Context context, String name, DatabaseSpec databaseSpec) {
-        String key = name + databaseSpec.getVersion();
-        if (!instances.containsKey(key)) {
-            instances.put(key, new SqliteDb(context, name, databaseSpec));
-        }
-        return instances.get(key);
+    @Override
+    public void onUpgradeDatabase(SQLiteDatabase db, int oldVersion, int newVersion) {
+      // Here we will delete the whole database and recreate it
+      Cursor cursor = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " + "AND name != 'sqlite_sequence';", null);
+      if (cursor != null && cursor.moveToFirst()) {
+        do {
+          try {
+            db.execSQL(cursor.getString(0));
+          } catch (SQLException e) {
+            // lets ignore errors while purging the database
+          }
+        } while (cursor.moveToNext());
+      }
+      try {
+        db.execSQL("DELETE FROM sqlite_sequence");
+      } catch (SQLException e) {
+        // sometimes the sqlite_sequence has not been created yet
+      }
+      onCreate(db);
+      if (cursor != null) {
+        cursor.close();
+      }
     }
-
-    public SQLiteDatabase getDatabase() {
-        return mDbHelper.getWritableDatabase();
-    }
-
-    private static class DefaultOpenHelper extends DbOpenHelper {
-        public DefaultOpenHelper(Context context, String name, int version) {
-            super(context, name, version);
-        }
-
-        @Override
-        public void onUpgradeDatabase(SQLiteDatabase db, int oldVersion, int newVersion) {
-            // Here we will delete the whole database and recreate it
-            Cursor cursor = db.rawQuery("SELECT 'DROP TABLE ' || name || ';' FROM sqlite_master WHERE type = 'table' " +
-                    "AND name != 'sqlite_sequence';", null);
-            if (cursor != null && cursor.moveToFirst()) {
-                do {
-                    try {
-                        db.execSQL(cursor.getString(0));
-                    } catch (SQLException e) {
-                        // lets ignore errors while purging the database
-                    }
-                } while (cursor.moveToNext());
-            }
-            try {
-                db.execSQL("DELETE FROM sqlite_sequence");
-            } catch (SQLException e) {
-                // sometimes the sqlite_sequence has not been created yet
-            }
-            onCreate(db);
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
+  }
 }

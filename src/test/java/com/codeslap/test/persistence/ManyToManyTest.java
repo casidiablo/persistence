@@ -17,7 +17,6 @@
 package com.codeslap.test.persistence;
 
 import org.junit.Test;
-
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
@@ -26,78 +25,78 @@ import static org.junit.Assert.assertEquals;
  * @author cristian
  */
 public class ManyToManyTest extends SqliteTest {
-    @Test
-    public void testManyToMany() {
-        // let's create some dummy data
-        Author fernando = new Author();
-        fernando.name = "Vallejo";
+  @Test
+  public void testManyToMany() {
+    // let's create some dummy data
+    Author fernando = new Author();
+    fernando.name = "Vallejo";
 
-        Author william = new Author();
-        william.name = "Ospinas";
+    Author william = new Author();
+    william.name = "Ospinas";
 
-        Book tautologia = new Book();
-        tautologia.name = "Tautología Darwinista";
+    Book tautologia = new Book();
+    tautologia.name = "Tautología Darwinista";
 
-        Book imposturologia = new Book();
-        imposturologia.name = "Manualito de Imposturología Física";
+    Book imposturologia = new Book();
+    imposturologia.name = "Manualito de Imposturología Física";
 
-        Book puta = new Book();
-        puta.name = "La puta de Babilonia";
+    Book puta = new Book();
+    puta.name = "La puta de Babilonia";
 
-        Book foo = new Book();
-        foo.name = "Bar";
+    Book foo = new Book();
+    foo.name = "Bar";
 
-        // let's create some relations
-        fernando.books = Arrays.asList(tautologia, imposturologia, puta);
-        william.books = Arrays.asList(tautologia, foo);
+    // let's create some relations
+    fernando.books = Arrays.asList(tautologia, imposturologia, puta);
+    william.books = Arrays.asList(tautologia, foo);
 
-        getAdapter().storeCollection(Arrays.asList(william, fernando), null);
+    getAdapter().storeCollection(Arrays.asList(william, fernando), null);
 
-        Author vallejo = getAdapter().findFirst(Author.class, "name LIKE 'Vallejo'", null);
-        Author ospina = getAdapter().findFirst(Author.class, "name LIKE 'Ospinas'", null);
+    Author vallejo = getAdapter().findFirst(Author.class, "name LIKE 'Vallejo'", null);
+    Author ospina = getAdapter().findFirst(Author.class, "name LIKE 'Ospinas'", null);
 
-        assertEquals(fernando, vallejo);
-        assertEquals(william, ospina);
+    assertEquals(fernando, vallejo);
+    assertEquals(william, ospina);
 
-        getAdapter().delete(tautologia);
-    }
+    getAdapter().delete(tautologia);
+  }
 
-    @Test
-    public void testManyToManyWithAnnotations() {
-        // let's create some dummy data
-        Owner fernando = new Owner();
-        fernando.name = "Fernando Vallejo";
+  @Test
+  public void testManyToManyWithAnnotations() {
+    // let's create some dummy data
+    Owner fernando = new Owner();
+    fernando.name = "Fernando Vallejo";
 
-        Owner william = new Owner();
-        william.name = "William Ospina";
+    Owner william = new Owner();
+    william.name = "William Ospina";
 
-        Pet witch = new Pet();
-        witch.nick = "Bruja";
+    Pet witch = new Pet();
+    witch.nick = "Bruja";
 
-        Pet tobby = new Pet();
-        tobby.nick = "Tobby";
+    Pet tobby = new Pet();
+    tobby.nick = "Tobby";
 
-        Pet lazzy = new Pet();
-        lazzy.nick = "Lazzy";
+    Pet lazzy = new Pet();
+    lazzy.nick = "Lazzy";
 
-        Pet foo = new Pet();
-        foo.nick = "Bar";
+    Pet foo = new Pet();
+    foo.nick = "Bar";
 
-        // let's create some relations
-        fernando.pets = Arrays.asList(witch, tobby);
-        william.pets = Arrays.asList(witch, foo, lazzy);
+    // let's create some relations
+    fernando.pets = Arrays.asList(witch, tobby);
+    william.pets = Arrays.asList(witch, foo, lazzy);
 
-        getAdapter().storeCollection(Arrays.asList(william, fernando), null);
+    getAdapter().storeCollection(Arrays.asList(william, fernando), null);
 
-        Owner vallejo = getAdapter().findFirst(Owner.class, "full_name LIKE ?", new String[]{"Fernando%"});
-        Owner ospina = getAdapter().findFirst(Owner.class, "full_name LIKE '%Ospina%'", null);
+    Owner vallejo = getAdapter().findFirst(Owner.class, "full_name LIKE ?", new String[]{"Fernando%"});
+    Owner ospina = getAdapter().findFirst(Owner.class, "full_name LIKE '%Ospina%'", null);
 
-        assertEquals(fernando, vallejo);
-        assertEquals(william, ospina);
+    assertEquals(fernando, vallejo);
+    assertEquals(william, ospina);
 
-        getAdapter().delete(witch);
-        getAdapter().delete(fernando);
-        getAdapter().delete(ospina);
-        getAdapter().delete(tobby);
-    }
+    getAdapter().delete(witch);
+    getAdapter().delete(fernando);
+    getAdapter().delete(ospina);
+    getAdapter().delete(tobby);
+  }
 }

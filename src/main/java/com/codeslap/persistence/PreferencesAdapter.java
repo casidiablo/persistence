@@ -25,31 +25,31 @@ package com.codeslap.persistence;
  * @version 1.0
  */
 public interface PreferencesAdapter {
-    String DEFAULT_PREFS = "default.prefs";
+  String DEFAULT_PREFS = "default.prefs";
 
-    /**
-     * Persist a bean to the shared preferences
-     *
-     * @param bean the bean to persist
-     * @param <T>  this can be any kind of bean with primitive data
-     */
-    public <T> void store(T bean);
+  /**
+   * Persist a bean to the shared preferences
+   *
+   * @param bean the bean to persist
+   * @param <T>  this can be any kind of bean with primitive data
+   */
+  public <T> void store(T bean);
 
-    /**
-     * Retrieves an object from the database
-     *
-     * @param theClass the class of the bean to retrieve
-     * @param <T>      this can be any kind of bean with primitive data
-     * @return the persisted object
-     */
-    public <T> T retrieve(Class<T> theClass);
+  /**
+   * Retrieves an object from the database
+   *
+   * @param theClass the class of the bean to retrieve
+   * @param <T>      this can be any kind of bean with primitive data
+   * @return the persisted object
+   */
+  public <T> T retrieve(Class<T> theClass);
 
-    /**
-     * Removes an object from the shared preferences
-     *
-     * @param theClass the class of the bean to delete
-     * @param <T>      this can be any kind of bean with primitive data
-     * @return true if everything went fine
-     */
-    public <T> boolean delete(Class<T> theClass);
+  /**
+   * Removes an object from the shared preferences
+   *
+   * @param theClass the class of the bean to delete
+   * @param <T>      this can be any kind of bean with primitive data
+   * @return true if everything went fine
+   */
+  public <T> boolean delete(Class<T> theClass);
 }

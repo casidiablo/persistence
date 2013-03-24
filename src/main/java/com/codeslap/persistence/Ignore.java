@@ -23,9 +23,9 @@ import java.lang.annotation.Target;
 
 /**
  * Put this in the fields that you do not want to include into the database model
+ *
  * @author cristian
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 public @interface Ignore {
 }

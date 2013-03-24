@@ -17,81 +17,80 @@
 package com.codeslap.persistence;
 
 import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class PersistenceLogManager {
-    private static final List<Logger> loggers = new ArrayList<Logger>();
+  private static final List<Logger> loggers = new ArrayList<Logger>();
 
-    public static void register(final String tag) {
-        register(new PersistenceLogManager.Logger() {
-            @Override
-            public String getTag() {
-                return tag;
-            }
+  public static void register(final String tag) {
+    register(new PersistenceLogManager.Logger() {
+      @Override
+      public String getTag() {
+        return tag;
+      }
 
-            @Override
-            public boolean active() {
-                return true;
-            }
-        });
+      @Override
+      public boolean active() {
+        return true;
+      }
+    });
+  }
+
+  static void register(Logger logger) {
+    loggers.add(logger);
+  }
+
+  public static void clear() {
+    loggers.clear();
+  }
+
+  interface Logger {
+    String getTag();
+
+    boolean active();
+  }
+
+  /**
+   * Sends a debug message to the log
+   *
+   * @param tag Tag to use
+   * @param msg Message to send
+   */
+  static void d(String tag, String msg) {
+    for (Logger logger : loggers) {
+      if (logger.active()) {
+        Log.d(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg);
+      }
     }
+  }
 
-    static void register(Logger logger) {
-        loggers.add(logger);
+  /**
+   * Send an error message to the log
+   *
+   * @param tag Tag to use
+   * @param msg Message to send
+   */
+  static void e(String tag, String msg) {
+    for (Logger logger : loggers) {
+      if (logger.active()) {
+        Log.e(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg);
+      }
     }
+  }
 
-    public static void clear() {
-        loggers.clear();
+  /**
+   * Sends an error message to the log
+   *
+   * @param tag Tag to use
+   * @param msg Message to send
+   * @param t   a throwable to show in the log
+   */
+  static void e(String tag, String msg, Throwable t) {
+    for (Logger logger : loggers) {
+      if (logger.active()) {
+        Log.e(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg, t);
+      }
     }
-
-    interface Logger {
-        String getTag();
-
-        boolean active();
-    }
-
-    /**
-     * Sends a debug message to the log
-     *
-     * @param tag Tag to use
-     * @param msg Message to send
-     */
-    static void d(String tag, String msg) {
-        for (Logger logger : loggers) {
-            if (logger.active()) {
-                Log.d(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg);
-            }
-        }
-    }
-
-    /**
-     * Send an error message to the log
-     *
-     * @param tag Tag to use
-     * @param msg Message to send
-     */
-    static void e(String tag, String msg) {
-        for (Logger logger : loggers) {
-            if (logger.active()) {
-                Log.e(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg);
-            }
-        }
-    }
-
-    /**
-     * Sends an error message to the log
-     *
-     * @param tag Tag to use
-     * @param msg Message to send
-     * @param t   a throwable to show in the log
-     */
-    static void e(String tag, String msg, Throwable t) {
-        for (Logger logger : loggers) {
-            if (logger.active()) {
-                Log.e(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg, t);
-            }
-        }
-    }
+  }
 }

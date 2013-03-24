@@ -20,37 +20,37 @@ package com.codeslap.persistence;
  * This class define a set of constraint for sqlite queries
  */
 public class Constraint {
-    private String mOrderBy;
-    private Integer mLimit;
-    private String mGroupBy;
+  private String mOrderBy;
+  private Integer mLimit;
+  private String mGroupBy;
 
-    public Constraint() {
-    }
+  public Constraint() {
+  }
 
-    public Constraint orderBy(String column) {
-        mOrderBy = column;
-        return this;
-    }
+  public Constraint orderBy(String column) {
+    mOrderBy = column;
+    return this;
+  }
 
-    public Constraint limit(Integer limit) {
-        mLimit = limit;
-        return this;
-    }
+  public Constraint limit(Integer limit) {
+    mLimit = limit;
+    return this;
+  }
 
-    public Constraint groupBy(String groupBy) {
-        mGroupBy = groupBy;
-        return this;
-    }
+  public Constraint groupBy(String groupBy) {
+    mGroupBy = groupBy;
+    return this;
+  }
 
-    String getOrderBy() {
-        return mOrderBy;
-    }
+  String getOrderBy() {
+    return mOrderBy;
+  }
 
-    Integer getLimit() {
-        return mLimit;
-    }
+  Integer getLimit() {
+    return mLimit;
+  }
 
-    String getGroupBy() {
-        return mGroupBy;
-    }
+  String getGroupBy() {
+    return mGroupBy;
+  }
 }

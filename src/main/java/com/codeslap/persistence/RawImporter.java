@@ -20,28 +20,29 @@ import android.database.sqlite.SQLiteDatabase;
 
 /**
  * {@link Importer} implementation that takes the SQL statements directly from a String.
+ *
  * @author cristian
  */
 class RawImporter implements Importer {
-    private final String mSqlStatement;
+  private final String mSqlStatement;
 
-    RawImporter(String sqlStatements) {
-        mSqlStatement = sqlStatements;
-    }
+  RawImporter(String sqlStatements) {
+    mSqlStatement = sqlStatements;
+  }
 
-    @Override
-    public void execute(SQLiteDatabase database) {
-        String[] lines = mSqlStatement.split("\n");
-        StringBuilder toExecute = new StringBuilder();
-        for (String line : lines) {
-            if ("BEGIN TRANSACTION;".equalsIgnoreCase(line) || "COMMIT;".equalsIgnoreCase(line)) {
-                continue;
-            }
-            toExecute.append(line);
-            if (line.trim().endsWith(";")) {
-                database.execSQL(toExecute.toString());
-                toExecute = new StringBuilder();
-            }
-        }
+  @Override
+  public void execute(SQLiteDatabase database) {
+    String[] lines = mSqlStatement.split("\n");
+    StringBuilder toExecute = new StringBuilder();
+    for (String line : lines) {
+      if ("BEGIN TRANSACTION;".equalsIgnoreCase(line) || "COMMIT;".equalsIgnoreCase(line)) {
+        continue;
+      }
+      toExecute.append(line);
+      if (line.trim().endsWith(";")) {
+        database.execSQL(toExecute.toString());
+        toExecute = new StringBuilder();
+      }
     }
+  }
 }
