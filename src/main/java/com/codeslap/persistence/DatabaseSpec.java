@@ -140,7 +140,7 @@ public class DatabaseSpec {
         for (ManyToMany mtm : mManyToManyList) {
             if ((mtm.getFirstRelation() == manyToMany.getSecondRelation() && mtm.getSecondRelation() == manyToMany.getFirstRelation()) ||
                     (mtm.getFirstRelation() == manyToMany.getFirstRelation() && mtm.getSecondRelation() == manyToMany.getSecondRelation())) {
-                throw new IllegalStateException(String.format("Error adding '%s': there should not be two many-to-many relations with the same classes.", manyToMany));
+                throw new IllegalStateException(StrUtil.concat("Error adding ", manyToMany, ": there should not be two many-to-many relations with the same classes."));
             }
         }
         match(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());

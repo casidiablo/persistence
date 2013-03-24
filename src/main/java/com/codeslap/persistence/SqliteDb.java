@@ -41,7 +41,7 @@ class SqliteDb {
             mDbHelper = new DefaultOpenHelper(context, name, databaseSpec.getVersion());
         }
         mDbHelper.setDatabaseSpec(databaseSpec);
-        PersistenceLogManager.d(TAG, String.format("Opening \"%s\" database...", name));
+        PersistenceLogManager.d(TAG, StrUtil.concat("Opening ", name, " database..."));
     }
 
     static synchronized SqliteDb getInstance(Context context, String name, DatabaseSpec databaseSpec) {

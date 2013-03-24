@@ -61,7 +61,7 @@ public class PersistenceLogManager {
     static void d(String tag, String msg) {
         for (Logger logger : loggers) {
             if (logger.active()) {
-                Log.d(String.format("%s:persistence:%s", logger.getTag(), tag), msg);
+                Log.d(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg);
             }
         }
     }
@@ -75,7 +75,7 @@ public class PersistenceLogManager {
     static void e(String tag, String msg) {
         for (Logger logger : loggers) {
             if (logger.active()) {
-                Log.e(String.format("%s:persistence:%s", logger.getTag(), tag), msg);
+                Log.e(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg);
             }
         }
     }
@@ -90,7 +90,7 @@ public class PersistenceLogManager {
     static void e(String tag, String msg, Throwable t) {
         for (Logger logger : loggers) {
             if (logger.active()) {
-                Log.e(String.format("%s:persistence:%s", logger.getTag(), tag), msg, t);
+                Log.e(StrUtil.concat(logger.getTag(), ":persistence:", tag), msg, t);
             }
         }
     }

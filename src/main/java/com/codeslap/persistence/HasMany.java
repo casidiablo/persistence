@@ -61,7 +61,7 @@ public class HasMany {
             }
             // if relation does not exist, do not continue
             if (!relationExists) {
-                String msg = String.format("Relation does not exist (%s has many %s)", classA, hasMany);
+                String msg = StrUtil.concat("Relation does not exist: ", classA, " has many ", hasMany);
                 throw new IllegalStateException(msg);
             }
         }
@@ -137,7 +137,7 @@ public class HasMany {
     }
 
     String getForeignKey() {
-        return String.format("%s_%s", SQLHelper.normalize(mContainerClass.getSimpleName()), SQLHelper.normalize(mThrough));
+        return StrUtil.concat(SQLHelper.normalize(mContainerClass.getSimpleName()), "_", SQLHelper.normalize(mThrough));
     }
 
     @Override

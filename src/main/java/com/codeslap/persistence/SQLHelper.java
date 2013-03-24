@@ -24,20 +24,23 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
+import static com.codeslap.persistence.StrUtil.concat;
+
 public class SQLHelper {
 
     static final String ID = "id";
     static final String _ID = "_id";
-    static final String PRIMARY_KEY = "%s INTEGER PRIMARY KEY";
+    static final String PRIMARY_KEY = " INTEGER PRIMARY KEY";
     private static final String HEXES = "0123456789ABCDEF";
 
     private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Class<?>, String> TABLE_NAMES_CACHE = new HashMap<Class<?>, String>();
     private static final Map<Field, String> COLUMN_NAMES_CACHE = new HashMap<Field, String>();
     private static final Map<Class<?>, Field[]> FIELDS_CACHE = new HashMap<Class<?>, Field[]>();
-    static final String SELECT_AUTOINCREMENT_FORMAT = "(SELECT seq FROM sqlite_sequence WHERE name = '%s')";
 
     static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
+    private static final char QUOTE = '\'';
+    private static final String DOUBLE_QUOTE = "''";
 
     public static String getCreateTableSentence(Class clazz, DatabaseSpec databaseSpec) {
         List<String> fieldSentences = new ArrayList<String>();
@@ -76,7 +79,7 @@ public class SQLHelper {
             // if so, add a new field to the table creation statement to create the relation
             Class<?> containerClass = belongsTo.getContainerClass();
             Field field = belongsTo.getThroughField();
-            String columnName = String.format("%s_%s", normalize(containerClass.getSimpleName()), normalize(belongsTo.getThroughField().getName()));
+            String columnName = concat(normalize(containerClass.getSimpleName()), "_", normalize(belongsTo.getThroughField().getName()));
             if (!columns.contains(columnName)) {
                 fieldSentences.add(getFieldSentence(columnName, field.getType(), true));
                 columns.add(getColumnName(field));
@@ -87,10 +90,10 @@ public class SQLHelper {
         Collections.sort(fieldSentences, new Comparator<String>() {
             @Override
             public int compare(String s1, String s2) {
-                if (s1.contains(String.format(PRIMARY_KEY, ""))) {
+                if (s1.contains(PRIMARY_KEY)) {
                     return -1;
                 }
-                if (s2.contains(String.format(PRIMARY_KEY, ""))) {
+                if (s2.contains(PRIMARY_KEY)) {
                     return 1;
                 }
                 return 0;
@@ -142,18 +145,18 @@ public class SQLHelper {
             notNullSentence = " NOT NULL";
         }
         if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
-            return String.format("%s INTEGER%s", name, notNullSentence);
+            return concat(name, " INTEGER", notNullSentence);
         }
         if (type == boolean.class || type == Boolean.class) {
-            return String.format("%s BOOLEAN%s", name, notNullSentence);
+            return concat(name, " BOOLEAN", notNullSentence);
         }
         if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-            return String.format("%s REAL%s", name, notNullSentence);
+            return concat(name, " REAL", notNullSentence);
         }
         if (type == byte[].class || type == Byte[].class) {
-            return String.format("%s BLOB%s", name, notNullSentence);
+            return concat(name, " BLOB", notNullSentence);
         }
-        return String.format("%s TEXT%s", name, notNullSentence);
+        return concat(name, " TEXT", notNullSentence);
     }
 
     static <T, G> String getWhere(Class<?> theClass, T bean, List<String> args, G attachedTo, DatabaseSpec databaseSpec) {
@@ -162,14 +165,11 @@ public class SQLHelper {
             Class<?> clazz = bean.getClass();
             Field[] fields = getDeclaredFields(clazz);
             for (Field field : fields) {
-                if (field.getType() == byte[].class || field.getType() == Byte[].class) {
+                Class<?> type = field.getType();
+                if (type == byte[].class || type == Byte[].class || type == List.class) {
                     continue;
                 }
                 try {
-                    Class<?> type = field.getType();
-                    if (type == List.class) {
-                        continue;
-                    }
                     field.setAccessible(true);
                     Object value = field.get(bean);
                     if (!hasData(type, value)) {
@@ -178,19 +178,19 @@ public class SQLHelper {
                     String columnName = getColumnName(field);
                     if (args == null) {
                         if (field.getType() == String.class) {
-                            conditions.add(String.format("%s LIKE '%s'", columnName,
-                                    String.valueOf(value).replace("'", "''")));
+                            String cleanedValue = String.valueOf(value).replace(String.valueOf(QUOTE), DOUBLE_QUOTE);
+                            conditions.add(concat(columnName, " LIKE '", cleanedValue, QUOTE));
                         } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             int intValue = (Boolean) value ? 1 : 0;
-                            conditions.add(String.format("%s = '%d'", columnName, intValue));
+                            conditions.add(concat(columnName, " = '", intValue, QUOTE));
                         } else {
-                            conditions.add(String.format("%s = '%s'", columnName, value));
+                            conditions.add(concat(columnName, " = '", value, QUOTE));
                         }
                     } else {
                         if (field.getType() == String.class) {
-                            conditions.add(String.format("%s LIKE ?", columnName));
+                            conditions.add(concat(columnName, " LIKE ?"));
                         } else {
-                            conditions.add(String.format("%s = ?", columnName));
+                            conditions.add(concat(columnName, " = ?"));
                         }
                         if (field.getType() == Boolean.class || field.getType() == boolean.class) {
                             value = (Boolean) value ? 1 : 0;
@@ -213,9 +213,9 @@ public class SQLHelper {
                         Object foreignValue = primaryForeignKey.get(attachedTo);
                         if (foreignValue != null) {
                             if (args == null) {
-                                conditions.add(String.format("%s = '%s'", hasMany.getForeignKey(), foreignValue.toString()));
+                                conditions.add(concat(hasMany.getForeignKey(), " = '" + foreignValue.toString() + QUOTE));
                             } else {
-                                conditions.add(String.format("%s = ?", hasMany.getForeignKey()));
+                                conditions.add(concat(hasMany.getForeignKey(), " = ?"));
                                 args.add(foreignValue.toString());
                             }
                         }
@@ -243,12 +243,13 @@ public class SQLHelper {
                     if (isBoolean || hasData(type, value)) {
                         if (isBoolean) {
                             int intValue = (Boolean) value ? 1 : 0;
-                            sets.add(String.format("%s = '%d'", getColumnName(field), intValue));
+                            sets.add(concat(getColumnName(field), " = '", intValue, QUOTE));
                         } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
                             String hex = getHex((byte[]) value);
-                            sets.add(String.format("%s = X'%s'", getColumnName(field), hex));
+                            sets.add(concat(getColumnName(field), " = X'", hex, QUOTE));
                         } else {
-                            sets.add(String.format("%s = '%s'", getColumnName(field), String.valueOf(value).replace("'", "''")));
+                            String cleanedVal = String.valueOf(value).replace(String.valueOf(QUOTE), DOUBLE_QUOTE);
+                            sets.add(concat(getColumnName(field), " = '", cleanedVal, QUOTE));
                         }
                     }
                 } catch (IllegalAccessException ignored) {
@@ -348,12 +349,12 @@ public class SQLHelper {
     static <T> String buildUpdateStatement(T bean, Object sample, DatabaseSpec databaseSpec) {
         String where = getWhere(bean.getClass(), sample, null, null, databaseSpec);
         String set = getSet(bean);
-        return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
+        return concat("UPDATE ", getTableName(bean), " SET ", set, " WHERE ", where, ";", STATEMENT_SEPARATOR);
     }
 
     public static <T> String buildUpdateStatement(T bean, String where) {
         String set = getSet(bean);
-        return String.format("UPDATE %s SET %s WHERE %s;%s", getTableName(bean), set, where, STATEMENT_SEPARATOR);
+        return concat("UPDATE ", getTableName(bean), " SET ", set, " WHERE ", where, ";", STATEMENT_SEPARATOR);
     }
 
     static <T, G> String getInsertStatement(T bean, G attachedTo, DatabaseSpec persistence) {
@@ -373,11 +374,13 @@ public class SQLHelper {
         }
 
         // build insert statement for the main object
+        String tableName = getTableName(bean);
         if (values.size() == 0 && persistence.isAutoincrement(bean.getClass())) {
-            String hack = String.format("(SELECT seq FROM sqlite_sequence WHERE name = '%s')+1", getTableName(bean));
-            return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), getIdColumn(getPrimaryKeyField(bean.getClass())), hack, STATEMENT_SEPARATOR);
+            String hack = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')+1");
+            String idColumn = getIdColumn(getPrimaryKeyField(bean.getClass()));
+            return concat("INSERT OR IGNORE INTO ", tableName, " (", idColumn, ") VALUES (", hack, ");", STATEMENT_SEPARATOR);
         }
-        return String.format("INSERT OR IGNORE INTO %s (%s) VALUES (%s);%s", getTableName(bean), columnsSet, join(values, ", "), STATEMENT_SEPARATOR);
+        return concat("INSERT OR IGNORE INTO ", tableName, " (", columnsSet, ") VALUES (", join(values, ", "), ");", STATEMENT_SEPARATOR);
     }
 
     private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, DatabaseSpec persistence) {
@@ -412,7 +415,7 @@ public class SQLHelper {
                         values.add("NULL");
                     } else {
                         String hex = getHex((byte[]) value);
-                        values.add(String.format("X'%s'", hex));
+                        values.add(concat("X'", hex, QUOTE));
                     }
                 } else if (value == null) {
                     Column columnAnnotation = field.getAnnotation(Column.class);
@@ -421,16 +424,16 @@ public class SQLHelper {
                         hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
                     }
                     if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
-                        String msg = String.format("Field %s from class %s cannot be null. It was marked with the @Column not null annotation and it has not a default value", field.getName(), theClass.getSimpleName());
+                        String msg = concat("Field ", field.getName(), " from class ", theClass.getSimpleName(), " cannot be null. It was marked with the @Column not null annotation and it has not a default value");
                         throw new IllegalStateException(msg);
                     }
                     if (hasDefault) {
-                        values.add(String.format("'%s'", columnAnnotation.defaultValue().replace("'", "''")));
+                        values.add(concat(QUOTE, columnAnnotation.defaultValue().replace(String.valueOf(QUOTE), DOUBLE_QUOTE), QUOTE));
                     } else {
                         values.add("NULL");
                     }
                 } else {
-                    values.add(String.format("'%s'", String.valueOf(value).replace("'", "''")));
+                    values.add(concat(QUOTE, String.valueOf(value).replace(String.valueOf(QUOTE), DOUBLE_QUOTE), QUOTE));
                 }
             } catch (IllegalAccessException ignored) {
             }
@@ -450,7 +453,7 @@ public class SQLHelper {
                             if (foreignValue != null && hasData(foreignValue.getClass(), foreignValue)) {
                                 values.add(String.valueOf(foreignValue));
                             } else {
-                                values.add(String.format(SELECT_AUTOINCREMENT_FORMAT, getTableName(attachedTo.getClass())));
+                                values.add(concat("(SELECT seq FROM sqlite_sequence WHERE name = '", getTableName(attachedTo.getClass()), "')"));
                             }
                         }
                     } catch (Exception ignored) {
@@ -480,12 +483,11 @@ public class SQLHelper {
         if (table != null) {
             tableName = table.value();
             if (TextUtils.isEmpty(tableName)) {
-                String msg = String.format("You cannot leave a table name empty (class %s)", theClass.getSimpleName());
+                String msg = concat("You cannot leave a table name empty: class ", theClass.getSimpleName());
                 throw new IllegalArgumentException(msg);
             }
             if (tableName.contains(" ")) {
-                String msg = String.format("Table name cannot have spaces: '%s'; found in class %s",
-                        tableName, theClass.getSimpleName());
+                String msg = concat("Table name cannot have spaces: '", tableName, "'; found in class ", theClass.getSimpleName());
                 throw new IllegalArgumentException(msg);
             }
         } else {
@@ -511,8 +513,7 @@ public class SQLHelper {
         }
         final StringBuilder hex = new StringBuilder(2 * raw.length);
         for (final byte b : raw) {
-            hex.append(HEXES.charAt((b & 0xF0) >> 4))
-                    .append(HEXES.charAt((b & 0x0F)));
+            hex.append(HEXES.charAt((b & 0xF0) >> 4)).append(HEXES.charAt((b & 0x0F)));
         }
         return hex.toString();
     }
@@ -560,11 +561,10 @@ public class SQLHelper {
     }
 
     static String getCreatePrimaryKey(Field field) {
-        return String.format(PRIMARY_KEY, getIdColumn(field));
+        return concat(getIdColumn(field), PRIMARY_KEY);
     }
 
-    static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> clazz, T sample, G attachedTo,
-                                               Constraint constraint, DatabaseSpec databaseSpec) {
+    static <T, G> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> clazz, T sample, G attachedTo, Constraint constraint, DatabaseSpec databaseSpec) {
         String[] selectionArgs = null;
         String where = null;
         if (sample != null || attachedTo != null) {

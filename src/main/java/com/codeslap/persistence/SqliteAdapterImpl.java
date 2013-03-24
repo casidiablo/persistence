@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static com.codeslap.persistence.StrUtil.concat;
+
 /**
  * This is a persistence adapter that uses sqlite database as persistence engine.
  * This is useful to persist collections of beans. To save single objects (objects
@@ -37,9 +39,6 @@ import java.util.List;
  */
 public class SqliteAdapterImpl implements SqlAdapter {
 
-    // this expression is used when inserting rows in the many-to-many relation tables. It will basically
-    // prevent a row from being inserted when the values already exist.
-    private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
     private static final String TAG = "sqliteImpl";
 
     private final DatabaseSpec mDatabaseSpec;
@@ -124,7 +123,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         Field idField = SQLHelper.getPrimaryKeyField(theClass);
         // if it is autoincrement, we will try to populate the id field with the inserted id
         if (mDatabaseSpec.isAutoincrement(theClass)) {
-            if(idField.getType() != Long.class && idField.getType() != long.class){
+            if (idField.getType() != Long.class && idField.getType() != long.class) {
                 throw new IllegalStateException("Your primary key is currently '" + idField.getType() + "' but 'long' was expected");
             }
             Cursor lastId = mDbHelper.getDatabase().query("sqlite_sequence", new String[]{"seq"}, "name = ?",
@@ -132,15 +131,13 @@ public class SqliteAdapterImpl implements SqlAdapter {
             if (lastId != null && lastId.moveToFirst()) {
                 long id = lastId.getLong(0);
                 lastId.close();
-                if (idField != null) {
-                    idField.setAccessible(true);
-                    try {
-                        idField.set(bean, id);
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    } catch (IllegalArgumentException e) {
-                        e.printStackTrace();
-                    }
+                idField.setAccessible(true);
+                try {
+                    idField.set(bean, id);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
                 }
                 return id;
             } else if (lastId != null) {
@@ -276,7 +273,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         int count = count(bean.getClass(), where, whereArgs);
         if (whereArgs != null) {
             for (String arg : whereArgs) {
-                where = where.replaceFirst("\\?", String.format("'%s'", arg));
+                where = where.replaceFirst("\\?", concat("'", arg, "'"));
             }
         }
         String sqlStatement = SQLHelper.buildUpdateStatement(bean, where);
@@ -321,7 +318,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
                             try {
                                 Object objectId = idField.get(object);
                                 Class<?> containedClass = hasMany.getContainedClass();
-                                String whereForeign = String.format("%s = '%s'", hasMany.getForeignKey(), String.valueOf(objectId));
+                                String whereForeign = concat(hasMany.getForeignKey(), " = '", String.valueOf(objectId), "'");
                                 delete(containedClass, whereForeign, null);
                             } catch (IllegalAccessException ignored) {
                             }
@@ -347,7 +344,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
                         for (T object : toRemove) {
                             try {
                                 Object objectId = idField.get(object);
-                                String whereForeign = String.format("%s = '%s'", foreignKey, String.valueOf(objectId));
+                                String whereForeign = concat(foreignKey, " = '", String.valueOf(objectId), "'");
 
                                 List<String> ids = new ArrayList<String>();
                                 if (onCascade) {
@@ -364,7 +361,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
                                 mDbHelper.getDatabase().delete(manyToMany.getTableName(), whereForeign, null);
 
                                 for (String id : ids) {
-                                    String whereRest = String.format("%s = '%s'", foreignCurrentKey, id);
+                                    String whereRest = concat(foreignCurrentKey, " = '", id, "'");
                                     Cursor cursorRest = mDbHelper.getDatabase().query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
                                     // this means there is no other relation with this object, so we can delete it on cascade :)
                                     if (cursorRest.getCount() == 0) {
@@ -562,7 +559,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
                             // get the value for the main bean ID
                             Object beanId;
                             if (mDatabaseSpec.isAutoincrement(theClass)) {
-                                beanId = String.format(SQLHelper.SELECT_AUTOINCREMENT_FORMAT, SQLHelper.getTableName(theClass));
+                                beanId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", SQLHelper.getTableName(theClass), "')");
                             } else {
                                 Field mainId = SQLHelper.getPrimaryKeyField(theClass);
                                 mainId.setAccessible(true);
@@ -572,7 +569,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
                             // get the value for the secondary bean ID
                             Object secondaryId;
                             if (mDatabaseSpec.isAutoincrement(collectionClass)) {
-                                secondaryId = String.format(SQLHelper.SELECT_AUTOINCREMENT_FORMAT, SQLHelper.getTableName(collectionClass));
+                                String tableName = SQLHelper.getTableName(collectionClass);
+                                secondaryId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')");
                             } else {
                                 Field secondaryIdField = SQLHelper.getPrimaryKeyField(collectionClass);
                                 secondaryIdField.setAccessible(true);
@@ -580,12 +578,14 @@ public class SqliteAdapterImpl implements SqlAdapter {
                             }
 
                             // build the sql statement for the insertion of the many-to-many relation
-                            String hack = String.format(HACK_INSERT_FORMAT, relationTableName, mainForeignKey,
-                                    String.valueOf(beanId), secondaryForeignKey,
-                                    String.valueOf(secondaryId), String.valueOf(beanId));
-                            sqlStatement += String.format("INSERT OR IGNORE INTO %s (%s, %s) VALUES (%s, %s);%s",
-                                    relationTableName, mainForeignKey, secondaryForeignKey,
-                                    hack, String.valueOf(secondaryId), SQLHelper.STATEMENT_SEPARATOR);
+                            String hack = concat("CASE WHEN (SELECT COUNT(*) FROM ", relationTableName,
+                                    " WHERE ", mainForeignKey, " = ", String.valueOf(beanId),
+                                    " AND ", secondaryForeignKey, " = ", String.valueOf(secondaryId)
+                                    , ") == 0 THEN ", String.valueOf(beanId), " ELSE NULL END");
+                            String insertStatement = concat("INSERT OR IGNORE INTO ", relationTableName,
+                                    " (", mainForeignKey, ", ", secondaryForeignKey,
+                                    ") VALUES (", hack, ", ", String.valueOf(secondaryId), ");", SQLHelper.STATEMENT_SEPARATOR);
+                            sqlStatement += insertStatement;
                         }
                     }
                     break;
@@ -715,7 +715,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
                     field.set(bean, value);
                 }
             } catch (Exception e) {
-                throw new RuntimeException(String.format("An error occurred setting value to \"%s\", (%s): %s%n", field, value, e.getMessage()));
+                throw new RuntimeException(concat("An error occurred setting value to ", field, ", ", value, ": ", e.getMessage()));
             }
         }
         return bean;

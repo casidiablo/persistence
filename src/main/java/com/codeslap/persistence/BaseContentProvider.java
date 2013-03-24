@@ -16,7 +16,10 @@
 
 package com.codeslap.persistence;
 
-import android.content.*;
+import android.content.ContentProvider;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -86,7 +89,7 @@ public abstract class BaseContentProvider extends ContentProvider {
     public Uri insert(Uri uri, ContentValues initialValues) {
         int id = sUriMatcher.match(uri);
         if (!TABLE_NAME_IDS.containsKey(id)) {
-            throw new IllegalArgumentException("Unknown URI " + uri + "; id " + id+"; "+TABLE_NAME_IDS);
+            throw new IllegalArgumentException("Unknown URI " + uri + "; id " + id + "; " + TABLE_NAME_IDS);
         }
 
         if (initialValues == null) {
@@ -96,7 +99,7 @@ public abstract class BaseContentProvider extends ContentProvider {
         String tableName = TABLE_NAME_IDS.get(id);
         long rowId = getDatabase().insert(tableName, null, initialValues);
         if (rowId > 0) {
-            Uri CONTENT_URI = Uri.parse(String.format("content://%s/%s", getAuthority(), tableName));
+            Uri CONTENT_URI = Uri.parse(StrUtil.concat("content://", getAuthority(), "/", tableName));
             Uri beanUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
             getContext().getContentResolver().notifyChange(beanUri, null);
             return beanUri;
@@ -138,7 +141,7 @@ public abstract class BaseContentProvider extends ContentProvider {
     }
 
     public static Uri buildBaseUri(String authority, Class<?> theClass) {
-        return Uri.parse(String.format("content://%s/%s", authority, SQLHelper.getTableName(theClass)));
+        return Uri.parse(StrUtil.concat("content://", authority, "/", SQLHelper.getTableName(theClass)));
     }
 
     /**

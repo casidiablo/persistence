@@ -24,7 +24,10 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import java.lang.ref.SoftReference;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * This is a content provider that can be used to get suggestions for the Android's search engine
@@ -42,7 +45,7 @@ public abstract class SuggestionsProvider<T> extends ContentProvider {
 
     @Override
     public String getType(Uri uri) {
-        return String.format("vnd.android.cursor.item/vnd.%s.%s", getContext().getPackageName(), getClass().getSimpleName());
+        return "vnd.android.cursor.item/vnd." + getContext().getPackageName() + "." + getClass().getSimpleName();
     }
 
     @Override

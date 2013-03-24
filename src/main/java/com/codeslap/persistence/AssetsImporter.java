@@ -24,6 +24,7 @@ import java.io.InputStream;
 
 /**
  * {@link Importer} implementation that takes the SQL statements from an asset resource
+ *
  * @author cristian
  */
 class AssetsImporter implements Importer {
@@ -41,12 +42,12 @@ class AssetsImporter implements Importer {
     @Override
     public void execute(SQLiteDatabase database) {
         long init = System.currentTimeMillis();
-        PersistenceLogManager.d(TAG, String.format("Importing '%s'...", mPath));
+        PersistenceLogManager.d(TAG, StrUtil.concat("Importing ", mPath));
 
         new StreamImporter(getInputStream()).execute(database);
 
         long end = System.currentTimeMillis();
-        PersistenceLogManager.d(TAG, String.format("Took %dms to import '%s'", end - init, mPath));
+        PersistenceLogManager.d(TAG, StrUtil.concat("Took ", end - init, "ms to import ", mPath));
     }
 
     private InputStream getInputStream() {
