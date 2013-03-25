@@ -25,12 +25,47 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.codeslap</groupId>
-  <artifactId>persistence</artifactId>
+  <artifactId>persistence-parent</artifactId>
   <version>0.9.25-SNAPSHOT</version>
-  <packaging>jar</packaging>
+  <packaging>pom</packaging>
+
   <name>Codeslap Persistence</name>
-  <description>Core functionality provided by MarkdownJ.</description>
+  <description>Persistence library for Android</description>
   <url>https://github.com/casidiablo/persistence</url>
+
+  <modules>
+    <module>library</module>
+    <module>examples</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Dependencies -->
+    <android.version>4.1.1.4</android.version>
+    <android.platform>16</android.platform>
+    <android.support.version>r7</android.support.version>
+
+    <!-- Test Dependencies -->
+    <junit.version>4.10</junit.version>
+    <robolectric.version>1.0</robolectric.version>
+    <robolectric.sqlite.version>1.0.0</robolectric.sqlite.version>
+    <easymock.version>3.1</easymock.version>
+  </properties>
+
+  <scm>
+    <url>git@github.com:casidiablo/persistence.git</url>
+    <connection>scm:git:git@github.com:casidiablo/persistence.git</connection>
+    <developerConnection>scm:git:git@github.com:casidiablo/persistence.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>http://github.com/casidiablo/persistence/issues</url>
+  </issueManagement>
+
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -38,11 +73,12 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
-  <scm>
-    <connection>scm:git:git@github.com:casidiablo/persistence.git</connection>
-    <developerConnection>scm:git:git@github.com:casidiablo/persistence.git</developerConnection>
-    <url>git@github.com:casidiablo/persistence.git</url>
-  </scm>
+
+  <organization>
+    <name>CodeSlap</name>
+    <url>http://casidiablo.net</url>
+  </organization>
+
   <developers>
     <developer>
       <id>casidiablo</id>
@@ -53,43 +89,44 @@
     </developer>
   </developers>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-  </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.8.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.android</groupId>
-      <artifactId>android</artifactId>
-      <version>1.6_r2</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.pivotallabs</groupId>
-      <artifactId>robolectric</artifactId>
-      <version>1.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.codeslap</groupId>
-      <artifactId>robolectric-sqlite</artifactId>
-      <version>1.0.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.easymock</groupId>
-      <artifactId>easymock</artifactId>
-      <version>3.1</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>android</artifactId>
+        <version>${android.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>support-v4</artifactId>
+        <version>${android.support.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.pivotallabs</groupId>
+        <artifactId>robolectric</artifactId>
+        <version>${robolectric.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.codeslap</groupId>
+        <artifactId>robolectric-sqlite</artifactId>
+        <version>${robolectric.sqlite.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.easymock</groupId>
+        <artifactId>easymock</artifactId>
+        <version>${easymock.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>
