@@ -31,7 +31,6 @@ class DataObjectFactory {
 
   static {
     dataObjects = new ConcurrentHashMap<Class<?>, DataObject<?>>();
-
   }
 
   static <T> DataObject<T> getDataObject(Class<T> type) {

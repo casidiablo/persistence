@@ -33,7 +33,8 @@ public class PersistenceProcessor extends AbstractProcessor {
           try {
             String mainClassName = table.getSimpleName().toString();
             String className = mainClassName + "DataObject";
-            JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(className);
+            String sourceName = packageElement.getQualifiedName() + "." + className;
+            JavaFileObject sourceFile = createSourceFile(sourceName, table);
 
             Writer out = sourceFile.openWriter();
             JavaWriter jw = new JavaWriter(out);
@@ -60,5 +61,9 @@ public class PersistenceProcessor extends AbstractProcessor {
       }
     }
     return true;
+  }
+
+  private JavaFileObject createSourceFile(String name, Element element) throws IOException {
+    return processingEnv.getFiler().createSourceFile(name, element);
   }
 }
