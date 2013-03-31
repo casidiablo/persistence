@@ -35,17 +35,18 @@
 
   <modules>
     <module>library</module>
-    <module>examples</module>
+    <module>compiler</module>
   </modules>
 
   <properties>
+    <java.version>1.6</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- Dependencies -->
     <android.version>4.1.1.4</android.version>
     <android.platform>16</android.platform>
-    <android.support.version>r7</android.support.version>
+    <javawriter.version>1.0.2</javawriter.version>
 
     <!-- Test Dependencies -->
     <junit.version>4.10</junit.version>
@@ -97,9 +98,9 @@
         <version>${android.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.google.android</groupId>
-        <artifactId>support-v4</artifactId>
-        <version>${android.support.version}</version>
+        <groupId>com.squareup</groupId>
+        <artifactId>javawriter</artifactId>
+        <version>${javawriter.version}</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -129,10 +130,30 @@
   </dependencyManagement>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+          <artifactId>android-maven-plugin</artifactId>
+          <version>3.3.2</version>
+          <configuration>
+            <sdk>
+              <platform>${android.platform}</platform>
+            </sdk>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
+        <version>3.0</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+          <showWarnings>true</showWarnings>
+          <showDeprecation>true</showDeprecation>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>

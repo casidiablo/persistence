@@ -28,7 +28,7 @@
   <groupId>com.codeslap</groupId>
   <artifactId>persistence</artifactId>
   <packaging>jar</packaging>
-  <name>Codeslap Persistence</name>
+  <name>Codeslap Persistence Library</name>
 
   <dependencies>
     <dependency>

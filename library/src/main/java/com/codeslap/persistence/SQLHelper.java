@@ -452,7 +452,8 @@ public class SQLHelper {
               if (foreignValue != null && hasData(foreignValue.getClass(), foreignValue)) {
                 values.add(String.valueOf(foreignValue));
               } else {
-                values.add(concat("(SELECT seq FROM sqlite_sequence WHERE name = '", getTableName(attachedTo.getClass()), "')"));
+                String tableName = getTableName(attachedTo.getClass());
+                values.add(concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')"));
               }
             }
           } catch (Exception ignored) {

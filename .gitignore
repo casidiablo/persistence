@@ -9,3 +9,5 @@ target
 tmp
 .clover
 atlassian-ide-plugin.xml
+*.class
+.idea

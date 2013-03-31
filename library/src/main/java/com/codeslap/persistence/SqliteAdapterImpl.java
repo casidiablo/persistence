@@ -20,21 +20,21 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static com.codeslap.persistence.StrUtil.concat;
 
 /**
- * This is a persistence adapter that uses sqlite database as persistence engine.
- * This is useful to persist collections of beans. To save single objects (objects
- * that don't get repeated, singletons, or any data that don't fit into the tables
- * paradigm), use PreferencesAdapter.
+ * This is a persistence adapter that uses sqlite database as persistence engine. This is useful to
+ * persist collections of beans. To save single objects (objects that don't get repeated,
+ * singletons, or any data that don't fit into the tables paradigm), use PreferencesAdapter.
  */
 public class SqliteAdapterImpl implements SqlAdapter {
 
@@ -42,6 +42,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   private final DatabaseSpec mDatabaseSpec;
   private final SqliteDb mDbHelper;
+  private final ConcurrentMap<Class<?>, DataObject<?>> dataObjects = new ConcurrentHashMap<Class<?>, DataObject<?>>();
 
   SqliteAdapterImpl(Context context, String name, String specId) {
     mDatabaseSpec = PersistenceConfig.getDatabaseSpec(specId);
@@ -67,7 +68,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
   public <T> List<T> findAll(Class<T> theClass) {
     T emptySample = null;
     try {
-      emptySample = theClass.newInstance();
+      DataObject<T> dataObject = getDataObject(theClass);
+      emptySample = dataObject.newInstance();
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -497,8 +499,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
       Object beanId = theId.get(bean);
       if (SQLHelper.hasData(theId.getType(), beanId)) {
         // create an object of the same type of the bean with the same id to search of it
-        Constructor<?> constructor = theClass.getConstructor();
-        Object sample = constructor.newInstance();
+        DataObject<T> dataObject = getDataObject(theClass);
+        Object sample = dataObject.newInstance();
         theId.set(sample, beanId);
 
         Object match = findFirst((T) sample);
@@ -615,8 +617,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
   private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Node tree) {
     T bean;
     try {
-      Constructor<? extends T> constructor = theClass.getConstructor();
-      bean = constructor.newInstance();
+      DataObject<? extends T> dataObject = getDataObject(theClass);
+      bean = dataObject.newInstance();
     } catch (Exception e) {
       throw new RuntimeException("Could not initialize object of type " + theClass + ", " + e.getMessage());
     }
@@ -721,4 +723,12 @@ public class SqliteAdapterImpl implements SqlAdapter {
     }
   }
 
+  private <T> DataObject<T> getDataObject(Class<T> theClass) {
+    DataObject<T> dataObject = (DataObject<T>) dataObjects.get(theClass);
+    if (dataObject == null) {
+      dataObject = (DataObject<T>) new ReflectDataObject(theClass);
+      dataObjects.put(theClass, dataObject);
+    }
+    return dataObject;
+  }
 }
