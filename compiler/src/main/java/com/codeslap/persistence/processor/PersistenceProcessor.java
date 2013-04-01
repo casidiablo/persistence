@@ -2,6 +2,8 @@ package com.codeslap.persistence.processor;
 
 import com.codeslap.persistence.DataObject;
 import com.codeslap.persistence.DatabaseSpec;
+import com.codeslap.persistence.Ignore;
+import com.codeslap.persistence.PrimaryKey;
 import com.squareup.java.JavaWriter;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -11,6 +13,8 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
@@ -48,7 +52,7 @@ public class PersistenceProcessor extends AbstractProcessor {
             jw.endMethod();
 
             jw.beginMethod("boolean", "hasAutoincrement", Modifier.PUBLIC);
-            jw.emitStatement("return true");
+            jw.emitStatement("return "+shouldBeAutoIncrement(table));
             jw.endMethod();
 
             jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC, DatabaseSpec.class.getName(), "dbSpec");
@@ -69,5 +73,31 @@ public class PersistenceProcessor extends AbstractProcessor {
 
   private JavaFileObject createSourceFile(String name, Element element) throws IOException {
     return processingEnv.getFiler().createSourceFile(name, element);
+  }
+
+  private static boolean shouldBeAutoIncrement(Element type) {
+    boolean autoincrement = true;
+    for (Element element : type.getEnclosedElements()) {
+      if (element.getKind() != ElementKind.FIELD) {
+        continue;
+      }
+
+      if (element.getAnnotation(Ignore.class) != null) {
+        continue;
+      }
+
+      PrimaryKey primaryKey = element.getAnnotation(PrimaryKey.class);
+      if (primaryKey != null) {
+        TypeMirror typeMirror = element.asType();
+        TypeKind kind = typeMirror.getKind();
+        if (kind == TypeKind.LONG || kind == TypeKind.INT) {
+          autoincrement = primaryKey.autoincrement();
+        } else {
+          autoincrement = false;
+        }
+        break;
+      }
+    }
+    return autoincrement;
   }
 }

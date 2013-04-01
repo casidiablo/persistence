@@ -17,8 +17,10 @@
 package test;
 
 import com.codeslap.persistence.Table;
+import com.codeslap.persistence.PrimaryKey;
 
 @Table("table_name") public class Foo {
+  @PrimaryKey(autoincrement = false)
   String id;
   int age;
 }
