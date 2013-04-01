@@ -35,7 +35,7 @@ public class UpdateTest extends SqliteTest {
     foo.decimal = random.nextFloat();
     foo.bool = random.nextBoolean();
     foo.blob = foo.name.getBytes();
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     // now, let's create a new object with different data
     ExampleAutoincrement bar = new ExampleAutoincrement();
@@ -46,9 +46,9 @@ public class UpdateTest extends SqliteTest {
     byte[] blob = bar.blob = bar.name.getBytes();
 
     // after updating this record, all its data should have changed...
-    int update = getAdapter().update(bar, foo);
+    int update = mAdapter.update(bar, foo);
     assertEquals(1, update);
-    ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
+    ExampleAutoincrement baz = mAdapter.findAll(ExampleAutoincrement.class).get(0);
     assertEquals(name, baz.name);
     assertEquals(number, baz.number);
     assertEquals(decimal, baz.decimal, 0.0);
@@ -65,7 +65,7 @@ public class UpdateTest extends SqliteTest {
     foo.number = random.nextInt();
     foo.decimal = random.nextFloat();
     foo.bool = random.nextBoolean();
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     // now, let's create a new object with different data
     AnnotationAutoincrement bar = new AnnotationAutoincrement();
@@ -75,9 +75,9 @@ public class UpdateTest extends SqliteTest {
     boolean bool = bar.bool = random.nextBoolean();
 
     // after updating this record, all its data should have changed...
-    int update = getAdapter().update(bar, foo);
+    int update = mAdapter.update(bar, foo);
     assertEquals(1, update);
-    AnnotationAutoincrement baz = getAdapter().findAll(AnnotationAutoincrement.class).get(0);
+    AnnotationAutoincrement baz = mAdapter.findAll(AnnotationAutoincrement.class).get(0);
     assertEquals(name, baz.name);
     assertEquals(number, baz.number);
     assertEquals(decimal, baz.decimal, 0.0);
@@ -94,7 +94,7 @@ public class UpdateTest extends SqliteTest {
     foo.decimal = random.nextFloat();
     foo.bool = random.nextBoolean();
     foo.blob = foo.name.getBytes();
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     // now, let's create a new object with different data
     ExampleAutoincrement bar = new ExampleAutoincrement();
@@ -105,9 +105,9 @@ public class UpdateTest extends SqliteTest {
     byte[] blob = bar.blob = bar.name.getBytes();
 
     // after updating this record, all its data should have changed...
-    int update = getAdapter().update(bar, "name LIKE ?", new String[]{foo.name});
+    int update = mAdapter.update(bar, "name LIKE ?", new String[]{foo.name});
     assertEquals(1, update);
-    ExampleAutoincrement baz = getAdapter().findAll(ExampleAutoincrement.class).get(0);
+    ExampleAutoincrement baz = mAdapter.findAll(ExampleAutoincrement.class).get(0);
     assertEquals(name, baz.name);
     assertEquals(number, baz.number);
     assertEquals(decimal, baz.decimal, 0.0);
@@ -124,7 +124,7 @@ public class UpdateTest extends SqliteTest {
     foo.number = random.nextInt();
     foo.decimal = random.nextFloat();
     foo.bool = random.nextBoolean();
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     // now, let's create a new object with different data
     AnnotationAutoincrement bar = new AnnotationAutoincrement();
@@ -134,9 +134,9 @@ public class UpdateTest extends SqliteTest {
     boolean bool = bar.bool = random.nextBoolean();
 
     // after updating this record, all its data should have changed...
-    int update = getAdapter().update(bar, "char_sequence LIKE ?", new String[]{foo.name});
+    int update = mAdapter.update(bar, "char_sequence LIKE ?", new String[]{foo.name});
     assertEquals(1, update);
-    AnnotationAutoincrement baz = getAdapter().findAll(AnnotationAutoincrement.class).get(0);
+    AnnotationAutoincrement baz = mAdapter.findAll(AnnotationAutoincrement.class).get(0);
     assertEquals(name, baz.name);
     assertEquals(number, baz.number);
     assertEquals(decimal, baz.decimal, 0.0);

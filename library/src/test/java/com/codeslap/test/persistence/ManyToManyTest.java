@@ -50,15 +50,15 @@ public class ManyToManyTest extends SqliteTest {
     fernando.books = Arrays.asList(tautologia, imposturologia, puta);
     william.books = Arrays.asList(tautologia, foo);
 
-    getAdapter().storeCollection(Arrays.asList(william, fernando), null);
+    mAdapter.storeCollection(Arrays.asList(william, fernando), null);
 
-    Author vallejo = getAdapter().findFirst(Author.class, "name LIKE 'Vallejo'", null);
-    Author ospina = getAdapter().findFirst(Author.class, "name LIKE 'Ospinas'", null);
+    Author vallejo = mAdapter.findFirst(Author.class, "name LIKE 'Vallejo'", null);
+    Author ospina = mAdapter.findFirst(Author.class, "name LIKE 'Ospinas'", null);
 
     assertEquals(fernando, vallejo);
     assertEquals(william, ospina);
 
-    getAdapter().delete(tautologia);
+    mAdapter.delete(tautologia);
   }
 
   @Test
@@ -86,17 +86,17 @@ public class ManyToManyTest extends SqliteTest {
     fernando.pets = Arrays.asList(witch, tobby);
     william.pets = Arrays.asList(witch, foo, lazzy);
 
-    getAdapter().storeCollection(Arrays.asList(william, fernando), null);
+    mAdapter.storeCollection(Arrays.asList(william, fernando), null);
 
-    Owner vallejo = getAdapter().findFirst(Owner.class, "full_name LIKE ?", new String[]{"Fernando%"});
-    Owner ospina = getAdapter().findFirst(Owner.class, "full_name LIKE '%Ospina%'", null);
+    Owner vallejo = mAdapter.findFirst(Owner.class, "full_name LIKE ?", new String[]{"Fernando%"});
+    Owner ospina = mAdapter.findFirst(Owner.class, "full_name LIKE '%Ospina%'", null);
 
     assertEquals(fernando, vallejo);
     assertEquals(william, ospina);
 
-    getAdapter().delete(witch);
-    getAdapter().delete(fernando);
-    getAdapter().delete(ospina);
-    getAdapter().delete(tobby);
+    mAdapter.delete(witch);
+    mAdapter.delete(fernando);
+    mAdapter.delete(ospina);
+    mAdapter.delete(tobby);
   }
 }

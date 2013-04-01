@@ -18,7 +18,6 @@ package com.codeslap.persistence;
 
 import android.content.Context;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +28,7 @@ import java.util.List;
  */
 public class DatabaseSpec {
   private final List<Class<?>> mSqliteList = new ArrayList<Class<?>>();
-  private final List<Class<?>> mAutoIncrementList = new ArrayList<Class<?>>();
+  private final List<Class<?>> mNotAutoIncrementList = new ArrayList<Class<?>>();
   private final List<ManyToMany> mManyToManyList = new ArrayList<ManyToMany>();
   private final List<HasMany> mHasManyList = new ArrayList<HasMany>();
 
@@ -85,25 +84,6 @@ public class DatabaseSpec {
     for (Class<?> theClass : classes) {
       if (!mSqliteList.contains(theClass)) {
         mSqliteList.add(theClass);
-        boolean isAutoincrement = true;
-        Field pk = SQLHelper.getPrimaryKeyField(theClass);
-        if (pk.getType() == String.class ||
-            pk.getType() == Boolean.class || pk.getType() == boolean.class ||
-            pk.getType() == Float.class || pk.getType() == float.class ||
-            pk.getType() == Double.class || pk.getType() == double.class) {
-          isAutoincrement = false;
-        } else {
-          for (Field field : SQLHelper.getDeclaredFields(theClass)) {
-            PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
-            if (primaryKey != null && !primaryKey.autoincrement()) {
-              isAutoincrement = false;
-              break;
-            }
-          }
-        }
-        if (isAutoincrement && !mAutoIncrementList.contains(theClass)) {
-          mAutoIncrementList.add(theClass);
-        }
       }
     }
   }
@@ -120,6 +100,9 @@ public class DatabaseSpec {
     for (Class<?> type : classes) {
       if (!mSqliteList.contains(type)) {
         mSqliteList.add(type);
+      }
+      if (!mNotAutoIncrementList.contains(type)) {
+        mNotAutoIncrementList.add(type);
       }
     }
   }
@@ -277,11 +260,11 @@ public class DatabaseSpec {
   }
 
   /**
-   * @param theClass the class to check
-   * @return true if the class is registered as autoincrement
+   * @param type the class to check
+   * @return true if the class is registered as not-autoincrement
    */
-  boolean isAutoincrement(Class<?> theClass) {
-    return mAutoIncrementList.contains(theClass);
+  boolean isNotAutoincrement(Class<?> type) {
+    return mNotAutoIncrementList.contains(type);
   }
 
   /**
@@ -405,7 +388,6 @@ public class DatabaseSpec {
     DatabaseSpec that = (DatabaseSpec) o;
 
     if (mVersion != that.mVersion) return false;
-    if (!mAutoIncrementList.equals(that.mAutoIncrementList)) return false;
     if (!mHasManyList.equals(that.mHasManyList)) return false;
     if (!mManyToManyList.equals(that.mManyToManyList)) return false;
     if (!mSqliteList.equals(that.mSqliteList)) return false;
@@ -416,7 +398,6 @@ public class DatabaseSpec {
   @Override
   public int hashCode() {
     int result = mSqliteList.hashCode();
-    result = 31 * result + (mAutoIncrementList.hashCode());
     result = 31 * result + (mManyToManyList.hashCode());
     result = 31 * result + (mHasManyList.hashCode());
     result = 31 * result + mVersion;
@@ -427,7 +408,6 @@ public class DatabaseSpec {
   public String toString() {
     return "DatabaseSpec{" +
         "mSqliteList=" + mSqliteList +
-        ", mAutoIncrementList=" + mAutoIncrementList +
         ", mManyToManyList=" + mManyToManyList +
         ", mHasManyList=" + mHasManyList +
         ", mVersion=" + mVersion +

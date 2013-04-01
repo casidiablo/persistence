@@ -42,7 +42,7 @@ public class CollectionInsertionTest extends SqliteTest {
     }
 
     // save collection using progress listener
-    getAdapter().storeCollection(collection, new SqlAdapter.ProgressListener() {
+    mAdapter.storeCollection(collection, new SqlAdapter.ProgressListener() {
       @Override
       public void onProgressChange(int percentage) {
       }
@@ -50,22 +50,22 @@ public class CollectionInsertionTest extends SqliteTest {
     performTesting(collection);
 
     // save collection without progress listener to speed things up
-    getAdapter().delete(ExampleAutoincrement.class, null, null);
-    getAdapter().storeCollection(collection, null);
+    mAdapter.delete(ExampleAutoincrement.class, null, null);
+    mAdapter.storeCollection(collection, null);
     performTesting(collection);
   }
 
   private void performTesting(List<ExampleAutoincrement> collection) {
     // it should have stored all items
-    assertEquals(collection.size(), getAdapter().findAll(ExampleAutoincrement.class, null, null).size());
-    assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class));
-    assertEquals(collection.size(), getAdapter().count(ExampleAutoincrement.class, null, null));
+    assertEquals(collection.size(), mAdapter.findAll(ExampleAutoincrement.class, null, null).size());
+    assertEquals(collection.size(), mAdapter.count(ExampleAutoincrement.class));
+    assertEquals(collection.size(), mAdapter.count(ExampleAutoincrement.class, null, null));
 
     // now let's see if it stored everything
     int i = 0;
     for (ExampleAutoincrement exampleAutoincrement : collection) {
       exampleAutoincrement.id = 0;
-      ExampleAutoincrement found = getAdapter().findFirst(exampleAutoincrement);
+      ExampleAutoincrement found = mAdapter.findFirst(exampleAutoincrement);
       assertNotNull(found);
       exampleAutoincrement.id = found.id;
       assertEquals(exampleAutoincrement, found);

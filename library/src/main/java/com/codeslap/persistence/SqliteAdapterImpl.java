@@ -65,7 +65,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
   public <T> List<T> findAll(Class<T> theClass) {
     T emptySample = null;
     try {
-      DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass);
+      DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
       emptySample = dataObject.newInstance();
     } catch (Exception e) {
       e.printStackTrace();
@@ -120,7 +120,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
     executeTransactions(transactions);
     Field idField = SQLHelper.getPrimaryKeyField(theClass);
     // if it is autoincrement, we will try to populate the id field with the inserted id
-    if (mDatabaseSpec.isAutoincrement(theClass)) {
+    DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+    if (dataObject.hasAutoincrement()) {
       if (idField.getType() != Long.class && idField.getType() != long.class) {
         throw new IllegalStateException("Your primary key is currently '" + idField.getType() + "' but 'long' was expected");
       }
@@ -496,7 +497,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       Object beanId = theId.get(bean);
       if (SQLHelper.hasData(theId.getType(), beanId)) {
         // create an object of the same type of the bean with the same id to search of it
-        DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass);
+        DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
         Object sample = dataObject.newInstance();
         theId.set(sample, beanId);
 
@@ -555,7 +556,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
               // get the value for the main bean ID
               Object beanId;
-              if (mDatabaseSpec.isAutoincrement(theClass)) {
+              DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+              if (dataObject.hasAutoincrement()) {
                 beanId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", SQLHelper.getTableName(theClass), "')");
               } else {
                 Field mainId = SQLHelper.getPrimaryKeyField(theClass);
@@ -565,7 +567,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
               // get the value for the secondary bean ID
               Object secondaryId;
-              if (mDatabaseSpec.isAutoincrement(collectionClass)) {
+              DataObject<?> collectionDataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+              if (collectionDataObject.hasAutoincrement()) {
                 String tableName = SQLHelper.getTableName(collectionClass);
                 secondaryId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')");
               } else {
@@ -614,7 +617,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
   private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Node tree) {
     T bean;
     try {
-      DataObject<? extends T> dataObject = DataObjectFactory.getDataObject(theClass);
+      DataObject<? extends T> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
       bean = dataObject.newInstance();
     } catch (Exception e) {
       throw new RuntimeException("Could not initialize object of type " + theClass + ", " + e.getMessage());

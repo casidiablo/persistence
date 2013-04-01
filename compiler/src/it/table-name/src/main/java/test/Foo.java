@@ -18,12 +18,7 @@ package test;
 
 import com.codeslap.persistence.Table;
 
-@Table("table_name") public class TestClass {
+@Table("table_name") public class Foo {
   String id;
   int age;
-
-  @Table("un")
-  private enum X {
-
-  }
 }

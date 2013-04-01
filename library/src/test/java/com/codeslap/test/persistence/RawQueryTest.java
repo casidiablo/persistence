@@ -43,7 +43,7 @@ public class RawQueryTest extends SqliteTest {
       foo.blob = foo.name.getBytes();
       collection.add(foo);
     }
-    getAdapter().storeCollection(collection, null);
+    mAdapter.storeCollection(collection, null);
 
     RawQuery rawQuery = Persistence.getRawQuery(new Activity());
     Cursor cursor = rawQuery.findAll("automatic", null, null, null, null, null, "number ASC", null);
@@ -85,7 +85,7 @@ public class RawQueryTest extends SqliteTest {
     foo.bool = false;
     foo.blob = foo.name.getBytes();
 
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     foo = new ExampleAutoincrement();
     foo.name = "Bar Foo";
@@ -94,7 +94,7 @@ public class RawQueryTest extends SqliteTest {
     foo.bool = true;
     foo.blob = foo.name.getBytes();
 
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     RawQuery rawQuery = Persistence.getRawQuery(new Activity());
     ExampleAutoincrement sample = new ExampleAutoincrement();
@@ -119,7 +119,7 @@ public class RawQueryTest extends SqliteTest {
     foo.bool = false;
     foo.blob = foo.name.getBytes();
 
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     foo = new ExampleAutoincrement();
     foo.name = "Bar Foo";
@@ -128,7 +128,7 @@ public class RawQueryTest extends SqliteTest {
     foo.bool = true;
     foo.blob = foo.name.getBytes();
 
-    getAdapter().store(foo);
+    mAdapter.store(foo);
 
     RawQuery rawQuery = Persistence.getRawQuery(new Activity());
     ExampleAutoincrement sample = new ExampleAutoincrement();
@@ -167,7 +167,7 @@ public class RawQueryTest extends SqliteTest {
     Bug pulga = new Bug();
     pulga.itchFactor = new Random().nextFloat();
 
-    SqlAdapter adapter = getAdapter();
+    SqlAdapter adapter = mAdapter;
 
     Object store = adapter.store(cow);
     assertNotNull(store);

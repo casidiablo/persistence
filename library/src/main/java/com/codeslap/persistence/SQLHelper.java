@@ -225,13 +225,13 @@ public class SQLHelper {
     return concat("UPDATE ", getTableName(bean), " SET ", set, " WHERE ", where, ";", STATEMENT_SEPARATOR);
   }
 
-  static <T, G> String getInsertStatement(T bean, G attachedTo, DatabaseSpec persistence) {
+  static <T, G> String getInsertStatement(T bean, G attachedTo, DatabaseSpec spec) {
     List<String> values = new ArrayList<String>();
     List<String> columns = null;
     if (!INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
       columns = new ArrayList<String>();
     }
-    populateColumnsAndValues(bean, attachedTo, values, columns, persistence);
+    populateColumnsAndValues(bean, attachedTo, values, columns, spec);
 
     String columnsSet;
     if (INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
@@ -243,7 +243,8 @@ public class SQLHelper {
 
     // build insert statement for the main object
     String tableName = getTableName(bean);
-    if (values.size() == 0 && persistence.isAutoincrement(bean.getClass())) {
+    DataObject<?> dataObject = DataObjectFactory.getDataObject(bean.getClass(), spec);
+    if (values.size() == 0 && dataObject.hasAutoincrement()) {
       String hack = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')+1");
       String idColumn = ReflectHelper.getIdColumn(getPrimaryKeyField(bean.getClass()));
       return concat("INSERT OR IGNORE INTO ", tableName, " (", idColumn, ") VALUES (", hack, ");", STATEMENT_SEPARATOR);
@@ -251,15 +252,16 @@ public class SQLHelper {
     return concat("INSERT OR IGNORE INTO ", tableName, " (", columnsSet, ") VALUES (", join(values, ", "), ");", STATEMENT_SEPARATOR);
   }
 
-  private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, DatabaseSpec persistence) {
+  private static <T, G> void populateColumnsAndValues(T bean, G attachedTo, List<String> values, List<String> columns, DatabaseSpec spec) {
     if (bean == null) {
       return;
     }
     Class<?> theClass = bean.getClass();
     Field[] fields = getDeclaredFields(theClass);
+    DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass, spec);
     for (Field field : fields) {
       // if the class has an autoincrement, ignore the ID
-      if (ReflectHelper.isPrimaryKey(field) && persistence.isAutoincrement(theClass)) {
+      if (ReflectHelper.isPrimaryKey(field) && dataObject.hasAutoincrement()) {
         continue;
       }
       try {
@@ -307,10 +309,10 @@ public class SQLHelper {
       }
     }
     if (attachedTo != null) {
-      switch (persistence.getRelationship(attachedTo.getClass(), bean.getClass())) {
+      switch (spec.getRelationship(attachedTo.getClass(), bean.getClass())) {
         case HAS_MANY: {
           try {
-            HasMany hasMany = persistence.belongsTo(bean.getClass());
+            HasMany hasMany = spec.belongsTo(bean.getClass());
             Field primaryForeignKey = hasMany.getThroughField();
             primaryForeignKey.setAccessible(true);
             Object foreignValue = primaryForeignKey.get(attachedTo);

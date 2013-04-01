@@ -18,7 +18,10 @@ package com.codeslap.persistence;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import static com.codeslap.persistence.StrUtil.concat;
 
@@ -32,17 +35,33 @@ public class ReflectDataObject implements DataObject<Object> {
   static final String PRIMARY_KEY = " INTEGER PRIMARY KEY";
   private final Class<?> objectType;
   private final List<Field> fields;
+  private final boolean hasAutoincrement;
 
-  public ReflectDataObject(Class<?> type) {
+  public ReflectDataObject(Class<?> type, DatabaseSpec spec) {
     objectType = type;
     fields = new ArrayList<Field>();
+
+    boolean autoincrement = true;
     for (Field field : objectType.getDeclaredFields()) {
       if (!field.isAnnotationPresent(Ignore.class) &&
           !Modifier.isStatic(field.getModifiers()) &&// ignore static fields
           !Modifier.isFinal(field.getModifiers())) {// ignore final fields
         fields.add(field);
       }
+
+      PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
+      if (primaryKey != null) {
+        if (field.getType() == String.class ||
+            field.getType() == Boolean.class || field.getType() == boolean.class ||
+            field.getType() == Float.class || field.getType() == float.class ||
+            field.getType() == Double.class || field.getType() == double.class) {
+          autoincrement = false;
+        } else {
+          autoincrement = primaryKey.autoincrement();
+        }
+      }
     }
+    hasAutoincrement = spec != null ? autoincrement && !spec.isNotAutoincrement(type) : autoincrement;
   }
 
   @Override public Object newInstance() {
@@ -52,6 +71,10 @@ public class ReflectDataObject implements DataObject<Object> {
       error(e);
     }
     return null;
+  }
+
+  @Override public boolean hasAutoincrement() {
+    return hasAutoincrement;
   }
 
   @Override public String getCreateTableSentence(DatabaseSpec databaseSpec) {
@@ -64,7 +87,7 @@ public class ReflectDataObject implements DataObject<Object> {
         String primaryKeySentence = getCreatePrimaryKey(field);
         if (field.getType() == String.class) {// what types are supported
           primaryKeySentence = primaryKeySentence.replace("INTEGER PRIMARY KEY", "TEXT PRIMARY KEY");
-        } else if (databaseSpec.isAutoincrement(objectType)) {
+        } else if (hasAutoincrement) {
           primaryKeySentence += " AUTOINCREMENT";
         }
         if (!columns.contains(columnName)) {

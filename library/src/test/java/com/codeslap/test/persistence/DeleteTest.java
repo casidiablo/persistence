@@ -44,25 +44,25 @@ public class DeleteTest extends SqliteTest {
       foo.blob = foo.name.getBytes();
       collection.add(foo);
     }
-    getAdapter().storeCollection(collection, null);
+    mAdapter.storeCollection(collection, null);
 
     // now let's delete some data!
-    int deleted = getAdapter().delete(collection.get(0));
+    int deleted = mAdapter.delete(collection.get(0));
     assertEquals(1, deleted);
 
     ExampleAutoincrement foo = collection.get(1);
     foo.name = null;
-    assertTrue(getAdapter().delete(foo) > 0);
+    assertTrue(mAdapter.delete(foo) > 0);
     foo.name = "Something";
-    assertTrue(getAdapter().delete(foo) == 0);
+    assertTrue(mAdapter.delete(foo) == 0);
 
-    int count = getAdapter().count(ExampleAutoincrement.class);
+    int count = mAdapter.count(ExampleAutoincrement.class);
     assertTrue(count > 0);
 
-    deleted = getAdapter().delete(ExampleAutoincrement.class, "name LIKE ?", new String[]{"Foo%"});
+    deleted = mAdapter.delete(ExampleAutoincrement.class, "name LIKE ?", new String[]{"Foo%"});
     assertTrue(deleted > 0);
 
-    count = getAdapter().count(ExampleAutoincrement.class);
+    count = mAdapter.count(ExampleAutoincrement.class);
     assertEquals(0, count);
   }
 
@@ -79,23 +79,23 @@ public class DeleteTest extends SqliteTest {
       foo.bool = random.nextBoolean();
       collection.add(foo);
     }
-    getAdapter().storeCollection(collection, null);
+    mAdapter.storeCollection(collection, null);
 
     // now let's delete some data!
-    int deleted = getAdapter().delete(collection.get(0));
+    int deleted = mAdapter.delete(collection.get(0));
     assertEquals(1, deleted);
 
     AnnotationAutoincrement foo = collection.get(1);
     foo.name = null;
-    assertTrue(getAdapter().delete(foo) > 0);
+    assertTrue(mAdapter.delete(foo) > 0);
 
-    int count = getAdapter().count(AnnotationAutoincrement.class);
+    int count = mAdapter.count(AnnotationAutoincrement.class);
     assertTrue(count > 0);
 
-    deleted = getAdapter().delete(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo%"});
+    deleted = mAdapter.delete(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Foo%"});
     assertTrue(deleted > 0);
 
-    count = getAdapter().count(AnnotationAutoincrement.class);
+    count = mAdapter.count(AnnotationAutoincrement.class);
     assertEquals(0, count);
   }
 
@@ -109,15 +109,15 @@ public class DeleteTest extends SqliteTest {
     PolyTheist dummy = new PolyTheist();
     dummy.gods = Arrays.asList(thor, jesus);
 
-    getAdapter().store(dummy);
+    mAdapter.store(dummy);
 
-    Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(God.class).size());
+    Assert.assertEquals(1, mAdapter.findAll(PolyTheist.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(God.class).size());
 
-    getAdapter().delete(PolyTheist.class, null, null);
+    mAdapter.delete(PolyTheist.class, null, null);
 
-    Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(God.class).size());
+    Assert.assertEquals(0, mAdapter.findAll(PolyTheist.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(God.class).size());
   }
 
   @Test
@@ -130,15 +130,15 @@ public class DeleteTest extends SqliteTest {
     PolyTheist dummy = new PolyTheist();
     dummy.gods = Arrays.asList(thor, jesus);
 
-    getAdapter().store(dummy);
+    mAdapter.store(dummy);
 
-    Assert.assertEquals(1, getAdapter().findAll(PolyTheist.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(God.class).size());
+    Assert.assertEquals(1, mAdapter.findAll(PolyTheist.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(God.class).size());
 
-    getAdapter().delete(PolyTheist.class, null, null, true);
+    mAdapter.delete(PolyTheist.class, null, null, true);
 
-    Assert.assertEquals(0, getAdapter().findAll(PolyTheist.class).size());
-    Assert.assertEquals(0, getAdapter().findAll(God.class).size());
+    Assert.assertEquals(0, mAdapter.findAll(PolyTheist.class).size());
+    Assert.assertEquals(0, mAdapter.findAll(God.class).size());
   }
 
   @Test
@@ -159,21 +159,21 @@ public class DeleteTest extends SqliteTest {
     william.name = "William Ospina";
     william.books = Arrays.asList(puta);
 
-    getAdapter().store(author);
-    getAdapter().store(william);
+    mAdapter.store(author);
+    mAdapter.store(william);
 
-    Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(Author.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(Book.class).size());
 
-    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
+    mAdapter.delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"});
 
-    Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+    Assert.assertEquals(1, mAdapter.findAll(Author.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(Book.class).size());
 
-    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
+    mAdapter.delete(Author.class, "name LIKE ?", new String[]{"William Ospina"});
 
-    Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+    Assert.assertEquals(0, mAdapter.findAll(Author.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(Book.class).size());
   }
 
   @Test
@@ -194,20 +194,20 @@ public class DeleteTest extends SqliteTest {
     william.name = "William Ospina";
     william.books = Arrays.asList(puta);
 
-    getAdapter().store(author);
-    getAdapter().store(william);
+    mAdapter.store(author);
+    mAdapter.store(william);
 
-    Assert.assertEquals(2, getAdapter().findAll(Author.class).size());
-    Assert.assertEquals(2, getAdapter().findAll(Book.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(Author.class).size());
+    Assert.assertEquals(2, mAdapter.findAll(Book.class).size());
 
-    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
+    mAdapter.delete(Author.class, "name LIKE ?", new String[]{"Fernando Vallejo"}, true);
 
-    Assert.assertEquals(1, getAdapter().findAll(Author.class).size());
-    Assert.assertEquals(1, getAdapter().findAll(Book.class).size());
+    Assert.assertEquals(1, mAdapter.findAll(Author.class).size());
+    Assert.assertEquals(1, mAdapter.findAll(Book.class).size());
 
-    getAdapter().delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
+    mAdapter.delete(Author.class, "name LIKE ?", new String[]{"William Ospina"}, true);
 
-    Assert.assertEquals(0, getAdapter().findAll(Author.class).size());
-    Assert.assertEquals(0, getAdapter().findAll(Book.class).size());
+    Assert.assertEquals(0, mAdapter.findAll(Author.class).size());
+    Assert.assertEquals(0, mAdapter.findAll(Book.class).size());
   }
 }

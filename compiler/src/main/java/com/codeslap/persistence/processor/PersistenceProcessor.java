@@ -47,6 +47,10 @@ public class PersistenceProcessor extends AbstractProcessor {
             jw.emitStatement("return new " + mainClassName + "()");
             jw.endMethod();
 
+            jw.beginMethod("boolean", "hasAutoincrement", Modifier.PUBLIC);
+            jw.emitStatement("return true");
+            jw.endMethod();
+
             jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC, DatabaseSpec.class.getName(), "dbSpec");
             jw.emitStatement("return null");
             jw.endMethod();

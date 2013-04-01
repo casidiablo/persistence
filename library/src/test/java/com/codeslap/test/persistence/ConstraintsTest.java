@@ -42,16 +42,16 @@ public class ConstraintsTest extends SqliteTest {
       foo.blob = foo.name.getBytes();
       list.add(foo);
     }
-    getAdapter().storeCollection(list, null);
+    mAdapter.storeCollection(list, null);
 
     ExampleAutoincrement sample = new ExampleAutoincrement();
     sample.bool = true;
 
-    List<ExampleAutoincrement> all = getAdapter().findAll(sample);
+    List<ExampleAutoincrement> all = mAdapter.findAll(sample);
     assertEquals(list.size() / 2, all.size());
 
     Constraint constraint = new Constraint().limit(2).groupBy("name").orderBy("number DESC");
-    List<ExampleAutoincrement> found = getAdapter().findAll(sample, constraint);
+    List<ExampleAutoincrement> found = mAdapter.findAll(sample, constraint);
     assertEquals(2, found.size());
 
     assertTrue(found.get(0).number >= found.get(1).number);

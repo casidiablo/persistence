@@ -33,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(RobolectricSimpleRunner.class)
 public abstract class SqliteTest {
 
-  private SqlAdapter mAdapter;
+  protected SqlAdapter mAdapter;
   private DatabaseSpec mDatabaseSpec;
 
   @Before public void configure() {
@@ -52,10 +52,6 @@ public abstract class SqliteTest {
 
     mAdapter = Persistence.getAdapter(new Activity());
     mAdapter.truncate(ExampleAutoincrement.class, ExampleNotAutoincrement.class, AnnotationAutoincrement.class, Book.class, God.class, PolyTheist.class, Author.class, Pet.class, Owner.class, StringAsPrimaryKey.class, AnnotationNotAutoincrement.class, Cow.class, Bug.class);
-  }
-
-  public SqlAdapter getAdapter() {
-    return mAdapter;
   }
 
   public DatabaseSpec getDatabase() {

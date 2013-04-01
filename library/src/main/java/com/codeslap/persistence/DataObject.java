@@ -25,4 +25,6 @@ public interface DataObject<T> {
   String getCreateTableSentence(DatabaseSpec databaseSpec);
 
   T newInstance();
+
+  boolean hasAutoincrement();
 }

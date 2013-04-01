@@ -43,7 +43,7 @@ public class NotAutoincrementInsertionTest extends SqliteTest {
     foo.bool = true;
 
     // insert it into the database
-    Object id = getAdapter().store(foo);
+    Object id = mAdapter.store(foo);
 
     // it should have inserted in the first record
     assertTrue(id instanceof Long);
@@ -51,7 +51,7 @@ public class NotAutoincrementInsertionTest extends SqliteTest {
     assertEquals(1L, ((Long) id).longValue());
 
     // if we retrieve all elements, it should be there in the first record
-    List<ExampleNotAutoincrement> all = getAdapter().findAll(ExampleNotAutoincrement.class);
+    List<ExampleNotAutoincrement> all = mAdapter.findAll(ExampleNotAutoincrement.class);
     assertEquals(1, all.size());
     assertEquals(foo, all.get(0));
   }
@@ -69,22 +69,22 @@ public class NotAutoincrementInsertionTest extends SqliteTest {
       foo.bool = random.nextBoolean();
       collection.add(foo);
     }
-    getAdapter().storeCollection(collection, null);
+    mAdapter.storeCollection(collection, null);
 
     // it should have stored all items
-    Assert.assertEquals(collection.size(), getAdapter().count(ExampleNotAutoincrement.class));
+    Assert.assertEquals(collection.size(), mAdapter.count(ExampleNotAutoincrement.class));
 
     // now let's see if it stored everything
-    for (ExampleNotAutoincrement ExampleNotAutoincrement : collection) {
-      ExampleNotAutoincrement found = getAdapter().findFirst(ExampleNotAutoincrement);
+    for (ExampleNotAutoincrement exampleNotAutoincrement : collection) {
+      ExampleNotAutoincrement found = mAdapter.findFirst(exampleNotAutoincrement);
       assertNotNull(found);
-      ExampleNotAutoincrement.id = found.id;
-      assertEquals(ExampleNotAutoincrement, found);
+      exampleNotAutoincrement.id = found.id;
+      assertEquals(exampleNotAutoincrement, found);
     }
 
     // now let's test test unique collection. In order to do so, we will remove half elements from
     // the original collection, and modify half elements of that sub-collection
-    collection = getAdapter().findAll(ExampleNotAutoincrement.class);
+    collection = mAdapter.findAll(ExampleNotAutoincrement.class);
     collection = collection.subList(0, collection.size() / 2);
     for (int i = 0, halfCollectionSize = collection.size() / 2; i < halfCollectionSize; i++) {
       ExampleNotAutoincrement foo = collection.get(i);
@@ -96,12 +96,12 @@ public class NotAutoincrementInsertionTest extends SqliteTest {
 
     // now, using the store unique collection method there should be only 50 elements
     // it should have stored all items
-    getAdapter().storeUniqueCollection(collection, null);
-    Assert.assertEquals(collection.size(), getAdapter().count(ExampleNotAutoincrement.class));
+    mAdapter.storeUniqueCollection(collection, null);
+    Assert.assertEquals(collection.size(), mAdapter.count(ExampleNotAutoincrement.class));
 
     // and everything must have been saved correctly
     for (ExampleNotAutoincrement ExampleNotAutoincrement : collection) {
-      ExampleNotAutoincrement found = getAdapter().findFirst(ExampleNotAutoincrement);
+      ExampleNotAutoincrement found = mAdapter.findFirst(ExampleNotAutoincrement);
       assertNotNull(found);
       ExampleNotAutoincrement.id = found.id;
       assertEquals(ExampleNotAutoincrement, found);
