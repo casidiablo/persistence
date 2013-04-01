@@ -22,5 +22,7 @@ package com.codeslap.persistence;
  * @author cristian
  */
 public interface DataObject<T> {
+  String getCreateTableSentence(DatabaseSpec databaseSpec);
+
   T newInstance();
 }

@@ -42,7 +42,7 @@ public class HasMany {
     // make sure the 'through' exists
     try {
       mThroughField = classA.getDeclaredField(through);
-      mThroughColumnName = SQLHelper.getColumnName(mThroughField);
+      mThroughColumnName = ReflectHelper.getColumnName(mThroughField);
     } catch (NoSuchFieldException e) {
       throw new IllegalStateException(e);
     }

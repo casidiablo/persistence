@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import static com.codeslap.persistence.StrUtil.concat;
 
@@ -42,7 +40,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   private final DatabaseSpec mDatabaseSpec;
   private final SqliteDb mDbHelper;
-  private final ConcurrentMap<Class<?>, DataObject<?>> dataObjects = new ConcurrentHashMap<Class<?>, DataObject<?>>();
 
   SqliteAdapterImpl(Context context, String name, String specId) {
     mDatabaseSpec = PersistenceConfig.getDatabaseSpec(specId);
@@ -68,7 +65,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
   public <T> List<T> findAll(Class<T> theClass) {
     T emptySample = null;
     try {
-      DataObject<T> dataObject = getDataObject(theClass);
+      DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass);
       emptySample = dataObject.newInstance();
     } catch (Exception e) {
       e.printStackTrace();
@@ -499,7 +496,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       Object beanId = theId.get(bean);
       if (SQLHelper.hasData(theId.getType(), beanId)) {
         // create an object of the same type of the bean with the same id to search of it
-        DataObject<T> dataObject = getDataObject(theClass);
+        DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass);
         Object sample = dataObject.newInstance();
         theId.set(sample, beanId);
 
@@ -617,7 +614,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
   private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Node tree) {
     T bean;
     try {
-      DataObject<? extends T> dataObject = getDataObject(theClass);
+      DataObject<? extends T> dataObject = DataObjectFactory.getDataObject(theClass);
       bean = dataObject.newInstance();
     } catch (Exception e) {
       throw new RuntimeException("Could not initialize object of type " + theClass + ", " + e.getMessage());
@@ -627,7 +624,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     Field[] fields = SQLHelper.getDeclaredFields(theClass);
     for (Field field : fields) {
       // get the column index
-      String normalize = SQLHelper.getColumnName(field);
+      String normalize = ReflectHelper.getColumnName(field);
       int columnIndex = query.getColumnIndex(normalize);
       // get an object value depending on the type
       Class type = field.getType();
@@ -642,7 +639,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
               Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
               // build a query that uses the joining table and the joined object
               String collectionTableName = SQLHelper.getTableName(collectionClass);
-              String sql = new StringBuilder().append("SELECT * FROM ").append(SQLHelper.getTableName(collectionClass)).append(" WHERE ").append(SQLHelper.getIdColumn(collectionId)).append(" IN (SELECT ").append(collectionTableName).append(SQLHelper._ID).append(" FROM ").append(ManyToMany.buildTableName(theClass, collectionClass)).append(" WHERE ").append(SQLHelper.getTableName(theClass)).append(SQLHelper._ID).append(" = ?)").toString();
+              String sql = new StringBuilder().append("SELECT * FROM ").append(SQLHelper.getTableName(collectionClass)).append(" WHERE ").append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ").append(collectionTableName).append(SQLHelper._ID).append(" FROM ").append(ManyToMany.buildTableName(theClass, collectionClass)).append(" WHERE ").append(SQLHelper.getTableName(theClass)).append(SQLHelper._ID).append(" = ?)").toString();
               // execute the query
               String[] selectionArgs = new String[1];
               long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
@@ -684,7 +681,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
           tree.removeChild(node);
         }
       } else {// do not process collections here
-        value = getValueFromCursor(type, SQLHelper.getColumnName(field), query);
+        value = getValueFromCursor(type, ReflectHelper.getColumnName(field), query);
       }
       try {
         if (value != null) {
@@ -721,14 +718,5 @@ public class SqliteAdapterImpl implements SqlAdapter {
     } catch (Exception e) {
       throw new IllegalStateException("Error getting column " + name, e);
     }
-  }
-
-  private <T> DataObject<T> getDataObject(Class<T> theClass) {
-    DataObject<T> dataObject = (DataObject<T>) dataObjects.get(theClass);
-    if (dataObject == null) {
-      dataObject = (DataObject<T>) new ReflectDataObject(theClass);
-      dataObjects.put(theClass, dataObject);
-    }
-    return dataObject;
   }
 }

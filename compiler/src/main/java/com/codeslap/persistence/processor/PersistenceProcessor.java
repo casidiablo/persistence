@@ -1,6 +1,7 @@
 package com.codeslap.persistence.processor;
 
 import com.codeslap.persistence.DataObject;
+import com.codeslap.persistence.DatabaseSpec;
 import com.squareup.java.JavaWriter;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -43,6 +44,10 @@ public class PersistenceProcessor extends AbstractProcessor {
 
             jw.beginMethod(mainClassName, "newInstance", Modifier.PUBLIC);
             jw.emitStatement("return new " + mainClassName + "()");
+            jw.endMethod();
+
+            jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC, DatabaseSpec.class.getName(), "dbSpec");
+            jw.emitStatement("return null");
             jw.endMethod();
 
             jw.endType();

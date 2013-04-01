@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 public @interface Column {
-  String NULL = "This is a default value... you are not going to use this, do you?";
+  String NULL = "This is a default value you are not going to use this, isn't it?";
 
   /**
    * @return the column name
