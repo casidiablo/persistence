@@ -19,8 +19,6 @@ package com.codeslap.persistence;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import static com.codeslap.persistence.StrUtil.concat;
@@ -32,10 +30,10 @@ import static com.codeslap.persistence.StrUtil.concat;
  */
 public class ReflectDataObject implements DataObject<Object> {
 
-  static final String PRIMARY_KEY = " INTEGER PRIMARY KEY";
   private final Class<?> objectType;
   private final List<Field> fields;
   private final boolean hasAutoincrement;
+  private final String tableName;
 
   public ReflectDataObject(Class<?> type, DatabaseSpec spec) {
     objectType = type;
@@ -62,6 +60,7 @@ public class ReflectDataObject implements DataObject<Object> {
       }
     }
     hasAutoincrement = spec != null ? autoincrement && !spec.isNotAutoincrement(type) : autoincrement;
+    tableName = SQLHelper.getTableName(objectType);
   }
 
   @Override public Object newInstance() {
@@ -78,106 +77,52 @@ public class ReflectDataObject implements DataObject<Object> {
   }
 
   @Override public String getCreateTableSentence(DatabaseSpec databaseSpec) {
-    List<String> fieldSentences = new ArrayList<String>();
-    // loop through all the fields and add sql statements
-    List<String> columns = new ArrayList<String>();
+    CreateTableHelper createTable = CreateTableHelper.init(tableName);
     for (Field field : fields) {
       String columnName = ReflectHelper.getColumnName(field);
+      CreateTableHelper.Type type = getTypeFrom(field);
       if (ReflectHelper.isPrimaryKey(field)) {
-        String primaryKeySentence = getCreatePrimaryKey(field);
-        if (field.getType() == String.class) {// what types are supported
-          primaryKeySentence = primaryKeySentence.replace("INTEGER PRIMARY KEY", "TEXT PRIMARY KEY");
-        } else if (hasAutoincrement) {
-          primaryKeySentence += " AUTOINCREMENT";
-        }
-        if (!columns.contains(columnName)) {
-          fieldSentences.add(primaryKeySentence);
-          columns.add(columnName);
-        }
+        String column = ReflectHelper.getIdColumn(field);
+        createTable.addPk(column, type, hasAutoincrement);
       } else if (field.getType() != List.class) {
-        if (!columns.contains(columnName)) {
-          columns.add(columnName);
-          boolean notNull = false;
-          Column columnAnnotation = field.getAnnotation(Column.class);
-          if (columnAnnotation != null) {
-            notNull = columnAnnotation.notNull();
-          }
-          fieldSentences.add(getFieldSentence(columnName, field.getType(), notNull));
+        boolean notNull = false;
+        Column columnAnnotation = field.getAnnotation(Column.class);
+        if (columnAnnotation != null) {
+          notNull = columnAnnotation.notNull();
         }
+        createTable.add(columnName, type, notNull);
       }
     }
 
-    // check whether this class belongs to a has-many relation, in which case we need to create an additional field
+    // check whether this class belongs to a has-many relation,
+    // in which case we need to create an additional field
     HasMany belongsTo = databaseSpec.belongsTo(objectType);
     if (belongsTo != null) {
       // if so, add a new field to the table creation statement to create the relation
       Class<?> containerClass = belongsTo.getContainerClass();
       Field field = belongsTo.getThroughField();
-      String columnName = concat(SQLHelper.normalize(containerClass.getSimpleName()), "_", SQLHelper.normalize(belongsTo.getThroughField().getName()));
-      if (!columns.contains(columnName)) {
-        fieldSentences.add(getFieldSentence(columnName, field.getType(), true));
-        columns.add(ReflectHelper.getColumnName(field));
-      }
-    }
 
-    // sort sentences
-    Collections.sort(fieldSentences, new Comparator<String>() {
-      @Override
-      public int compare(String s1, String s2) {
-        if (s1.contains(PRIMARY_KEY)) {
-          return -1;
-        }
-        if (s2.contains(PRIMARY_KEY)) {
-          return 1;
-        }
-        return 0;
-      }
-    });
+      String containerClassNormalized = SQLHelper.normalize(containerClass.getSimpleName());
+      String throughFieldNormalized = SQLHelper.normalize(belongsTo.getThroughField().getName());
+      String columnName = concat(containerClassNormalized, "_", throughFieldNormalized);
 
-    // build create table sentence
-    StringBuilder builder = new StringBuilder();
-    builder.append("CREATE TABLE IF NOT EXISTS ").append(SQLHelper.getTableName(objectType)).append(" (");
-    boolean first = true;
-    for (String fieldSentence : fieldSentences) {
-      if (!first) {
-        builder.append(", ");
-      }
-      builder.append(fieldSentence);
-      first = false;
+      createTable.add(columnName, getTypeFrom(field), false);
     }
-    builder.append(");");
-    return builder.toString();
+    return createTable.build();
   }
 
-  private static String getCreatePrimaryKey(Field field) {
-    return concat(ReflectHelper.getIdColumn(field), PRIMARY_KEY);
-  }
-
-  /**
-   * @param name    the name of the field
-   * @param type    the type
-   * @param notNull true if the column should be not null
-   * @return the sql statement to create that kind of field
-   */
-  private static String getFieldSentence(String name, Class<?> type, boolean notNull) {
-    name = SQLHelper.normalize(name);
-    String notNullSentence = "";
-    if (notNull) {
-      notNullSentence = " NOT NULL";
+  private static CreateTableHelper.Type getTypeFrom(Field field) {
+    Class<?> type = field.getType();
+    if (type == int.class || type == Integer.class || type == long.class || type == Long.class ||
+        type == boolean.class || type == Boolean.class) {
+      return CreateTableHelper.Type.INTEGER;
+    } else if (type == float.class || type == Float.class || type == double.class ||
+        type == Double.class) {
+      return CreateTableHelper.Type.REAL;
+    } else if (type == byte[].class || type == Byte[].class) {
+      return CreateTableHelper.Type.BLOB;
     }
-    if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
-      return concat(name, " INTEGER", notNullSentence);
-    }
-    if (type == boolean.class || type == Boolean.class) {
-      return concat(name, " BOOLEAN", notNullSentence);
-    }
-    if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-      return concat(name, " REAL", notNullSentence);
-    }
-    if (type == byte[].class || type == Byte[].class) {
-      return concat(name, " BLOB", notNullSentence);
-    }
-    return concat(name, " TEXT", notNullSentence);
+    return CreateTableHelper.Type.TEXT;
   }
 
   private void error(Exception e) {
