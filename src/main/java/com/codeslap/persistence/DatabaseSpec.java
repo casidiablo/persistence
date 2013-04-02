@@ -442,4 +442,13 @@ public class DatabaseSpec {
                 ", mAfterImporters=" + mAfterImporters +
                 '}';
     }
+
+    /**
+     * Returns the List of classes that have been added to the DatabaseSpec, useful for
+     * operations like Database truncate.
+     * @return List<Class?>
+     */
+    public List<Class<?>> getMatches(){
+        return mSqliteList;
+    }
 }
