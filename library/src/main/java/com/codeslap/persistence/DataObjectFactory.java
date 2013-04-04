@@ -33,7 +33,7 @@ class DataObjectFactory {
     dataObjects = new ConcurrentHashMap<Class<?>, DataObject<?>>();
   }
 
-  static <T> DataObject<T> getDataObject(Class<T> type, DatabaseSpec spec) {
+  static <T> DataObject<T> getDataObject(Class<T> type) {
     DataObject<T> dataObject = (DataObject<T>) dataObjects.get(type);
     if (dataObject == null) {
       try {
@@ -45,7 +45,7 @@ class DataObjectFactory {
       } catch (Exception e) {
       }
       if (dataObject == null) {
-        dataObject = (DataObject<T>) new ReflectDataObject(type, spec);
+        dataObject = (DataObject<T>) new ReflectDataObject(type);
       }
       dataObjects.put(type, dataObject);
     }

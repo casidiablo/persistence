@@ -20,16 +20,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-/**
- * @author cristian
- */
+/** @author cristian */
 class RawQueryImpl implements RawQuery {
   private final SQLiteDatabase mDb;
-  private final DatabaseSpec mDatabaseSpec;
 
   RawQueryImpl(Context context, String name, String specId) {
-    mDatabaseSpec = PersistenceConfig.getDatabaseSpec(specId);
-    SqliteDb helper = SqliteDb.getInstance(context, name, mDatabaseSpec);
+    DatabaseSpec dbSpec = PersistenceConfig.getDatabaseSpec(specId);
+    SqliteDb helper = SqliteDb.getInstance(context, name, dbSpec);
     mDb = helper.getDatabase();
   }
 
@@ -45,17 +42,18 @@ class RawQueryImpl implements RawQuery {
 
   @Override
   public Cursor findAll(Object where, Constraint constraint) {
-    return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, null, constraint, mDatabaseSpec);
+    return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, null, constraint);
   }
 
   @Override
-  public Cursor findAll(Object where, Object attachedTo) {
-    return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, attachedTo, null, mDatabaseSpec);
+  public Cursor findAll(Object where, Object parent) {
+    return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, parent, null);
   }
 
   @Override
   public Cursor findAll(Class<?> theClass, String where, String[] whereArgs) {
-    return mDb.query(SQLHelper.getTableName(theClass), null, where, whereArgs, null, null, null, null);
+    return mDb
+        .query(SQLHelper.getTableName(theClass), null, where, whereArgs, null, null, null, null);
   }
 
   @Override
@@ -64,7 +62,9 @@ class RawQueryImpl implements RawQuery {
   }
 
   @Override
-  public Cursor findAll(String table, String[] projection, String selection, String[] selectionArgs, String groupBy, String having, String sortOrder, String limit) {
-    return mDb.query(table, projection, selection, selectionArgs, groupBy, having, sortOrder, limit);
+  public Cursor findAll(String table, String[] projection, String selection, String[] selectionArgs,
+                        String groupBy, String having, String sortOrder, String limit) {
+    return mDb
+        .query(table, projection, selection, selectionArgs, groupBy, having, sortOrder, limit);
   }
 }

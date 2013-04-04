@@ -16,15 +16,55 @@
 
 package com.codeslap.persistence;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
+
+import static com.codeslap.persistence.StrUtil.concat;
+
 /**
  * //
  *
  * @author cristian
  */
 public interface DataObject<T> {
-  String getCreateTableSentence(DatabaseSpec databaseSpec);
+  String getCreateTableSentence();
 
   T newInstance();
 
   boolean hasAutoincrement();
+
+  Collection<HasManySpec> hasMany();
+
+  HasManySpec hasMany(Class<?> theClass);
+
+  Class<?> belongsTo();
+
+  static class HasManySpec {
+    public final Class<?> container;
+    public final Class<?> contained;
+    public final String through;
+    public final Field fieldThrough;
+    public final Field listField;
+
+    public HasManySpec(Class<?> container, Class<?> contained, String through, Field listField) {
+      this.container = container;
+      this.contained = contained;
+      this.through = through;
+      this.listField = listField;
+      try {
+        Field throughField = container.getDeclaredField(through);
+        throughField.setAccessible(true);
+        this.fieldThrough = throughField;
+      } catch (NoSuchFieldException e) {
+        throw new IllegalStateException("Cannot find field " + through);
+      }
+    }
+
+    public String getThroughColumnName() {
+      // if so, add a new field to the table creation statement to create the relation
+      String containerClassNormalized = SQLHelper.normalize(container.getSimpleName());
+      String throughFieldNormalized = SQLHelper.normalize(through);
+      return concat(containerClassNormalized, "_", throughFieldNormalized);
+    }
+  }
 }

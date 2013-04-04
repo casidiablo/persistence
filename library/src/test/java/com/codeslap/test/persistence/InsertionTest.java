@@ -19,7 +19,6 @@ package com.codeslap.test.persistence;
 import org.junit.Assert;
 import org.junit.Test;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -198,60 +197,6 @@ public class InsertionTest extends SqliteTest {
 
     AnnotationAutoincrement bar = mAdapter.findFirst(AnnotationAutoincrement.class, "char_sequence LIKE ?", new String[]{"Blackened"});
     assertEquals("Castiblanco", bar.lastName);
-  }
-
-  @Test
-  public void testAttachedTo() {
-    Cow cow = new Cow();
-    cow.name = "Super Cow";
-
-    Bug garrapata = new Bug();
-    garrapata.itchFactor = new Random().nextFloat();
-
-    Bug pulga = new Bug();
-    pulga.itchFactor = new Random().nextFloat();
-
-    Object store = mAdapter.store(cow);
-    assertNotNull(store);
-
-    cow.id = 1;
-    store = mAdapter.store(cow);
-    assertNotNull(store);
-
-    cow.name = "Ugly Cow";
-    store = mAdapter.store(cow);
-    assertNotNull(store);
-
-    List<Cow> cows = mAdapter.findAll(Cow.class, "name = 'Ugly Cow'", null);
-    assertEquals(1, cows.size());
-    List<Cow> cowsEquals = mAdapter.findAll(cow);
-    assertEquals(cows, cowsEquals);
-
-    mAdapter.storeCollection(Arrays.asList(garrapata, pulga), cow, null);
-
-    List<Bug> bugs = mAdapter.findAll(Bug.class);
-    assertEquals(2, bugs.size());
-    List<Bug> sameBugs = mAdapter.findAll(Bug.class, "cow_id = ?", new String[]{"1"});
-    assertEquals(bugs, sameBugs);
-
-    mAdapter.truncate(Cow.class, Bug.class);
-    assertTrue(mAdapter.findAll(Bug.class).isEmpty());
-    assertTrue(mAdapter.findAll(Cow.class).isEmpty());
-
-    Object id = mAdapter.store(cow);
-    assertNotNull(id);
-    assertTrue(id instanceof Long);
-    assertEquals(1L, id);
-
-    mAdapter.store(garrapata, cow);
-    mAdapter.store(pulga, cow);
-
-    bugs = mAdapter.findAll(Bug.class);
-    assertEquals(2, bugs.size());
-    sameBugs = mAdapter.findAll(Bug.class, "cow_id = ?", new String[]{"1"});
-    assertEquals(bugs, sameBugs);
-    List<Bug> allAttached = mAdapter.findAll(new Bug(), cow);
-    assertEquals(bugs, allAttached);
   }
 
   @Test

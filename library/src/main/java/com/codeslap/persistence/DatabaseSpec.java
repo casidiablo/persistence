@@ -22,15 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class that defines a database (what tables it has, what are they relationships and how it is created/upgraded)
+ * Class that defines a database (what tables it has, what are they relationships and how it is
+ * created/upgraded)
  *
  * @author cristian
  */
 public class DatabaseSpec {
   private final List<Class<?>> mSqliteList = new ArrayList<Class<?>>();
-  private final List<Class<?>> mNotAutoIncrementList = new ArrayList<Class<?>>();
   private final List<ManyToMany> mManyToManyList = new ArrayList<ManyToMany>();
-  private final List<HasMany> mHasManyList = new ArrayList<HasMany>();
 
   private final int mVersion;
   private final List<Importer> mBeforeImporters = new ArrayList<Importer>();
@@ -53,9 +52,7 @@ public class DatabaseSpec {
     return this;
   }
 
-  /**
-   * Use this to create a new {@link DbOpenHelper} implementation
-   */
+  /** Use this to create a new {@link DbOpenHelper} implementation */
   public static interface DbOpenHelperBuilder {
     /**
      * This method must return a new {@link DbOpenHelper} implementation always.
@@ -73,10 +70,13 @@ public class DatabaseSpec {
   }
 
   /**
-   * Register one or more classes to be added to the Sqlite model. All classes should have an ID which will be treated
-   * as autoincrement if possible. If your class has a field called <code>id</code> then it will be automatically
-   * taken as an autoincrement primary key; if your primary key field has another name, use the {@link PrimaryKey}
-   * which will also allow you to specify whether the field is autoincrement or not.
+   * Register one or more classes to be added to the Sqlite model. All classes should have an ID
+   * which will be treated as autoincrement if possible. If your class has a field called
+   * <code>id</code> then it will be automatically taken as an autoincrement primary key; if your
+   * primary key field has another name, use the {@link PrimaryKey} which will also allow you to
+   * specify whether the field is autoincrement or not.  If you do not have control over the classes
+   * and want to avoid the autoincrement, register the class using the {@link
+   * PersistenceConfig#notAutoIncrement(Class[])}.
    *
    * @param classes a list of classes to register
    */
@@ -89,112 +89,28 @@ public class DatabaseSpec {
   }
 
   /**
-   * Use this to register classes that shall no have an autoincrement primary key. Use it only when you have
-   * no control over that kind of class. If you do have control over the class, you shall use the normal
-   * {@link DatabaseSpec#match(Class[])} method and the annotation {@link PrimaryKey} with the autoincrement
-   * argument set to <code>false</code>.
-   *
-   * @param classes the classes to register
-   */
-  public void matchNotAutoIncrement(Class<?>... classes) {
-    for (Class<?> type : classes) {
-      if (!mSqliteList.contains(type)) {
-        mSqliteList.add(type);
-      }
-      if (!mNotAutoIncrementList.contains(type)) {
-        mNotAutoIncrementList.add(type);
-      }
-    }
-  }
-
-  /**
-   * Use this to register many-to-many relationships. You shall no pass repeated relations (including those that
-   * has the same classes but in different order). Classes in the relation will be passed to the
-   * {@link DatabaseSpec#match(Class[])} method, which means that, by default, they will be
-   * treated as tables with an autoincrement primary key; if you want to avoid this behavior, use the
-   * {@link PrimaryKey} annotation and customize your primary key. If you do not have control over the classes and
-   * want to avoid the autoincrement, use the alternative method {@link DatabaseSpec#matchNotAutoIncrement(ManyToMany)}.
+   * Use this to register many-to-many relationships. You shall no pass repeated relations
+   * (including those that has the same classes but in different order). Classes in the relation
+   * will be passed to the {@link DatabaseSpec#match(Class[])} method, which means that, by default,
+   * they will be treated as tables with an autoincrement primary key; if you want to avoid this
+   * behavior, use the {@link PrimaryKey} annotation and customize your primary key.
    *
    * @param manyToMany an instance containing the many-to-many relation
    */
   public void match(ManyToMany manyToMany) {
     // make sure there are no inverted many-to-many relations
     for (ManyToMany mtm : mManyToManyList) {
-      if ((mtm.getFirstRelation() == manyToMany.getSecondRelation() && mtm.getSecondRelation() == manyToMany.getFirstRelation()) || (mtm.getFirstRelation() == manyToMany.getFirstRelation() && mtm.getSecondRelation() == manyToMany.getSecondRelation())) {
-        throw new IllegalStateException(StrUtil.concat("Error adding ", manyToMany, ": there should not be two many-to-many relations with the same classes."));
+      if ((mtm.getFirstRelation() == manyToMany.getSecondRelation() && mtm
+          .getSecondRelation() == manyToMany.getFirstRelation()) || (mtm
+          .getFirstRelation() == manyToMany.getFirstRelation() && mtm
+          .getSecondRelation() == manyToMany.getSecondRelation())) {
+        throw new IllegalStateException(StrUtil.concat("Error adding ", manyToMany,
+            ": there should not be two many-to-many relations with the same classes."));
       }
     }
     match(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
     if (!mManyToManyList.contains(manyToMany)) {
       mManyToManyList.add(manyToMany);
-    }
-  }
-
-  /**
-   * Use this to register many-to-many relationships. You shall no pass repeated relations (including those that
-   * has the same classes but in different order). Classes in the relation will be passed to the
-   * {@link DatabaseSpec#matchNotAutoIncrement(Class[])} method. I recommend to use the
-   * {@link DatabaseSpec#match(ManyToMany)} and {@link PrimaryKey} annotation if you have control over the
-   * classes to be registered.
-   *
-   * @param manyToMany an instance containing the many-to-many relation
-   */
-  public void matchNotAutoIncrement(ManyToMany manyToMany) {
-    matchNotAutoIncrement(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
-    if (!mManyToManyList.contains(manyToMany)) {
-      mManyToManyList.add(manyToMany);
-    }
-  }
-
-  /**
-   * Registers a has-many relation. This will register the individual classes using the
-   * {@link DatabaseSpec#match(Class[])} method which means that those classes will be treated as autoincrement.
-   * If you want to avoid this behavior, use the {@link PrimaryKey} annotation; if you do not have control
-   * over the registered classes, use the {@link DatabaseSpec#matchNotAutoIncrement(ManyToMany)}
-   *
-   * @param hasMany the has-many relationship to register.
-   */
-  public void match(HasMany hasMany) {
-    Class<?> containerClass = hasMany.getContainerClass();
-    Class<?> containedClass = hasMany.getContainedClass();
-    // make sure there are no inverted has many relations
-    for (HasMany hasManyRelation : mHasManyList) {
-      Class<?> currentContainerClass = hasManyRelation.getContainerClass();
-      Class<?> currentContainedClass = hasManyRelation.getContainedClass();
-      if (currentContainerClass == containedClass && currentContainedClass == containerClass) {
-        throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
-      }
-    }
-    match(containedClass, containerClass);
-    // add the has many relation to the list
-    if (!mHasManyList.contains(hasMany)) {
-      mHasManyList.add(hasMany);
-    }
-  }
-
-  /**
-   * Registers a has-many relation. This will register the individual classes using the
-   * {@link DatabaseSpec#matchNotAutoIncrement(Class[])} method which means that those classes do not have an
-   * autoincrement primary key. If you have control over the classes to register, I recommend to use the
-   * {@link DatabaseSpec#match(HasMany)} method and the {@link PrimaryKey} annotation.
-   *
-   * @param hasMany the has-many relationship to register.
-   */
-  public void matchNotAutoIncrement(HasMany hasMany) {
-    Class<?> containerClass = hasMany.getContainerClass();
-    Class<?> containedClass = hasMany.getContainedClass();
-    matchNotAutoIncrement(containerClass, containedClass);
-    // make sure there are no inverted has many relations
-    for (HasMany hasManyRelation : mHasManyList) {
-      Class<?> currentContainerClass = hasManyRelation.getContainerClass();
-      Class<?> currentContainedClass = hasManyRelation.getContainedClass();
-      if (currentContainerClass == containedClass && currentContainedClass == containerClass) {
-        throw new IllegalStateException("There should not be two has-many relations with the same classes. Use Many-To-Many");
-      }
-    }
-    // add the has many relation to the list
-    if (!mHasManyList.contains(hasMany)) {
-      mHasManyList.add(hasMany);
     }
   }
 
@@ -206,16 +122,10 @@ public class DatabaseSpec {
    * @return the type of relationship between two classes
    */
   Relationship getRelationship(Class<?> theClass, Class<?> collectionClass) {
-    for (HasMany hasMany : mHasManyList) {
-      Class<?> containerClass = hasMany.getContainerClass();
-      Class<?> containedClass = hasMany.getContainedClass();
-      if (containerClass == theClass && containedClass == collectionClass) {
-        return Relationship.HAS_MANY;
-      }
-    }
-
     for (ManyToMany manyToMany : mManyToManyList) {
-      if ((manyToMany.getFirstRelation() == theClass && manyToMany.getSecondRelation() == collectionClass) || (manyToMany.getSecondRelation() == theClass && manyToMany.getFirstRelation() == collectionClass)) {
+      if ((manyToMany.getFirstRelation() == theClass && manyToMany
+          .getSecondRelation() == collectionClass) || (manyToMany
+          .getSecondRelation() == theClass && manyToMany.getFirstRelation() == collectionClass)) {
         return Relationship.MANY_TO_MANY;
       }
     }
@@ -223,48 +133,18 @@ public class DatabaseSpec {
   }
 
   /**
-   * Returns a relationship of the specified class. If it has two relations, it will return the
-   * {@link Relationship#HAS_MANY}
+   * Returns a relationship of the specified class.
    *
    * @param theClass a class
    * @return the type of relationship between this class and any other
    */
   Relationship getRelationship(Class<?> theClass) {
-    for (HasMany hasMany : mHasManyList) {
-      Class<?> containerClass = hasMany.getContainerClass();
-      if (containerClass == theClass) {
-        return Relationship.HAS_MANY;
-      }
-    }
-
     for (ManyToMany manyToMany : mManyToManyList) {
       if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
         return Relationship.MANY_TO_MANY;
       }
     }
     return Relationship.UNKNOWN;
-  }
-
-  /**
-   * @param clazz the class that we are checking whether belongs to another class
-   * @return the class that clazz belongs to or null if not such relation
-   */
-  HasMany belongsTo(Class clazz) {
-    for (HasMany hasMany : mHasManyList) {
-      Class<?> containedClass = hasMany.getContainedClass();
-      if (containedClass == clazz) {
-        return hasMany;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * @param type the class to check
-   * @return true if the class is registered as not-autoincrement
-   */
-  boolean isNotAutoincrement(Class<?> type) {
-    return mNotAutoIncrementList.contains(type);
   }
 
   /**
@@ -282,21 +162,8 @@ public class DatabaseSpec {
   }
 
   /**
-   * @param clazz the class that we are checking whether has another
-   * @return the class that clazz has or null if not such relation
-   */
-  HasMany has(Class clazz) {
-    for (HasMany hasMany : mHasManyList) {
-      Class<?> containerClass = hasMany.getContainerClass();
-      if (containerClass == clazz) {
-        return hasMany;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Adds one or more importers from the file paths specified. This is executed before tables are created.
+   * Adds one or more importers from the file paths specified. This is executed before tables are
+   * created.
    *
    * @param context used to get the content of the assets
    * @param paths   one or more file paths relative to the Assets folder
@@ -313,7 +180,8 @@ public class DatabaseSpec {
   /**
    * Adds an importer from a stream. This is executed before tables are created.
    *
-   * @param inputStream the input stream must not be null and must point to sqlite statements to execute
+   * @param inputStream the input stream must not be null and must point to sqlite statements to
+   *                    execute
    */
   public void beforeCreateImportFromStream(InputStream inputStream) {
     mBeforeImporters.add(new StreamImporter(inputStream));
@@ -329,8 +197,8 @@ public class DatabaseSpec {
   }
 
   /**
-   * Adds one or more importers from the file paths specified. This is executed before tables are created.
-   * Executes the specified sql statements after tables are created.
+   * Adds one or more importers from the file paths specified. This is executed before tables are
+   * created. Executes the specified sql statements after tables are created.
    *
    * @param context used to get the content of the assets
    * @param paths   one or more file paths relative to the Assets folder
@@ -347,7 +215,8 @@ public class DatabaseSpec {
   /**
    * Adds an importer from a stream. This is executed after tables are created.
    *
-   * @param inputStream the input stream must not be null and must point to sqlite statements to execute
+   * @param inputStream the input stream must not be null and must point to sqlite statements to
+   *                    execute
    */
   public void afterCreateImportFromStream(InputStream inputStream) {
     mAfterImporters.add(new StreamImporter(inputStream));
@@ -370,7 +239,7 @@ public class DatabaseSpec {
     return mBeforeImporters;
   }
 
-  enum Relationship {MANY_TO_MANY, HAS_MANY, UNKNOWN}
+  enum Relationship {MANY_TO_MANY, UNKNOWN}
 
   List<Class<?>> getSqliteClasses() {
     return mSqliteList;
@@ -388,7 +257,6 @@ public class DatabaseSpec {
     DatabaseSpec that = (DatabaseSpec) o;
 
     if (mVersion != that.mVersion) return false;
-    if (!mHasManyList.equals(that.mHasManyList)) return false;
     if (!mManyToManyList.equals(that.mManyToManyList)) return false;
     if (!mSqliteList.equals(that.mSqliteList)) return false;
 
@@ -399,7 +267,6 @@ public class DatabaseSpec {
   public int hashCode() {
     int result = mSqliteList.hashCode();
     result = 31 * result + (mManyToManyList.hashCode());
-    result = 31 * result + (mHasManyList.hashCode());
     result = 31 * result + mVersion;
     return result;
   }
@@ -409,7 +276,6 @@ public class DatabaseSpec {
     return "DatabaseSpec{" +
         "mSqliteList=" + mSqliteList +
         ", mManyToManyList=" + mManyToManyList +
-        ", mHasManyList=" + mHasManyList +
         ", mVersion=" + mVersion +
         ", mBeforeImporters=" + mBeforeImporters +
         ", mAfterImporters=" + mAfterImporters +

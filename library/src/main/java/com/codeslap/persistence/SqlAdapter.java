@@ -29,17 +29,6 @@ public interface SqlAdapter {
   <T> Object store(T object);
 
   /**
-   * Persist an object in the database attached to another object
-   *
-   * @param bean       the object to insert into the database
-   * @param attachedTo the object that bean is attached to
-   * @param <T>        object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
-   * @param <G>        attached type. Must be already registered using {@link DatabaseSpec#match(Class[])}
-   * @return an object containing the ID of the inserted object
-   */
-  <T, G> Object store(T bean, G attachedTo);
-
-  /**
    * Persist a collection of objects into the database
    *
    * @param collection a collection with objects to insert
@@ -52,13 +41,13 @@ public interface SqlAdapter {
    *
    * @param collection a collection with objects to insert
    * @param listener   callback to notify progress. Can be null.
-   * @param attachedTo the object that each bean of this collection is attached to
+   * @param parent     parent of each each bean of this collection
    */
-  <T, G> void storeCollection(List<T> collection, G attachedTo, ProgressListener listener);
+  <T, Parent> void storeCollection(List<T> collection, Parent parent, ProgressListener listener);
 
   /**
-   * Persist a collection of objects into the database. It will delete the objects from the
-   * database that are not in the collection.
+   * Persist a collection of objects into the database. It will delete the objects from the database
+   * that are not in the collection.
    *
    * @param collection a collection with objects to insert
    * @param listener   callback to notify progress. Can be null.
@@ -68,7 +57,8 @@ public interface SqlAdapter {
   /**
    * Updates one of more records in the database
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param object the object to insert into the database
    * @param where  the sample object
@@ -80,10 +70,12 @@ public interface SqlAdapter {
   /**
    * Updates one of more records in the database
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for
+   * instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param object    the object to insert into the database
-   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND
+   *                  another = ?</code>
    * @param whereArgs the list of values used in the wildcards
    * @param <T>       object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
    * @return how many items were updated
@@ -93,7 +85,8 @@ public interface SqlAdapter {
   /**
    * Retrieves an object from the database
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param where sample object
    * @param <T>   object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
@@ -104,10 +97,12 @@ public interface SqlAdapter {
   /**
    * Retrieves an object from the database
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for
+   * instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param theClass  the type of the object to retrieve
-   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND
+   *                  another = ?</code>
    * @param whereArgs the list of values used in the wildcards
    * @param <T>       object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
    * @return the first found element using the raw query parameters
@@ -118,7 +113,8 @@ public interface SqlAdapter {
    * Retrieves all elements from the database of the specified type
    *
    * @param theClass the class of the object that we want to retrieve
-   * @param <T>      object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
+   * @param <T>      object  type. Must be already registered using {@link
+   *                 DatabaseSpec#match(Class[])}
    * @return a list of T objects
    */
   <T> List<T> findAll(Class<T> theClass);
@@ -126,7 +122,8 @@ public interface SqlAdapter {
   /**
    * Retrieves all elements from the database that matches the specified sample
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param where sample object
    * @param <T>   object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
@@ -135,38 +132,45 @@ public interface SqlAdapter {
   <T> List<T> findAll(T where);
 
   /**
-   * Retrieves all elements from the database that matches the specified sample. And follows the specified constraint.
+   * Retrieves all elements from the database that matches the specified sample. And follows the
+   * specified constraint.
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param where      sample object
    * @param constraint constrains for this query
-   * @param <T>        object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
+   * @param <T>        object  type. Must be already registered using {@link
+   *                   DatabaseSpec#match(Class[])}
    * @return a list of T objects
    */
   <T> List<T> findAll(T where, Constraint constraint);
 
   /**
-   * Retrieves all elements from the database that are attached to the specified object
+   * Retrieves all elements from the database that belongs to the specified parent
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
-   * @param where      the sample object
-   * @param attachedTo the object that is attached to the sample object
-   * @param <T>        object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
+   * @param where  the sample object
+   * @param parent the parent of the retrieved objects
+   * @param <T>    object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
    * @return a list of T objects
    */
-  <T, G> List<T> findAll(T where, G attachedTo);
+  <T, Parent> List<T> findAll(T where, Parent parent);
 
   /**
    * Retrieves all elements from the database that matches the specified sample
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for
+   * instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param theClass  the class to find all items
-   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND
+   *                  another = ?</code>
    * @param whereArgs the list of values used in the wildcards
-   * @param <T>       object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
+   * @param <T>       object  type. Must be already registered using {@link
+   *                  DatabaseSpec#match(Class[])}
    * @return a list of T objects
    */
   <T> List<T> findAll(Class<T> theClass, String where, String[] whereArgs);
@@ -174,7 +178,8 @@ public interface SqlAdapter {
   /**
    * Deletes one or more elements from the database
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param where sample object
    * @param <T>   object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
@@ -186,7 +191,8 @@ public interface SqlAdapter {
    * Deletes one or more elements from the database
    * <p/>
    * <p/>
-   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variable <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param where     sample object
    * @param onCascade true if it must delete relations on cascade
@@ -198,10 +204,12 @@ public interface SqlAdapter {
   /**
    * Deletes one or more elements from the database
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for
+   * instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param theClass  the type of the object to delete
-   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND
+   *                  another = ?</code>
    * @param whereArgs the list of values used in the wildcards
    * @param <T>       object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
    * @return how many items were deleted
@@ -211,10 +219,12 @@ public interface SqlAdapter {
   /**
    * Deletes one or more elements from the database
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for
+   * instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param theClass  the type of the object to delete
-   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND
+   *                  another = ?</code>
    * @param onCascade true if it must delete relations on cascade
    * @param whereArgs the list of values used in the wildcards
    * @param <T>       object type. Must be already registered using {@link DatabaseSpec#match(Class[])}
@@ -232,7 +242,8 @@ public interface SqlAdapter {
   /**
    * Counts how many items there are in the database and match the specified condition
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code>, for instance: <code>entry =
+   * 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param where the sample object
    * @param <T>   object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
@@ -243,12 +254,15 @@ public interface SqlAdapter {
   /**
    * Counts how many items there are in the database and match the specified condition
    * <p/>
-   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
+   * <b>Note:</b> You must clean the variables <code>where</code> and <code>whereArgs</code>, for
+   * instance: <code>entry = 'don't'</code> should be <code>'dont''t'</code>
    *
    * @param theClass  the class of the object that we want to count
-   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND another = ?</code>
+   * @param where     a SQL query. It is recommended to use wildcards like: <code>something = ? AND
+   *                  another = ?</code>
    * @param whereArgs the list of values used in the wildcards
-   * @param <T>       object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
+   * @param <T>       object  type. Must be already registered using {@link
+   *                  DatabaseSpec#match(Class[])}
    * @return number of elements in the table of the specified object
    */
   <T> int count(Class<T> theClass, String where, String[] whereArgs);
@@ -257,15 +271,16 @@ public interface SqlAdapter {
    * Counts how many items there are in the database
    *
    * @param theClass the class of the object that we want to count
-   * @param <T>      object  type. Must be already registered using {@link DatabaseSpec#match(Class[])}
+   * @param <T>      object  type. Must be already registered using {@link
+   *                 DatabaseSpec#match(Class[])}
    * @return number of elements in the table of the specified object
    */
   <T> int count(Class<T> theClass);
 
   /**
-   * Callback used when storing a collection to notify the progress.
-   * Note: when doing a bulk insert, we use the BEGIN TRANSACTION; ...; COMMIT; technique. So, if you are inserting
-   * 99 records, each record will consume 1% and the COMMIT phase another 1%.
+   * Callback used when storing a collection to notify the progress. Note: when doing a bulk insert,
+   * we use the BEGIN TRANSACTION; ...; COMMIT; technique. So, if you are inserting 99 records, each
+   * record will consume 1% and the COMMIT phase another 1%.
    */
   interface ProgressListener {
     /**

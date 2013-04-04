@@ -22,11 +22,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
+import static com.codeslap.persistence.DataObjectFactory.getDataObject;
 import static com.codeslap.persistence.StrUtil.concat;
 
 /**
@@ -50,14 +48,17 @@ public class SqliteAdapterImpl implements SqlAdapter {
   public <T> T findFirst(T sample) {
     Class<T> clazz = (Class<T>) sample.getClass();
     ArrayList<String> args = new ArrayList<String>();
-    String where = SQLHelper.getWhere(clazz, sample, args, null, mDatabaseSpec);
-    Cursor query = mDbHelper.getDatabase().query(SQLHelper.getTableName(clazz), null, where, args.toArray(new String[args.size()]), null, null, null, "1");
+    String where = SQLHelper.getWhere(clazz, sample, args, null);
+    Cursor query = mDbHelper.getDatabase()
+        .query(SQLHelper.getTableName(clazz), null, where, args.toArray(new String[args.size()]),
+            null, null, null, "1");
     return findFirstFromCursor(clazz, query);
   }
 
   @Override
   public <T> T findFirst(Class<T> clazz, String where, String[] whereArgs) {
-    Cursor query = mDbHelper.getDatabase().query(SQLHelper.getTableName(clazz), null, where, whereArgs, null, null, null, "1");
+    Cursor query = mDbHelper.getDatabase()
+        .query(SQLHelper.getTableName(clazz), null, where, whereArgs, null, null, null, "1");
     return findFirstFromCursor(clazz, query);
   }
 
@@ -65,7 +66,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
   public <T> List<T> findAll(Class<T> theClass) {
     T emptySample = null;
     try {
-      DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+      DataObject<T> dataObject = getDataObject(theClass);
       emptySample = dataObject.newInstance();
     } catch (Exception e) {
       e.printStackTrace();
@@ -79,8 +80,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
   }
 
   @Override
-  public <T, G> List<T> findAll(T where, G attachedTo) {
-    return findAll((Class<T>) where.getClass(), where, attachedTo, null);
+  public <T, Parent> List<T> findAll(T where, Parent parent) {
+    return findAll((Class<T>) where.getClass(), where, parent, null);
   }
 
   @Override
@@ -97,17 +98,12 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> Object store(T bean) {
-    return store(bean, null);
-  }
-
-  @Override
-  public <T, G> Object store(T bean, G attachedTo) {
     if (bean == null) {
       return null;
     }
     Class<?> theClass = bean.getClass();
     List<String> transactions = new ArrayList<String>();
-    String sqlStatement = getSqlStatement(bean, new Node(theClass), attachedTo);
+    String sqlStatement = getSqlStatement(bean, new Node(theClass), null);
     if (sqlStatement != null) {
       String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
       for (String statement : statements) {
@@ -120,12 +116,15 @@ public class SqliteAdapterImpl implements SqlAdapter {
     executeTransactions(transactions);
     Field idField = SQLHelper.getPrimaryKeyField(theClass);
     // if it is autoincrement, we will try to populate the id field with the inserted id
-    DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+    DataObject<?> dataObject = getDataObject(theClass);
     if (dataObject.hasAutoincrement()) {
       if (idField.getType() != Long.class && idField.getType() != long.class) {
-        throw new IllegalStateException("Your primary key is currently '" + idField.getType() + "' but 'long' was expected");
+        throw new IllegalStateException(
+            "Your primary key is currently '" + idField.getType() + "' but 'long' was expected");
       }
-      Cursor lastId = mDbHelper.getDatabase().query("sqlite_sequence", new String[]{"seq"}, "name = ?", new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
+      Cursor lastId = mDbHelper.getDatabase()
+          .query("sqlite_sequence", new String[]{"seq"}, "name = ?",
+              new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
       if (lastId != null && lastId.moveToFirst()) {
         long id = lastId.getLong(0);
         lastId.close();
@@ -158,7 +157,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
   }
 
   @Override
-  public <T, G> void storeCollection(List<T> collection, G attachedTo, ProgressListener listener) {
+  public <T, Parent> void storeCollection(List<T> collection, Parent parent,
+                                          ProgressListener listener) {
     if (listener != null) {
       listener.onProgressChange(0);
     }
@@ -166,15 +166,17 @@ public class SqliteAdapterImpl implements SqlAdapter {
       return;
     }
     List<String> transactions = new ArrayList<String>();
-    DatabaseSpec.Relationship relationship = mDatabaseSpec.getRelationship(collection.get(0).getClass());
-    // if there is no listener, attached object, collection is too small or objects in the list have inner
+    DatabaseSpec.Relationship relationship = mDatabaseSpec
+        .getRelationship(collection.get(0).getClass());
+    // if there is no listener, parent object, collection is too small or objects in the list have inner
     // relationships: insert them in a normal way, in which there will be a sql execution per object
-    if (listener != null || attachedTo != null || collection.size() <= 1 || relationship != DatabaseSpec.Relationship.UNKNOWN) {
+    if (listener != null || parent != null || collection.size() <= 1 ||
+        relationship != DatabaseSpec.Relationship.UNKNOWN) {
       int progress;
       int all = collection.size() + 1; // 1 == commit phase
       for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
         T object = collection.get(i);
-        String sqlStatement = getSqlStatement(object, new Node(object.getClass()), attachedTo);
+        String sqlStatement = getSqlStatement(object, new Node(object.getClass()), parent);
         if (sqlStatement == null) {
           continue;
         }
@@ -207,9 +209,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
             transactions.add(builder.append(";").toString());
             builder = new StringBuilder();
           }
-          builder.append(SQLHelper.getFastInsertSqlHeader(bean, mDatabaseSpec));
+          builder.append(SQLHelper.getFastInsertSqlHeader(bean));
         } else {
-          builder.append(SQLHelper.getUnionInsertSql(bean, mDatabaseSpec));
+          builder.append(SQLHelper.getUnionInsertSql(bean));
         }
         newItems++;
       }
@@ -259,7 +261,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       return 0;
     }
     ArrayList<String> args = new ArrayList<String>();
-    String where = SQLHelper.getWhere(object.getClass(), sample, args, null, mDatabaseSpec);
+    String where = SQLHelper.getWhere(object.getClass(), sample, args, null);
     return update(object, where, args.toArray(new String[args.size()]));
   }
 
@@ -291,7 +293,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       return -1;
     }
     ArrayList<String> args = new ArrayList<String>();
-    String where = SQLHelper.getWhere(sample.getClass(), sample, args, null, mDatabaseSpec);
+    String where = SQLHelper.getWhere(sample.getClass(), sample, args, null);
     String[] argsArray = args.toArray(new String[args.size()]);
     return delete(sample.getClass(), where, argsArray);
   }
@@ -303,74 +305,83 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> int delete(Class<T> theClass, String where, String[] whereArgs, boolean onCascade) {
-    DatabaseSpec.Relationship relationship = mDatabaseSpec.getRelationship(theClass);
-    if (!relationship.equals(DatabaseSpec.Relationship.UNKNOWN)) {
-      Field idField = SQLHelper.getPrimaryKeyField(theClass);
-      idField.setAccessible(true);
-      switch (relationship) {
-        case HAS_MANY:
-          if (onCascade) {
-            HasMany hasMany = mDatabaseSpec.has(theClass);
-            List<T> toDelete = findAll(theClass, where, whereArgs);
-            for (T object : toDelete) {
-              try {
-                Object objectId = idField.get(object);
-                Class<?> containedClass = hasMany.getContainedClass();
-                String whereForeign = concat(hasMany.getForeignKey(), " = '", String.valueOf(objectId), "'");
-                delete(containedClass, whereForeign, null);
-              } catch (IllegalAccessException ignored) {
+    DataObject<T> dataObject = getDataObject(theClass);
+    Collection<DataObject.HasManySpec> hasManySpecs = dataObject.hasMany();
+    Field idField = SQLHelper.getPrimaryKeyField(theClass);
+    idField.setAccessible(true);
+    if (hasManySpecs.isEmpty()) {
+      DatabaseSpec.Relationship relationship = mDatabaseSpec.getRelationship(theClass);
+      if (!relationship.equals(DatabaseSpec.Relationship.UNKNOWN)) {
+        switch (relationship) {
+          case MANY_TO_MANY:
+            List<ManyToMany> manyToManyList = mDatabaseSpec.getManyToMany(theClass);
+            for (ManyToMany manyToMany : manyToManyList) {
+              String foreignKey;
+              String foreignCurrentKey;
+              Class<?> relationTable;
+              if (manyToMany.getFirstRelation() == theClass) {
+                foreignKey = manyToMany.getMainKey();
+                foreignCurrentKey = manyToMany.getSecondaryKey();
+                relationTable = manyToMany.getSecondRelation();
+              } else {
+                foreignKey = manyToMany.getSecondaryKey();
+                foreignCurrentKey = manyToMany.getMainKey();
+                relationTable = manyToMany.getFirstRelation();
+              }
+              List<T> toRemove = findAll(theClass, where, whereArgs);
+              for (T object : toRemove) {
+                try {
+                  Object objectId = idField.get(object);
+                  String whereForeign = concat(foreignKey, " = '", String.valueOf(objectId), "'");
+
+                  List<String> ids = new ArrayList<String>();
+                  if (onCascade) {
+                    Cursor deletionCursor = mDbHelper.getDatabase()
+                        .query(manyToMany.getTableName(), null, whereForeign, null, null, null,
+                            null);
+                    if (deletionCursor.moveToFirst()) {
+                      do {
+                        int index = deletionCursor.getColumnIndex(foreignCurrentKey);
+                        ids.add(deletionCursor.getString(index));
+                      } while (deletionCursor.moveToNext());
+                    }
+                    deletionCursor.close();
+                  }
+
+                  mDbHelper.getDatabase().delete(manyToMany.getTableName(), whereForeign, null);
+
+                  for (String id : ids) {
+                    String whereRest = concat(foreignCurrentKey, " = '", id, "'");
+                    Cursor cursorRest = mDbHelper.getDatabase()
+                        .query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
+                    // this means there is no other relation with this object, so we can delete it on cascade :)
+                    if (cursorRest.getCount() == 0) {
+                      mDbHelper.getDatabase()
+                          .delete(SQLHelper.getTableName(relationTable), SQLHelper._ID + " = ?",
+                              new String[]{id});
+                    }
+                  }
+                } catch (IllegalAccessException ignored) {
+                }
               }
             }
-          }
-          break;
-        case MANY_TO_MANY:
-          List<ManyToMany> manyToManyList = mDatabaseSpec.getManyToMany(theClass);
-          for (ManyToMany manyToMany : manyToManyList) {
-            String foreignKey;
-            String foreignCurrentKey;
-            Class<?> relationTable;
-            if (manyToMany.getFirstRelation() == theClass) {
-              foreignKey = manyToMany.getMainKey();
-              foreignCurrentKey = manyToMany.getSecondaryKey();
-              relationTable = manyToMany.getSecondRelation();
-            } else {
-              foreignKey = manyToMany.getSecondaryKey();
-              foreignCurrentKey = manyToMany.getMainKey();
-              relationTable = manyToMany.getFirstRelation();
-            }
-            List<T> toRemove = findAll(theClass, where, whereArgs);
-            for (T object : toRemove) {
-              try {
-                Object objectId = idField.get(object);
-                String whereForeign = concat(foreignKey, " = '", String.valueOf(objectId), "'");
-
-                List<String> ids = new ArrayList<String>();
-                if (onCascade) {
-                  Cursor deletionCursor = mDbHelper.getDatabase().query(manyToMany.getTableName(), null, whereForeign, null, null, null, null);
-                  if (deletionCursor.moveToFirst()) {
-                    do {
-                      int index = deletionCursor.getColumnIndex(foreignCurrentKey);
-                      ids.add(deletionCursor.getString(index));
-                    } while (deletionCursor.moveToNext());
-                  }
-                  deletionCursor.close();
-                }
-
-                mDbHelper.getDatabase().delete(manyToMany.getTableName(), whereForeign, null);
-
-                for (String id : ids) {
-                  String whereRest = concat(foreignCurrentKey, " = '", id, "'");
-                  Cursor cursorRest = mDbHelper.getDatabase().query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
-                  // this means there is no other relation with this object, so we can delete it on cascade :)
-                  if (cursorRest.getCount() == 0) {
-                    mDbHelper.getDatabase().delete(SQLHelper.getTableName(relationTable), SQLHelper._ID + " = ?", new String[]{id});
-                  }
-                }
-              } catch (IllegalAccessException ignored) {
-              }
+            break;
+        }
+      }
+    } else {
+      if (onCascade) {
+        List<T> toDelete = findAll(theClass, where, whereArgs);
+        for (T object : toDelete) {
+          for (DataObject.HasManySpec hasManySpec : hasManySpecs) {
+            try {
+              Object objectId = idField.get(object);
+              String whereForeign = concat(hasManySpec.getThroughColumnName(), " = '",
+                  String.valueOf(objectId), "'");
+              delete(hasManySpec.contained, whereForeign, null);
+            } catch (IllegalAccessException ignored) {
             }
           }
-          break;
+        }
       }
     }
 
@@ -388,7 +399,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> int count(T bean) {
-    Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(), bean.getClass(), bean, null, null, mDatabaseSpec);
+    Cursor query = SQLHelper
+        .getCursorFindAllWhere(mDbHelper.getDatabase(), bean.getClass(), bean, null, null);
     int count = query.getCount();
     query.close();
     return count;
@@ -396,7 +408,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> int count(Class<T> clazz, String where, String[] whereArgs) {
-    Cursor query = mDbHelper.getDatabase().query(SQLHelper.getTableName(clazz), null, where, whereArgs, null, null, null);
+    Cursor query = mDbHelper.getDatabase()
+        .query(SQLHelper.getTableName(clazz), null, where, whereArgs, null, null, null);
     int count = query.getCount();
     query.close();
     return count;
@@ -404,7 +417,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> int count(Class<T> clazz) {
-    Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(), clazz, null, null, null, mDatabaseSpec);
+    Cursor query = SQLHelper
+        .getCursorFindAllWhere(mDbHelper.getDatabase(), clazz, null, null, null);
     int count = query.getCount();
     query.close();
     return count;
@@ -440,9 +454,11 @@ public class SqliteAdapterImpl implements SqlAdapter {
     }
   }
 
-  private <T, G> List<T> findAll(Class<T> clazz, T where, G attachedTo, Constraint constraint) {
-    Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(), clazz, where, attachedTo, constraint, mDatabaseSpec);
-    return findAllFromCursor(clazz, query);
+  private <T, Parent> List<T> findAll(Class<T> type, T where, Parent parent,
+                                      Constraint constraint) {
+    Cursor query = SQLHelper
+        .getCursorFindAllWhere(mDbHelper.getDatabase(), type, where, parent, constraint);
+    return findAllFromCursor(type, query);
   }
 
   private <T> List<T> findAllFromCursor(Class<T> clazz, Cursor query) {
@@ -458,15 +474,16 @@ public class SqliteAdapterImpl implements SqlAdapter {
   }
 
   private <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, String where, String[] args) {
-    return mDbHelper.getDatabase().query(SQLHelper.getTableName(clazz), null, where, args, null, null, null, null);
+    return mDbHelper.getDatabase()
+        .query(SQLHelper.getTableName(clazz), null, where, args, null, null, null, null);
   }
 
-  private <T, G> String getSqlStatement(T bean, Node tree, G attachedTo) {
+  private <T, Parent> String getSqlStatement(T bean, Node tree, Parent parent) {
     String updateStatement = getUpdateStatementIfPossible(bean);
     if (!TextUtils.isEmpty(updateStatement)) {
       return updateStatement;
     }
-    String mainInsertStatement = SQLHelper.getInsertStatement(bean, attachedTo, mDatabaseSpec);
+    String mainInsertStatement = SQLHelper.getInsertStatement(bean, parent);
     try {
       mainInsertStatement += getSqlInsertForChildrenOf(bean, tree);
     } catch (IllegalAccessException ignored) {
@@ -489,7 +506,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
       } catch (IllegalAccessException ignored) {
       }
       if (idValue == null) {
-        throw new IllegalStateException("You cannot insert an object whose primary key is null and it is not int or long");
+        throw new IllegalStateException(
+            "You cannot insert an object whose primary key is null and it is not int or long");
       }
     }
     String result = null;
@@ -497,7 +515,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       Object beanId = theId.get(bean);
       if (SQLHelper.hasData(theId.getType(), beanId)) {
         // create an object of the same type of the bean with the same id to search of it
-        DataObject<T> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+        DataObject<T> dataObject = getDataObject(theClass);
         Object sample = dataObject.newInstance();
         theId.set(sample, beanId);
 
@@ -508,7 +526,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
             result = SQLHelper.STATEMENT_SEPARATOR;
           } else {
             // update the bean using the just created sample
-            result = SQLHelper.buildUpdateStatement(bean, match, mDatabaseSpec);
+            result = SQLHelper.buildUpdateStatement(bean, match);
           }
         }
       }
@@ -517,9 +535,12 @@ public class SqliteAdapterImpl implements SqlAdapter {
     return result;
   }
 
-  private <T> String getSqlInsertForChildrenOf(T bean, Node tree) throws IllegalAccessException {// bodom
+  private <T> String getSqlInsertForChildrenOf(T bean, Node tree) throws IllegalAccessException {
+    String sqlStatement = getSqlInsertForHasManyRelations(bean, tree);
+
     // get a list with the fields that are lists
-    Class<?> theClass = bean.getClass();
+    Class<T> theClass = (Class<T>) bean.getClass();
+    DataObject<T> dataObject = getDataObject(theClass);
     Field[] fields = SQLHelper.getDeclaredFields(theClass);
     List<Field> collectionFields = new ArrayList<Field>();
     for (Field field : fields) {
@@ -529,7 +550,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
       }
     }
 
-    String sqlStatement = "";
     for (Field field : collectionFields) {
       // get the generic type for this list field
       ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
@@ -556,9 +576,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
               // get the value for the main bean ID
               Object beanId;
-              DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
               if (dataObject.hasAutoincrement()) {
-                beanId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", SQLHelper.getTableName(theClass), "')");
+                beanId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '",
+                    SQLHelper.getTableName(theClass), "')");
               } else {
                 Field mainId = SQLHelper.getPrimaryKeyField(theClass);
                 mainId.setAccessible(true);
@@ -567,10 +587,11 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
               // get the value for the secondary bean ID
               Object secondaryId;
-              DataObject<?> collectionDataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
+              DataObject<?> collectionDataObject = getDataObject(collectionClass);
               if (collectionDataObject.hasAutoincrement()) {
                 String tableName = SQLHelper.getTableName(collectionClass);
-                secondaryId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')");
+                secondaryId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName,
+                    "')");
               } else {
                 Field secondaryIdField = SQLHelper.getPrimaryKeyField(collectionClass);
                 secondaryIdField.setAccessible(true);
@@ -578,28 +599,42 @@ public class SqliteAdapterImpl implements SqlAdapter {
               }
 
               // build the sql statement for the insertion of the many-to-many relation
-              String hack = concat("CASE WHEN (SELECT COUNT(*) FROM ", relationTableName, " WHERE ", mainForeignKey, " = ", String.valueOf(beanId), " AND ", secondaryForeignKey, " = ", String.valueOf(secondaryId), ") == 0 THEN ", String.valueOf(beanId), " ELSE NULL END");
-              String insertStatement = concat("INSERT OR IGNORE INTO ", relationTableName, " (", mainForeignKey, ", ", secondaryForeignKey, ") VALUES (", hack, ", ", String.valueOf(secondaryId), ");", SQLHelper.STATEMENT_SEPARATOR);
+              String hack = concat("CASE WHEN (SELECT COUNT(*) FROM ", relationTableName, " WHERE ",
+                  mainForeignKey, " = ", String.valueOf(beanId), " AND ", secondaryForeignKey,
+                  " = ", String.valueOf(secondaryId), ") == 0 THEN ", String.valueOf(beanId),
+                  " ELSE NULL END");
+              String insertStatement = concat("INSERT OR IGNORE INTO ", relationTableName, " (",
+                  mainForeignKey, ", ", secondaryForeignKey, ") VALUES (", hack, ", ",
+                  String.valueOf(secondaryId), ");", SQLHelper.STATEMENT_SEPARATOR);
               sqlStatement += insertStatement;
             }
           }
           break;
         }
-        case HAS_MANY:
-          List list = (List) field.get(bean);
-          if (list == null) {
-            break;
-          }
-          for (Object object : list) {
-            // prepare the object by setting the foreign value
-            String partialSqlStatement = getSqlStatement(object, tree, bean);
-            if (partialSqlStatement != null) {
-              sqlStatement += partialSqlStatement;
-            }
-          }
-          break;
       }
       tree.removeChild(child);
+    }
+    return sqlStatement;
+  }
+
+  private <T> String getSqlInsertForHasManyRelations(T bean,
+                                                     Node tree) throws IllegalAccessException {
+    Class<T> theClass1 = (Class<T>) bean.getClass();
+    DataObject<T> dataObject1 = getDataObject(theClass1);
+
+    String sqlStatement = "";
+    for (DataObject.HasManySpec hasManySpec : dataObject1.hasMany()) {
+      List list = (List) hasManySpec.listField.get(bean);
+      if (list == null) {
+        break;
+      }
+      for (Object object : list) {
+        // prepare the object by setting the foreign value
+        String partialSqlStatement = getSqlStatement(object, tree, bean);
+        if (partialSqlStatement != null) {
+          sqlStatement += partialSqlStatement;
+        }
+      }
     }
     return sqlStatement;
   }
@@ -616,11 +651,12 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Node tree) {
     T bean;
+    DataObject<? extends T> dataObject = getDataObject(theClass);
     try {
-      DataObject<? extends T> dataObject = DataObjectFactory.getDataObject(theClass, mDatabaseSpec);
       bean = dataObject.newInstance();
     } catch (Exception e) {
-      throw new RuntimeException("Could not initialize object of type " + theClass + ", " + e.getMessage());
+      throw new RuntimeException(
+          "Could not initialize object of type " + theClass + ", " + e.getMessage());
     }
 
     // get each field and put its value in a content values object
@@ -637,12 +673,50 @@ public class SqliteAdapterImpl implements SqlAdapter {
         Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
         Node node = new Node(collectionClass);
         if (tree.addChild(node)) {
+          DataObject<? extends T> collectionDataObject = (DataObject<? extends T>) getDataObject(
+              collectionClass);
+          Class<?> belongsTo = collectionDataObject.belongsTo();
+          if (belongsTo == theClass) {
+            for (DataObject.HasManySpec hasManySpec : dataObject.hasMany()) {
+              if (hasManySpec.contained == collectionClass) {
+                // build a query that uses the joining table and the joined object
+                Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
+                    ReflectHelper.getIdColumn(SQLHelper.getPrimaryKeyField(theClass)) /* this is not like this all the time*/,
+                    query);
+                if (foreignValue != null) {
+                  String sql = new StringBuilder().append("SELECT * FROM ")
+                      .append(SQLHelper.getTableName(collectionClass)).append(" WHERE ")
+                      .append(hasManySpec.getThroughColumnName()).append(" = '")
+                      .append(foreignValue).append("'").toString();
+                  // execute the query and set the result to the current field
+                  Cursor join = mDbHelper.getDatabase().rawQuery(sql, null);
+                  List listValue = new ArrayList();
+                  if (join.moveToFirst()) {
+                    do {
+                      Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
+                      listValue.add(beanFromCursor);
+                    } while (join.moveToNext());
+                  }
+                  join.close();
+                  value = listValue;
+                }
+                break;
+              }
+            }
+          }
+
           switch (mDatabaseSpec.getRelationship(theClass, collectionClass)) {
             case MANY_TO_MANY: {
               Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
               // build a query that uses the joining table and the joined object
               String collectionTableName = SQLHelper.getTableName(collectionClass);
-              String sql = new StringBuilder().append("SELECT * FROM ").append(SQLHelper.getTableName(collectionClass)).append(" WHERE ").append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ").append(collectionTableName).append(SQLHelper._ID).append(" FROM ").append(ManyToMany.buildTableName(theClass, collectionClass)).append(" WHERE ").append(SQLHelper.getTableName(theClass)).append(SQLHelper._ID).append(" = ?)").toString();
+              String sql = new StringBuilder().append("SELECT * FROM ")
+                  .append(SQLHelper.getTableName(collectionClass)).append(" WHERE ")
+                  .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
+                  .append(collectionTableName).append(SQLHelper._ID).append(" FROM ")
+                  .append(ManyToMany.buildTableName(theClass, collectionClass)).append(" WHERE ")
+                  .append(SQLHelper.getTableName(theClass)).append(SQLHelper._ID).append(" = ?)")
+                  .toString();
               // execute the query
               String[] selectionArgs = new String[1];
               long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
@@ -660,27 +734,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
               value = listValue;
             }
             break;
-            case HAS_MANY:
-              // build a query that uses the joining table and the joined object
-              HasMany belongsTo = mDatabaseSpec.belongsTo(collectionClass);
-              Field throughField = belongsTo.getThroughField();
-              Object foreignValue = getValueFromCursor(throughField.getType(), belongsTo.getThroughColumnName(), query);
-              if (foreignValue != null) {
-                String sql = new StringBuilder().append("SELECT * FROM ").append(SQLHelper.getTableName(collectionClass)).append(" WHERE ").append(belongsTo.getForeignKey()).append(" = '").append(foreignValue).append("'").toString();
-                // execute the query and set the result to the current field
-                Cursor join = mDbHelper.getDatabase().rawQuery(sql, null);
-                List listValue = new ArrayList();
-                if (join.moveToFirst()) {
-                  do {
-                    Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
-                    listValue.add(beanFromCursor);
-                  } while (join.moveToNext());
-                }
-                join.close();
-                value = listValue;
-              }
-              break;
           }
+
           tree.removeChild(node);
         }
       } else {// do not process collections here
@@ -692,7 +747,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
           field.set(bean, value);
         }
       } catch (Exception e) {
-        throw new RuntimeException(concat("An error occurred setting value to ", field, ", ", value, ": ", e.getMessage()));
+        throw new RuntimeException(
+            concat("An error occurred setting value to ", field, ", ", value, ": ",
+                e.getMessage()));
       }
     }
     return bean;

@@ -20,7 +20,6 @@ import android.app.Activity;
 import android.database.Cursor;
 import com.codeslap.persistence.Persistence;
 import com.codeslap.persistence.RawQuery;
-import com.codeslap.persistence.SqlAdapter;
 import org.junit.Test;
 import java.util.*;
 
@@ -154,86 +153,5 @@ public class RawQueryTest extends SqliteTest {
     assertEquals(foo.decimal, rawCursor.getFloat(rawCursor.getColumnIndex("decimal")), 0.0f);
     assertEquals(foo.bool, rawCursor.getInt(rawCursor.getColumnIndex("bool")) == 1);
     assertEquals(new String(foo.blob), new String(rawCursor.getBlob(rawCursor.getColumnIndex("blob"))));
-  }
-
-  @Test
-  public void testAttachedTo() {
-    Cow cow = new Cow();
-    cow.name = "Super Cow";
-
-    Bug garrapata = new Bug();
-    garrapata.itchFactor = new Random().nextFloat();
-
-    Bug pulga = new Bug();
-    pulga.itchFactor = new Random().nextFloat();
-
-    SqlAdapter adapter = mAdapter;
-
-    Object store = adapter.store(cow);
-    assertNotNull(store);
-
-    cow.id = 1;
-    store = adapter.store(cow);
-    assertNotNull(store);
-
-    cow.name = "Ugly Cow";
-    store = adapter.store(cow);
-    assertNotNull(store);
-
-    List<Cow> cows = adapter.findAll(Cow.class, "name = 'Ugly Cow'", null);
-    assertEquals(1, cows.size());
-    List<Cow> cowsEquals = adapter.findAll(cow);
-    assertEquals(cows, cowsEquals);
-
-    adapter.storeCollection(Arrays.asList(garrapata, pulga), cow, null);
-
-    List<Bug> bugs = adapter.findAll(Bug.class);
-    assertEquals(2, bugs.size());
-    List<Bug> sameBugs = adapter.findAll(Bug.class, "cow_id = ?", new String[]{"1"});
-    assertEquals(bugs, sameBugs);
-
-    adapter.truncate(Cow.class, Bug.class);
-    assertTrue(adapter.findAll(Bug.class).isEmpty());
-    assertTrue(adapter.findAll(Cow.class).isEmpty());
-
-    Object id = adapter.store(cow);
-    assertNotNull(id);
-    assertTrue(id instanceof Long);
-    assertEquals(1L, id);
-
-    adapter.store(garrapata, cow);
-    adapter.store(pulga, cow);
-
-    bugs = adapter.findAll(Bug.class);
-    assertEquals(2, bugs.size());
-    sameBugs = adapter.findAll(Bug.class, "cow_id = ?", new String[]{"1"});
-    assertEquals(bugs, sameBugs);
-    RawQuery rawQuery = Persistence.getRawQuery(new Activity());
-    Cursor allAttached = rawQuery.findAll(new Bug(), cow);
-    assertNotNull(allAttached);
-    assertEquals(bugs.size(), allAttached.getCount());
-    assertTrue(allAttached.moveToFirst());
-
-    List<Bug> listFromCursor = new ArrayList<Bug>();
-    do {
-      long cowId = allAttached.getLong(allAttached.getColumnIndex("cow_id"));
-      assertEquals(1, cowId);
-
-      float itchFactor = allAttached.getFloat(allAttached.getColumnIndex("itch_factor"));
-      Bug bug = new Bug();
-      bug.itchFactor = itchFactor;
-      listFromCursor.add(bug);
-    } while (allAttached.moveToNext());
-
-    Comparator<Bug> comparator = new Comparator<Bug>() {
-      @Override
-      public int compare(Bug foo, Bug bar) {
-        return Float.floatToIntBits(foo.itchFactor) - Float.floatToIntBits(bar.itchFactor);
-      }
-    };
-    Collections.sort(bugs, comparator);
-    Collections.sort(listFromCursor, comparator);
-
-    assertEquals(bugs, listFromCursor);
   }
 }

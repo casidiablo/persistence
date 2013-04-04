@@ -32,7 +32,7 @@ public class ManyToManyTest extends SqliteTest {
     fernando.name = "Vallejo";
 
     Author william = new Author();
-    william.name = "Ospinas";
+    william.name = "Ospina";
 
     Book tautologia = new Book();
     tautologia.name = "Tautología Darwinista";
@@ -53,7 +53,7 @@ public class ManyToManyTest extends SqliteTest {
     mAdapter.storeCollection(Arrays.asList(william, fernando), null);
 
     Author vallejo = mAdapter.findFirst(Author.class, "name LIKE 'Vallejo'", null);
-    Author ospina = mAdapter.findFirst(Author.class, "name LIKE 'Ospinas'", null);
+    Author ospina = mAdapter.findFirst(Author.class, "name LIKE 'Ospina'", null);
 
     assertEquals(fernando, vallejo);
     assertEquals(william, ospina);

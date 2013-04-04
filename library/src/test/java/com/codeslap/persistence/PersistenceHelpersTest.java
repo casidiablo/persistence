@@ -23,9 +23,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-/**
- * @author cristian
- */
+/** @author cristian */
 public class PersistenceHelpersTest extends SqliteTest {
 
   private static final String FAILING_SPEC_ID = "some.db";
@@ -40,9 +38,19 @@ public class PersistenceHelpersTest extends SqliteTest {
 
   @Test(expected = IllegalStateException.class)
   public void shouldFailWithMultipleHasManyRelationships() {
-    DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
-    dbSpec.match(new HasMany(Author.class, Book.class));
-    dbSpec.match(new HasMany(Book.class, Author.class));
+    DataObjectFactory.getDataObject(Cyclic1.class);
+  }
+
+  @Belongs(to = Cyclic2.class)
+  public static class Cyclic1 {
+    long id;
+    @HasMany List<Cyclic2> list;
+  }
+
+  @Belongs(to = Cyclic1.class)
+  public static class Cyclic2 {
+    long id;
+    @HasMany List<Cyclic1> list;
   }
 
   @Test(expected = IllegalStateException.class)
@@ -61,21 +69,38 @@ public class PersistenceHelpersTest extends SqliteTest {
 
   @Test(expected = IllegalStateException.class)
   public void shouldFailWithWhenHasManyRelationDoesNotExist() {
-    DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
-    dbSpec.match(new HasMany(ExampleAutoincrement.class, ExampleNotAutoincrement.class));
+    DataObjectFactory.getDataObject(Mother.class);
+  }
+
+  public static class Mother {
+    long id;
+    @HasMany List<Dauther> children;
+  }
+
+  @Belongs(to = Parent.class)
+  public static class Dauther {
+    long id;
   }
 
   @Test(expected = IllegalStateException.class)
   public void shouldFailWithInvalidHasManyRelation() {
-    assertNotNull(new HasMany(Book.class, Cow.class));
+    DataObjectFactory.getDataObject(Parent.class);
+  }
+
+  public static class Parent {
+    long id;
+    @HasMany List<Child> children;
+  }
+
+  public static class Child {
+    long id;
   }
 
   @Test
   public void testGetRelationship() {
-    DatabaseSpec.Relationship unknown = getDatabase().getRelationship(ExampleAutoincrement.class, ExampleNotAutoincrement.class);
+    DatabaseSpec.Relationship unknown = getDatabase()
+        .getRelationship(ExampleAutoincrement.class, ExampleNotAutoincrement.class);
     assertEquals(DatabaseSpec.Relationship.UNKNOWN, unknown);
-    DatabaseSpec.Relationship hasMany = getDatabase().getRelationship(PolyTheist.class, God.class);
-    assertEquals(DatabaseSpec.Relationship.HAS_MANY, hasMany);
     DatabaseSpec.Relationship manyToMany = getDatabase().getRelationship(Author.class, Book.class);
     assertEquals(DatabaseSpec.Relationship.MANY_TO_MANY, manyToMany);
   }
@@ -91,11 +116,17 @@ public class PersistenceHelpersTest extends SqliteTest {
 
   @Test
   public void testHas() {
-    HasMany hasMany = getDatabase().has(PolyTheist.class);
-    assertEquals(PolyTheist.class, hasMany.getContainerClass());
-    assertEquals(God.class, hasMany.getContainedClass());
-
-    assertNull(getDatabase().has(God.class));
+    DataObject<PolyTheist> dataObject = DataObjectFactory.getDataObject(PolyTheist.class);
+    assertNotNull(dataObject);
+    assertNotNull(dataObject.hasMany());
+    assertFalse(dataObject.hasMany().isEmpty());
+    assertNotNull(dataObject.hasMany(God.class));
+    assertEquals(dataObject.hasMany(God.class).container, PolyTheist.class);
+    assertEquals(dataObject.hasMany(God.class).contained, God.class);
+    assertNotNull(dataObject.hasMany(God.class).listField);
+    assertNotNull(dataObject.hasMany(God.class).fieldThrough);
+    assertEquals(dataObject.hasMany(God.class).through, "id");
+    assertNotNull(dataObject.hasMany(God.class).getThroughColumnName());
   }
 
   @Test(expected = IllegalArgumentException.class)

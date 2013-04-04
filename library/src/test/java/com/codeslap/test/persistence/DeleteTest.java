@@ -151,15 +151,15 @@ public class DeleteTest extends SqliteTest {
     vida.id = 2;
     vida.name = "El Don de la Vida";
 
-    Author author = new Author();
-    author.name = "Fernando Vallejo";
-    author.books = Arrays.asList(puta, vida);
+    Author fernando = new Author();
+    fernando.name = "Fernando Vallejo";
+    fernando.books = Arrays.asList(puta, vida);
 
     Author william = new Author();
     william.name = "William Ospina";
     william.books = Arrays.asList(puta);
 
-    mAdapter.store(author);
+    mAdapter.store(fernando);
     mAdapter.store(william);
 
     Assert.assertEquals(2, mAdapter.findAll(Author.class).size());

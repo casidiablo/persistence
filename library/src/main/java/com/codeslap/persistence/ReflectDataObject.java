@@ -18,10 +18,10 @@ package com.codeslap.persistence;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-
-import static com.codeslap.persistence.StrUtil.concat;
 
 /**
  * Data object that gets object information using reflection.
@@ -34,13 +34,16 @@ public class ReflectDataObject implements DataObject<Object> {
   private final List<Field> fields;
   private final boolean hasAutoincrement;
   private final String tableName;
+  private final Collection<HasManySpec> hasManyList = new ArrayList<HasManySpec>();
+  private final Class<?> belongsTo;
 
-  public ReflectDataObject(Class<?> type, DatabaseSpec spec) {
+  public ReflectDataObject(Class<?> type) {
     objectType = type;
     fields = new ArrayList<Field>();
 
     boolean autoincrement = true;
     for (Field field : objectType.getDeclaredFields()) {
+      field.setAccessible(true);
       if (!field.isAnnotationPresent(Ignore.class) &&
           !Modifier.isStatic(field.getModifiers()) &&// ignore static fields
           !Modifier.isFinal(field.getModifiers())) {// ignore final fields
@@ -58,8 +61,45 @@ public class ReflectDataObject implements DataObject<Object> {
           autoincrement = primaryKey.autoincrement();
         }
       }
+
+      if (field.getType() == List.class) {
+        HasMany hasMany = field.getAnnotation(HasMany.class);
+        if (hasMany != null) {
+          ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+          Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+
+          if (!collectionClass.isAnnotationPresent(Belongs.class)) {
+            throw new IllegalStateException(
+                "When defining a HasMany relation you must specify a Belongs annotation in the child class");
+          }
+          Belongs belongs = collectionClass.getAnnotation(Belongs.class);
+          if (belongs.to() != objectType) {
+            throw new IllegalStateException(
+                "Belongs class points to " + belongs.to() + " but should point to " + objectType);
+          }
+
+          Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
+          if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
+            throw new IllegalStateException(
+                "Cyclic has-many relations not supported. Use many-to-many instead: " +
+                    collectionClass.getSimpleName() + " belongs to " + objectType
+                    .getSimpleName() + " and viceversa");
+          }
+
+          String through = hasMany.through();
+          if (HasMany.NULL.equals(through)) {
+            through = SQLHelper.getPrimaryKey(objectType);
+          }
+          HasManySpec hasManySpec = new HasManySpec(objectType, collectionClass, through, field);
+          hasManyList.add(hasManySpec);
+        }
+      }
     }
-    hasAutoincrement = spec != null ? autoincrement && !spec.isNotAutoincrement(type) : autoincrement;
+
+    Belongs annotation = objectType.getAnnotation(Belongs.class);
+    belongsTo = annotation != null ? annotation.to() : null;
+
+    hasAutoincrement = autoincrement && !PersistenceConfig.isNotAutoincrement(objectType);
     tableName = SQLHelper.getTableName(objectType);
   }
 
@@ -76,7 +116,25 @@ public class ReflectDataObject implements DataObject<Object> {
     return hasAutoincrement;
   }
 
-  @Override public String getCreateTableSentence(DatabaseSpec databaseSpec) {
+  @Override public Collection<HasManySpec> hasMany() {
+    return hasManyList;
+  }
+
+  @Override public HasManySpec hasMany(Class<?> theClass) {
+    for (HasManySpec hasManySpec : hasManyList) {
+      if (hasManySpec.contained == theClass) {
+        return hasManySpec;
+      }
+    }
+    throw new IllegalArgumentException(
+        "Cannot find has-many relation between " + objectType + "and" + theClass);
+  }
+
+  @Override public Class<?> belongsTo() {
+    return belongsTo;
+  }
+
+  @Override public String getCreateTableSentence() {
     CreateTableHelper createTable = CreateTableHelper.init(tableName);
     for (Field field : fields) {
       String columnName = ReflectHelper.getColumnName(field);
@@ -96,18 +154,21 @@ public class ReflectDataObject implements DataObject<Object> {
 
     // check whether this class belongs to a has-many relation,
     // in which case we need to create an additional field
-    HasMany belongsTo = databaseSpec.belongsTo(objectType);
-    if (belongsTo != null) {
-      // if so, add a new field to the table creation statement to create the relation
-      Class<?> containerClass = belongsTo.getContainerClass();
-      Field field = belongsTo.getThroughField();
-
-      String containerClassNormalized = SQLHelper.normalize(containerClass.getSimpleName());
-      String throughFieldNormalized = SQLHelper.normalize(belongsTo.getThroughField().getName());
-      String columnName = concat(containerClassNormalized, "_", throughFieldNormalized);
-
-      createTable.add(columnName, getTypeFrom(field), false);
+    Class<?> containerClass = belongsTo();
+    if (containerClass != null) {
+      DataObject<?> containerDataObject = DataObjectFactory.getDataObject(containerClass);
+      for (HasManySpec hasManySpec : containerDataObject.hasMany()) {
+        if (hasManySpec.contained != objectType) {
+          continue;
+        }
+        // add a new field to the table creation statement to create the relation
+        // TODO is it really necessary to mark this field as "not null"?
+        createTable
+            .add(hasManySpec.getThroughColumnName(), getTypeFrom(hasManySpec.fieldThrough), false);
+        break;
+      }
     }
+
     return createTable.build();
   }
 
@@ -127,6 +188,7 @@ public class ReflectDataObject implements DataObject<Object> {
 
   private void error(Exception e) {
     Throwable cause = e.getCause();
-    throw cause instanceof RuntimeException ? (RuntimeException) cause : new RuntimeException(cause);
+    throw cause instanceof RuntimeException ? (RuntimeException) cause : new RuntimeException(
+        cause);
   }
 }

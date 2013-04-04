@@ -1,7 +1,6 @@
 package com.codeslap.persistence.processor;
 
 import com.codeslap.persistence.DataObject;
-import com.codeslap.persistence.DatabaseSpec;
 import com.codeslap.persistence.Ignore;
 import com.codeslap.persistence.PrimaryKey;
 import com.squareup.java.JavaWriter;
@@ -55,7 +54,21 @@ public class PersistenceProcessor extends AbstractProcessor {
             jw.emitStatement("return "+shouldBeAutoIncrement(table));
             jw.endMethod();
 
-            jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC, DatabaseSpec.class.getName(), "dbSpec");
+            jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC);
+            jw.emitStatement("return null");
+            jw.endMethod();
+
+            jw.beginMethod("java.util.Collection<com.codeslap.persistence.DataObject.HasManySpec>",
+                "hasMany", Modifier.PUBLIC);
+            jw.emitStatement("return null");
+            jw.endMethod();
+
+            jw.beginMethod("com.codeslap.persistence.DataObject.HasManySpec",
+                "hasMany", Modifier.PUBLIC, "Class<?>", "type");
+            jw.emitStatement("return null");
+            jw.endMethod();
+
+            jw.beginMethod("Class<?>", "belongsTo", Modifier.PUBLIC);
             jw.emitStatement("return null");
             jw.endMethod();
 

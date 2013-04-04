@@ -27,9 +27,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * @author cristian
- */
+/** @author cristian */
 @RunWith(RobolectricSimpleRunner.class)
 public abstract class SqliteTest {
 
@@ -43,15 +41,17 @@ public abstract class SqliteTest {
 
     mDatabaseSpec = PersistenceConfig.registerSpec(1);
     assertEquals(mDatabaseSpec, PersistenceConfig.getDatabaseSpec());
-    mDatabaseSpec.match(ExampleAutoincrement.class, AnnotationAutoincrement.class, AnnotationNotAutoincrement.class, StringAsPrimaryKey.class);
-    mDatabaseSpec.match(new HasMany(PolyTheist.class, God.class));
-    mDatabaseSpec.match(new HasMany(Cow.class, Bug.class, true));
+    mDatabaseSpec.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
+        AnnotationNotAutoincrement.class, StringAsPrimaryKey.class, PolyTheist.class, God.class,
+        ExampleNotAutoincrement.class);
     mDatabaseSpec.match(new ManyToMany(Author.class, Book.class));
     mDatabaseSpec.match(new ManyToMany(Pet.class, Owner.class));
-    mDatabaseSpec.matchNotAutoIncrement(ExampleNotAutoincrement.class);
+    PersistenceConfig.notAutoIncrement(ExampleNotAutoincrement.class);
 
     mAdapter = Persistence.getAdapter(new Activity());
-    mAdapter.truncate(ExampleAutoincrement.class, ExampleNotAutoincrement.class, AnnotationAutoincrement.class, Book.class, God.class, PolyTheist.class, Author.class, Pet.class, Owner.class, StringAsPrimaryKey.class, AnnotationNotAutoincrement.class, Cow.class, Bug.class);
+    mAdapter.truncate(ExampleAutoincrement.class, ExampleNotAutoincrement.class,
+        AnnotationAutoincrement.class, Book.class, God.class, PolyTheist.class, Author.class,
+        Pet.class, Owner.class, StringAsPrimaryKey.class, AnnotationNotAutoincrement.class);
   }
 
   public DatabaseSpec getDatabase() {
@@ -115,7 +115,8 @@ public abstract class SqliteTest {
       StringAsPrimaryKey that = (StringAsPrimaryKey) o;
 
       if (foo != null ? !foo.equals(that.foo) : that.foo != null) return false;
-      if (primaryKey != null ? !primaryKey.equals(that.primaryKey) : that.primaryKey != null) return false;
+      if (primaryKey != null ? !primaryKey.equals(that.primaryKey) : that.primaryKey != null)
+        return false;
 
       return true;
     }
@@ -268,7 +269,7 @@ public abstract class SqliteTest {
 
   public static class PolyTheist {
     long id;
-    List<God> gods;
+    @HasMany List<God> gods;
 
     @Override public boolean equals(Object o) {
       if (this == o) return true;
@@ -295,6 +296,7 @@ public abstract class SqliteTest {
     }
   }
 
+  @Belongs(to = PolyTheist.class)
   public static class God {
     long id;
     String name;
@@ -478,7 +480,7 @@ public abstract class SqliteTest {
       String bookString = "[";
       if (books != null) {
         for (Book author : books) {
-          bookString += "Author{" +
+          bookString += "Book{" +
               "id=" + author.id +
               ", name='" + author.name + '\'' +
               "},";
@@ -489,63 +491,6 @@ public abstract class SqliteTest {
           "id=" + id +
           ", name='" + name + '\'' +
           ", books=" + bookString +
-          '}';
-    }
-  }
-
-  public static class Cow {
-    long id;
-    String name;
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-
-      Cow cow = (Cow) o;
-
-      if (name != null ? !name.equals(cow.name) : cow.name != null) return false;
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return name != null ? name.hashCode() : 0;
-    }
-
-    @Override
-    public String toString() {
-      return "Cow{" +
-          "id=" + id +
-          ", name='" + name + '\'' +
-          '}';
-    }
-  }
-
-  public static class Bug {
-    long id;
-    float itchFactor;
-
-    @Override public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-
-      Bug bug = (Bug) o;
-
-      if (Float.compare(bug.itchFactor, itchFactor) != 0) return false;
-
-      return true;
-    }
-
-    @Override public int hashCode() {
-      return (itchFactor != +0.0f ? Float.floatToIntBits(itchFactor) : 0);
-    }
-
-    @Override public String toString() {
-      return "Bug{" +
-          "id=" + id +
-          ", itchFactor=" + itchFactor +
           '}';
     }
   }

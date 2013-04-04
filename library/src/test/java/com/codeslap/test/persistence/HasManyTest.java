@@ -16,9 +16,8 @@
 
 package com.codeslap.test.persistence;
 
-import com.codeslap.persistence.DatabaseSpec;
-import com.codeslap.persistence.HasMany;
-import com.codeslap.persistence.PersistenceConfig;
+import android.app.Activity;
+import com.codeslap.persistence.*;
 import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,22 +53,23 @@ public class HasManyTest extends SqliteTest {
     assertEquals(polyTheist, found);
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldFailWithDuplicatedClasses() {
-    new HasMany(ExampleAutoincrement.class, ExampleAutoincrement.class);
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldFailWithDuplicatedRelations() {
-    HasMany hasMany1 = new HasMany(Author.class, Book.class);
-    HasMany hasMany2 = new HasMany(Book.class, Author.class);
-    DatabaseSpec database = PersistenceConfig.registerSpec("failing_spec", 1);
-    database.matchNotAutoIncrement(hasMany1);
-    database.matchNotAutoIncrement(hasMany2);
-  }
-
   @Test(expected = IllegalStateException.class)
   public void shouldFailWhenThroughDoesNotExist() {
-    new HasMany(Cow.class, Bug.class, "something", true);
+    DatabaseSpec dbSpec = PersistenceConfig.registerSpec("failing_spec", 1);
+    dbSpec.match(InternalPolyTheist.class, InternalGod.class);
+    SqlAdapter db = mAdapter = Persistence.getAdapter(new Activity(), "failing_spec");
+    db.delete(InternalPolyTheist.class, null, null);
+  }
+
+  public static class InternalPolyTheist {
+    long id;
+    @HasMany(through = "something") List<InternalGod> gods;
+  }
+
+  @Belongs(to = InternalPolyTheist.class)
+  public static class InternalGod {
+    long id;
+    String name;
+    double power;
   }
 }

@@ -17,8 +17,7 @@
 package com.codeslap.persistence;
 
 import android.content.Context;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Use this class to configure database or preferences specs.
@@ -27,6 +26,7 @@ public class PersistenceConfig {
 
   private static final Map<String, DatabaseSpec> DB_SPECS = new HashMap<String, DatabaseSpec>();
   private static final Map<String, PrefsPersistence> PREFS = new HashMap<String, PrefsPersistence>();
+  private static final Set<Class<?>> NOT_AUTO_INCREMENT = new HashSet<Class<?>>();
 
   /**
    * This is the spec id used by default when registering using this method {@link PersistenceConfig#registerSpec(int)}
@@ -105,5 +105,19 @@ public class PersistenceConfig {
       return DB_SPECS.get(specId);
     }
     throw new IllegalStateException("There is no database specification for " + specId + ". Remeber: you must have already register it with registerDatabaseSpec method.");
+  }
+
+  public static void notAutoIncrement(Class<?>... classes) {
+    for (Class<?> type : classes) {
+      NOT_AUTO_INCREMENT.add(type);
+    }
+  }
+
+  /**
+   * @param type the class to check
+   * @return true if the class is registered as not-autoincrement
+   */
+  public static boolean isNotAutoincrement(Class<?> type) {
+    return NOT_AUTO_INCREMENT.contains(type);
   }
 }
