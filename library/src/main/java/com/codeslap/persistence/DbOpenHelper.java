@@ -75,7 +75,8 @@ public abstract class DbOpenHelper extends SQLiteOpenHelper {
     // create all extra table for many to many relations
     List<ManyToMany> sqliteManyToMany = mDatabaseSpec.getSqliteManyToMany();
     for (ManyToMany manyToMany : sqliteManyToMany) {
-      sqLiteDatabase.execSQL(manyToMany.getCreateTableStatement());
+      String createTableStatement = manyToMany.getCreateTableStatement();
+      sqLiteDatabase.execSQL(createTableStatement);
     }
   }
 

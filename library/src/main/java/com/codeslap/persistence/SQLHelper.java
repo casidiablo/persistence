@@ -420,6 +420,7 @@ public class SQLHelper {
   static Field getPrimaryKeyField(Class<?> theClass) {
     for (Field field : getDeclaredFields(theClass)) {
       if (ReflectHelper.isPrimaryKey(field)) {
+        field.setAccessible(true);
         return field;
       }
     }

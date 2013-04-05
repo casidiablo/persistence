@@ -128,7 +128,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
       if (lastId != null && lastId.moveToFirst()) {
         long id = lastId.getLong(0);
         lastId.close();
-        idField.setAccessible(true);
         try {
           idField.set(bean, id);
         } catch (IllegalAccessException e) {
@@ -308,7 +307,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
     DataObject<T> dataObject = getDataObject(theClass);
     Collection<DataObject.HasManySpec> hasManySpecs = dataObject.hasMany();
     Field idField = SQLHelper.getPrimaryKeyField(theClass);
-    idField.setAccessible(true);
     if (hasManySpecs.isEmpty()) {
       DatabaseSpec.Relationship relationship = mDatabaseSpec.getRelationship(theClass);
       if (!relationship.equals(DatabaseSpec.Relationship.UNKNOWN)) {
@@ -496,7 +494,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
     Class<T> theClass = (Class<T>) bean.getClass();
     // get its ID and make sure primary key is not null
     Field theId = SQLHelper.getPrimaryKeyField(theClass);
-    theId.setAccessible(true);
     if (theId.getType() == String.class ||
         theId.getType() == Float.class ||
         theId.getType() == Double.class) {
@@ -540,7 +537,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
     // get a list with the fields that are lists
     Class<T> theClass = (Class<T>) bean.getClass();
-    DataObject<T> dataObject = getDataObject(theClass);
     Field[] fields = SQLHelper.getDeclaredFields(theClass);
     List<Field> collectionFields = new ArrayList<Field>();
     for (Field field : fields) {
@@ -561,53 +557,22 @@ public class SqliteAdapterImpl implements SqlAdapter {
       switch (mDatabaseSpec.getRelationship(theClass, collectionClass)) {
         case MANY_TO_MANY: {
           List list = (List) field.get(bean);
-          if (list != null) {
-            for (Object object : list) {
-              // get the insertion SQL
-              String partialSqlStatement = getSqlStatement(object, tree, null);
-              if (partialSqlStatement != null) {
-                sqlStatement += partialSqlStatement;
-              }
-              // insert items in the joined table
-              // get the table name and columns
-              String relationTableName = ManyToMany.buildTableName(theClass, collectionClass);
-              String mainForeignKey = SQLHelper.getTableName(theClass) + "_id";
-              String secondaryForeignKey = SQLHelper.getTableName(collectionClass) + "_id";
-
-              // get the value for the main bean ID
-              Object beanId;
-              if (dataObject.hasAutoincrement()) {
-                beanId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '",
-                    SQLHelper.getTableName(theClass), "')");
-              } else {
-                Field mainId = SQLHelper.getPrimaryKeyField(theClass);
-                mainId.setAccessible(true);
-                beanId = mainId.get(bean);
-              }
-
-              // get the value for the secondary bean ID
-              Object secondaryId;
-              DataObject<?> collectionDataObject = getDataObject(collectionClass);
-              if (collectionDataObject.hasAutoincrement()) {
-                String tableName = SQLHelper.getTableName(collectionClass);
-                secondaryId = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName,
-                    "')");
-              } else {
-                Field secondaryIdField = SQLHelper.getPrimaryKeyField(collectionClass);
-                secondaryIdField.setAccessible(true);
-                secondaryId = secondaryIdField.get(object);
-              }
-
-              // build the sql statement for the insertion of the many-to-many relation
-              String hack = concat("CASE WHEN (SELECT COUNT(*) FROM ", relationTableName, " WHERE ",
-                  mainForeignKey, " = ", String.valueOf(beanId), " AND ", secondaryForeignKey,
-                  " = ", String.valueOf(secondaryId), ") == 0 THEN ", String.valueOf(beanId),
-                  " ELSE NULL END");
-              String insertStatement = concat("INSERT OR IGNORE INTO ", relationTableName, " (",
-                  mainForeignKey, ", ", secondaryForeignKey, ") VALUES (", hack, ", ",
-                  String.valueOf(secondaryId), ");", SQLHelper.STATEMENT_SEPARATOR);
-              sqlStatement += insertStatement;
+          if (list == null) {
+            break;
+          }
+          for (Object object : list) {
+            if (object == null) {
+              continue;
             }
+
+            // get the insertion SQL
+            String partialSqlStatement = getSqlStatement(object, tree, null);
+            if (partialSqlStatement != null) {
+              sqlStatement += partialSqlStatement;
+            }
+
+            String insertStatement = getManyToManyInsertStatement(bean, object);
+            sqlStatement += insertStatement;
           }
           break;
         }
@@ -615,6 +580,69 @@ public class SqliteAdapterImpl implements SqlAdapter {
       tree.removeChild(child);
     }
     return sqlStatement;
+  }
+
+  private <Foo, Bar> String getManyToManyInsertStatement(Foo foo,
+                                                         Bar bar) throws IllegalAccessException {
+    Class<Foo> theClass = (Class<Foo>) foo.getClass();
+    Class<Bar> collectionClass = (Class<Bar>) bar.getClass();
+
+    String mainKey = null, secondaryKey = null;
+    for (ManyToMany manyToMany : mDatabaseSpec.getManyToMany(theClass)) {
+      if (manyToMany.getFirstRelation() == theClass && manyToMany
+          .getSecondRelation() == collectionClass) {
+        mainKey = manyToMany.getMainKey();
+        secondaryKey = manyToMany.getSecondaryKey();
+        break;
+      } else if (manyToMany.getSecondRelation() == theClass && manyToMany
+          .getFirstRelation() == collectionClass) {
+        secondaryKey = manyToMany.getMainKey();
+        mainKey = manyToMany.getSecondaryKey();
+        break;
+      }
+    }
+
+    if (mainKey == null || secondaryKey == null) {
+      throw new IllegalStateException(
+          "Could not find many-to-many relation keys for " + foo + " and " + bar);
+    }
+
+    DataObject<Foo> dataObject = getDataObject(theClass);
+    DataObject<Bar> collectionDataObject = getDataObject(collectionClass);
+
+    String mainTableName = SQLHelper.getTableName(theClass);
+    String secondaryTableName = SQLHelper.getTableName(collectionClass);
+
+    // get the value for the main foo ID
+    Object beanId;
+    if (dataObject.hasAutoincrement()) {
+      beanId = getSelectSeqSqlite(mainTableName);
+    } else {
+      Field mainId = SQLHelper.getPrimaryKeyField(theClass);
+      beanId = mainId.get(foo);
+    }
+
+    // get the value for the secondary foo ID
+    Object secondaryId;
+    if (collectionDataObject.hasAutoincrement()) {
+      secondaryId = getSelectSeqSqlite(secondaryTableName);
+    } else {
+      Field secondaryIdField = SQLHelper.getPrimaryKeyField(collectionClass);
+      secondaryId = secondaryIdField.get(bar);
+    }
+
+    // build the sql statement for the insertion of the many-to-many relation
+    String relationTableName = ManyToMany.buildTableName(theClass, collectionClass);
+    String hack = concat("CASE WHEN (SELECT COUNT(*) FROM ", relationTableName, " WHERE ",
+        mainKey, " = ", String.valueOf(beanId), " AND ", secondaryKey, " = ",
+        String.valueOf(secondaryId), ") == 0 THEN ", String.valueOf(beanId), " ELSE NULL END");
+    return concat("INSERT OR IGNORE INTO ", relationTableName, " (", mainKey, ", ",
+        secondaryKey, ") VALUES (", hack, ", ", String.valueOf(secondaryId), ");",
+        SQLHelper.STATEMENT_SEPARATOR);
+  }
+
+  private static String getSelectSeqSqlite(String tableName) {
+    return concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')");
   }
 
   private <T> String getSqlInsertForHasManyRelations(T bean,

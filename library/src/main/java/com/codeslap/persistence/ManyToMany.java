@@ -16,11 +16,12 @@
 
 package com.codeslap.persistence;
 
+import static com.codeslap.persistence.StrUtil.concat;
+
 /**
  * Establishes a many-to-many relation between two models
  *
  * @author cristian
- * @version 1.0
  */
 public class ManyToMany {
   private final Class<?> mClassA;
@@ -61,11 +62,11 @@ public class ManyToMany {
   }
 
   String getMainKey() {
-    return joinTableNames(SQLHelper.getTableName(mClassA), mClassAPrimaryKey);
+    return concat(SQLHelper.getTableName(mClassA), "_", mClassAPrimaryKey);
   }
 
   String getSecondaryKey() {
-    return joinTableNames(SQLHelper.getTableName(mClassB), mClassBPrimaryKey);
+    return concat(SQLHelper.getTableName(mClassB), "_", mClassBPrimaryKey);
   }
 
   /**
@@ -77,9 +78,9 @@ public class ManyToMany {
     String classATableName = SQLHelper.getTableName(classA);
     String classBTableName = SQLHelper.getTableName(classB);
     if (classATableName.compareToIgnoreCase(classBTableName) <= 0) {
-      return joinTableNames(classATableName, classBTableName);
+      return concat(classATableName, "_", classBTableName);
     }
-    return joinTableNames(classBTableName, classATableName);
+    return concat(classBTableName, "_", classATableName);
   }
 
   /**
@@ -120,9 +121,5 @@ public class ManyToMany {
     return "ManyToMany relation between " + mClassA.getSimpleName() +
         " and " + mClassB.getSimpleName() + ", using " + mClassAPrimaryKey +
         " and " + mClassBPrimaryKey + " respectively";
-  }
-
-  private static String joinTableNames(String classATableName, String classBTableName) {
-    return new StringBuilder().append(classATableName).append("_").append(classBTableName).toString();
   }
 }

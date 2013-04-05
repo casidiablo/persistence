@@ -44,7 +44,7 @@ public abstract class SqliteTest {
     mDatabaseSpec.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
         AnnotationNotAutoincrement.class, StringAsPrimaryKey.class, PolyTheist.class, God.class,
         ExampleNotAutoincrement.class);
-    mDatabaseSpec.match(new ManyToMany(Author.class, Book.class));
+    mDatabaseSpec.match(new ManyToMany(Author.class, "id", Book.class, "id"));
     mDatabaseSpec.match(new ManyToMany(Pet.class, Owner.class));
     PersistenceConfig.notAutoIncrement(ExampleNotAutoincrement.class);
 
