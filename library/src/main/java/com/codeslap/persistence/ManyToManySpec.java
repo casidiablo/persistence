@@ -20,7 +20,7 @@ import java.lang.reflect.Field;
 
 import static com.codeslap.persistence.StrUtil.concat;
 
-class ManyToManySpec {
+public class ManyToManySpec {
   private final DataObject<?> mDataObjectA;
   private final DataObject<?> mDataObjectB;
   private final Field firstRelationField;

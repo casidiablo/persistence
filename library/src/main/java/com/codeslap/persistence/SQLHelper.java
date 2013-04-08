@@ -36,7 +36,6 @@ public class SQLHelper {
   private static final String HEXES = "0123456789ABCDEF";
 
   private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
-  private static final Map<Class<?>, String> TABLE_NAMES_CACHE = new HashMap<Class<?>, String>();
   private static final Map<Class<?>, Field[]> FIELDS_CACHE = new HashMap<Class<?>, Field[]>();
 
   static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
@@ -225,13 +224,15 @@ public class SQLHelper {
   static <T> String buildUpdateStatement(T bean, Object sample) {
     String where = getWhere(bean.getClass(), sample, null, null);
     String set = getSet(bean);
-    return concat("UPDATE ", getTableName(bean), " SET ", set, " WHERE ", where, ";",
+    DataObject<?> dataObject = getDataObject(bean.getClass());
+    return concat("UPDATE ", dataObject.getTableName(), " SET ", set, " WHERE ", where, ";",
         STATEMENT_SEPARATOR);
   }
 
   public static <T> String buildUpdateStatement(T bean, String where) {
     String set = getSet(bean);
-    return concat("UPDATE ", getTableName(bean), " SET ", set, " WHERE ", where, ";",
+    DataObject<?> dataObject = getDataObject(bean.getClass());
+    return concat("UPDATE ", dataObject.getTableName(), " SET ", set, " WHERE ", where, ";",
         STATEMENT_SEPARATOR);
   }
 
@@ -252,8 +253,8 @@ public class SQLHelper {
     }
 
     // build insert statement for the main object
-    String tableName = getTableName(bean);
     DataObject<?> dataObject = getDataObject(bean.getClass());
+    String tableName = dataObject.getTableName();
     if (values.size() == 0 && dataObject.hasAutoincrement()) {
       String hack = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')+1");
       String idColumn = ReflectHelper.getIdColumn(getPrimaryKeyField(bean.getClass()));
@@ -337,7 +338,8 @@ public class SQLHelper {
         if (foreignValue != null && hasData(foreignValue.getClass(), foreignValue)) {
           values.add(String.valueOf(foreignValue));
         } else {
-          String tableName = getTableName(parent.getClass());
+          DataObject<?> parentDataObject = getDataObject(parent.getClass());
+          String tableName = parentDataObject.getTableName();
           values.add(concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')"));
         }
       }
@@ -352,42 +354,6 @@ public class SQLHelper {
     } catch (Exception ignored) {
     }
     return foreignValue;
-  }
-
-  // TODO reduce use of this method
-  public static String getTableName(Class<?> theClass) {
-    if (TABLE_NAMES_CACHE.containsKey(theClass)) {
-      return TABLE_NAMES_CACHE.get(theClass);
-    }
-    Table table = theClass.getAnnotation(Table.class);
-    String tableName;
-    if (table != null) {
-      tableName = table.value();
-      if (TextUtils.isEmpty(tableName)) {
-        String msg = concat("You cannot leave a table name empty: class ",
-            theClass.getSimpleName());
-        throw new IllegalArgumentException(msg);
-      }
-      if (tableName.contains(" ")) {
-        String msg = concat("Table name cannot have spaces: '", tableName, "'; found in class ",
-            theClass.getSimpleName());
-        throw new IllegalArgumentException(msg);
-      }
-    } else {
-      String name = theClass.getSimpleName();
-      if (name.endsWith("y")) {
-        name = name.substring(0, name.length() - 1) + "ies";
-      } else if (!name.endsWith("s")) {
-        name += "s";
-      }
-      tableName = normalize(name);
-    }
-    TABLE_NAMES_CACHE.put(theClass, tableName);
-    return tableName;
-  }
-
-  private static <T> String getTableName(T bean) {
-    return getTableName(bean.getClass());
   }
 
   private static String getHex(byte[] raw) {
@@ -428,13 +394,13 @@ public class SQLHelper {
     throw new IllegalStateException("Class " + theClass + " does not have a primary key");
   }
 
-  static <T, Parent> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> clazz,
+  static <T, Parent> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> type,
                                                   T sample, Parent parent, Constraint constraint) {
     String[] selectionArgs = null;
     String where = null;
     if (sample != null || parent != null) {
       ArrayList<String> args = new ArrayList<String>();
-      where = getWhere(clazz, sample, args, parent);
+      where = getWhere(type, sample, args, parent);
       if (TextUtils.isEmpty(where)) {
         where = null;
       } else {
@@ -451,7 +417,8 @@ public class SQLHelper {
       }
       groupBy = constraint.getGroupBy();
     }
-    return db.query(getTableName(clazz), null, where, selectionArgs, groupBy, null, orderBy, limit);
+    DataObject<? extends T> dataObject = getDataObject(type);
+    return db.query(dataObject.getTableName(), null, where, selectionArgs, groupBy, null, orderBy, limit);
   }
 
   static <T> String getFastInsertSqlHeader(T bean) {
@@ -461,7 +428,8 @@ public class SQLHelper {
 
     StringBuilder result = new StringBuilder();
 
-    result.append("INSERT OR IGNORE INTO ").append(getTableName(bean.getClass())).append(" ");
+    DataObject<?> dataObject = getDataObject(bean.getClass());
+    result.append("INSERT OR IGNORE INTO ").append(dataObject.getTableName()).append(" ");
     // set insert columns
     result.append("(");
     result.append(join(columns, ", "));

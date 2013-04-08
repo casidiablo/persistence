@@ -47,16 +47,16 @@ public class SqliteAdapterImpl implements SqlAdapter {
     Class<T> clazz = (Class<T>) sample.getClass();
     ArrayList<String> args = new ArrayList<String>();
     String where = SQLHelper.getWhere(clazz, sample, args, null);
-    Cursor query = mDbHelper.getDatabase()
-        .query(SQLHelper.getTableName(clazz), null, where, args.toArray(new String[args.size()]),
-            null, null, null, "1");
+    Cursor query = mDbHelper.getDatabase().query(getDataObject(clazz).getTableName(), null, where,
+        args.toArray(new String[args.size()]), null, null, null, "1");
     return findFirstFromCursor(clazz, query);
   }
 
   @Override
   public <T> T findFirst(Class<T> clazz, String where, String[] whereArgs) {
+    DataObject<T> dataObject = getDataObject(clazz);
     Cursor query = mDbHelper.getDatabase()
-        .query(SQLHelper.getTableName(clazz), null, where, whereArgs, null, null, null, "1");
+        .query(dataObject.getTableName(), null, where, whereArgs, null, null, null, "1");
     return findFirstFromCursor(clazz, query);
   }
 
@@ -122,7 +122,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       }
       Cursor lastId = mDbHelper.getDatabase()
           .query("sqlite_sequence", new String[]{"seq"}, "name = ?",
-              new String[]{SQLHelper.getTableName(theClass)}, null, null, null);
+              new String[]{dataObject.getTableName()}, null, null, null);
       if (lastId != null && lastId.moveToFirst()) {
         long id = lastId.getLong(0);
         lastId.close();
@@ -363,8 +363,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
                 .query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
             // this means there is no other relation with this object, so we can delete it on cascade :)
             if (cursorRest.getCount() == 0) {
+              DataObject<?> relationTableDataObject = getDataObject(relationTable);
               mDbHelper.getDatabase()
-                  .delete(SQLHelper.getTableName(relationTable), SQLHelper._ID + " = ?",
+                  .delete(relationTableDataObject.getTableName(), SQLHelper._ID + " = ?",
                       new String[]{id});
             }
           }
@@ -372,13 +373,13 @@ public class SqliteAdapterImpl implements SqlAdapter {
         }
       }
     }
-    return mDbHelper.getDatabase().delete(SQLHelper.getTableName(theClass), where, whereArgs);
+    return mDbHelper.getDatabase().delete(dataObject.getTableName(), where, whereArgs);
   }
 
   @Override
   public void truncate(Class<?>... classes) {
     for (Class<?> theClass : classes) {
-      String tableName = SQLHelper.getTableName(theClass);
+      String tableName = getDataObject(theClass).getTableName();
       mDbHelper.getDatabase().delete(tableName, null, null);
       mDbHelper.getDatabase().delete("sqlite_sequence", "name LIKE ?", new String[]{tableName});
     }
@@ -394,9 +395,10 @@ public class SqliteAdapterImpl implements SqlAdapter {
   }
 
   @Override
-  public <T> int count(Class<T> clazz, String where, String[] whereArgs) {
+  public <T> int count(Class<T> type, String where, String[] whereArgs) {
+    DataObject dataObject = getDataObject(type);
     Cursor query = mDbHelper.getDatabase()
-        .query(SQLHelper.getTableName(clazz), null, where, whereArgs, null, null, null);
+        .query(dataObject.getTableName(), null, where, whereArgs, null, null, null);
     int count = query.getCount();
     query.close();
     return count;
@@ -460,9 +462,10 @@ public class SqliteAdapterImpl implements SqlAdapter {
     return beans;
   }
 
-  private <T> Cursor getCursorFindAllWhere(Class<? extends T> clazz, String where, String[] args) {
+  private <T> Cursor getCursorFindAllWhere(Class<? extends T> type, String where, String[] args) {
+    DataObject<? extends T> dataObject = getDataObject(type);
     return mDbHelper.getDatabase()
-        .query(SQLHelper.getTableName(clazz), null, where, args, null, null, null, null);
+        .query(dataObject.getTableName(), null, where, args, null, null, null, null);
   }
 
   private <T, Parent> String getSqlStatement(T bean, Set tree, Parent parent) {
@@ -593,8 +596,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
           "Could not find many-to-many relation keys for " + foo + " and " + bar);
     }
 
-    String mainTableName = SQLHelper.getTableName(theClass);
-    String secondaryTableName = SQLHelper.getTableName(collectionClass);
+    String mainTableName = dataObject.getTableName();
+    String secondaryTableName = collectionDataObject.getTableName();
 
     // get the value for the main foo ID
     Object beanId;
@@ -694,7 +697,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
                     query);
                 if (foreignValue != null) {
                   String sql = new StringBuilder().append("SELECT * FROM ")
-                      .append(SQLHelper.getTableName(collectionClass)).append(" WHERE ")
+                      .append(collectionDataObject.getTableName()).append(" WHERE ")
                       .append(hasManySpec.getThroughColumnName()).append(" = '")
                       .append(foreignValue).append("'").toString();
                   // execute the query and set the result to the current field
@@ -728,9 +731,10 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
           if (manyToMany) {
             Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
+            getDataObject(collectionClass);
             // build a query that uses the joining table and the joined object
             String sql = new StringBuilder().append("SELECT * FROM ")
-                .append(SQLHelper.getTableName(collectionClass)).append(" WHERE ")
+                .append(collectionDataObject.getTableName()).append(" WHERE ")
                 .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
                 .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
                 .append(currentManyToMany.getTableName()).append(" WHERE ")

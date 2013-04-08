@@ -140,7 +140,9 @@ public abstract class BaseContentProvider extends ContentProvider {
   }
 
   public static Uri buildBaseUri(String authority, Class<?> theClass) {
-    return Uri.parse(StrUtil.concat("content://", authority, "/", SQLHelper.getTableName(theClass)));
+    DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass);
+    return Uri
+        .parse(StrUtil.concat("content://", authority, "/", dataObject.getTableName()));
   }
 
   /**

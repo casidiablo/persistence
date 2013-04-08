@@ -58,17 +58,34 @@ public class PersistenceProcessor extends AbstractProcessor {
             jw.emitStatement("return null");
             jw.endMethod();
 
-            jw.beginMethod("java.util.Collection<com.codeslap.persistence.DataObject.HasManySpec>",
+            jw.beginMethod("java.util.Collection<com.codeslap.persistence.HasManySpec>",
                 "hasMany", Modifier.PUBLIC);
             jw.emitStatement("return null");
             jw.endMethod();
 
-            jw.beginMethod("com.codeslap.persistence.DataObject.HasManySpec",
+            jw.beginMethod("com.codeslap.persistence.HasManySpec",
                 "hasMany", Modifier.PUBLIC, "Class<?>", "type");
             jw.emitStatement("return null");
             jw.endMethod();
 
+            jw.beginMethod("java.util.Collection<com.codeslap.persistence.ManyToManySpec>",
+                "manyToMany", Modifier.PUBLIC);
+            jw.emitStatement("return null");
+            jw.endMethod();
+
             jw.beginMethod("Class<?>", "belongsTo", Modifier.PUBLIC);
+            jw.emitStatement("return null");
+            jw.endMethod();
+
+            jw.beginMethod("Class<?>", "getObjectClass", Modifier.PUBLIC);
+            jw.emitStatement("return null");
+            jw.endMethod();
+
+            jw.beginMethod("String", "getTableName", Modifier.PUBLIC);
+            jw.emitStatement("return null");
+            jw.endMethod();
+
+            jw.beginMethod("String", "getPrimaryKeyFieldName", Modifier.PUBLIC);
             jw.emitStatement("return null");
             jw.endMethod();
 

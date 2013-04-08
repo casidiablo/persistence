@@ -26,7 +26,7 @@ import static com.codeslap.persistence.StrUtil.concat;
  *
  * @author cristian
  */
-class HasManySpec {
+public class HasManySpec {
   final Class<?> container;
   final Class<?> contained;
   final Field throughField;
@@ -58,7 +58,7 @@ class HasManySpec {
     getThroughColumnName = concat(containerClassNormalized, "_", throughFieldNormalized);
   }
 
-  String getThroughColumnName() {
+  public String getThroughColumnName() {
     return getThroughColumnName;
   }
 }

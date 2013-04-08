@@ -16,10 +16,13 @@
 
 package com.codeslap.persistence;
 
+import android.text.TextUtils;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
+
+import static com.codeslap.persistence.StrUtil.concat;
 
 /**
  * Data object that gets object information using reflection.
@@ -140,7 +143,7 @@ public class ReflectDataObject implements DataObject<Object> {
     belongsTo = annotation != null ? annotation.to() : null;
 
     hasAutoincrement = primaryKey.autoincrement();
-    tableName = SQLHelper.getTableName(objectType);
+    tableName = getTableName(objectType);
   }
 
   @Override public Object newInstance() {
@@ -246,5 +249,32 @@ public class ReflectDataObject implements DataObject<Object> {
     Throwable cause = e.getCause();
     throw cause instanceof RuntimeException ? (RuntimeException) cause : new RuntimeException(
         cause);
+  }
+
+  private static String getTableName(Class<?> theClass) {
+    Table table = theClass.getAnnotation(Table.class);
+    String tableName;
+    if (table != null) {
+      tableName = table.value();
+      if (TextUtils.isEmpty(tableName)) {
+        String msg = concat("You cannot leave a table name empty: class ",
+            theClass.getSimpleName());
+        throw new IllegalArgumentException(msg);
+      }
+      if (tableName.contains(" ")) {
+        String msg = concat("Table name cannot have spaces: '", tableName, "'; found in class ",
+            theClass.getSimpleName());
+        throw new IllegalArgumentException(msg);
+      }
+    } else {
+      String name = theClass.getSimpleName();
+      if (name.endsWith("y")) {
+        name = name.substring(0, name.length() - 1) + "ies";
+      } else if (!name.endsWith("s")) {
+        name += "s";
+      }
+      tableName = SQLHelper.normalize(name);
+    }
+    return tableName;
   }
 }

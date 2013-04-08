@@ -20,6 +20,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import static com.codeslap.persistence.DataObjectFactory.getDataObject;
+
 /** @author cristian */
 class RawQueryImpl implements RawQuery {
   private final SQLiteDatabase mDb;
@@ -32,7 +34,8 @@ class RawQueryImpl implements RawQuery {
 
   @Override
   public Cursor findAll(Class<?> theClass) {
-    return mDb.query(SQLHelper.getTableName(theClass), null, null, null, null, null, null, null);
+    DataObject<?> dataObject = getDataObject(theClass);
+    return mDb.query(dataObject.getTableName(), null, null, null, null, null, null, null);
   }
 
   @Override
@@ -52,8 +55,8 @@ class RawQueryImpl implements RawQuery {
 
   @Override
   public Cursor findAll(Class<?> theClass, String where, String[] whereArgs) {
-    return mDb
-        .query(SQLHelper.getTableName(theClass), null, where, whereArgs, null, null, null, null);
+    DataObject<?> dataObject = getDataObject(theClass);
+    return mDb.query(dataObject.getTableName(), null, where, whereArgs, null, null, null, null);
   }
 
   @Override
