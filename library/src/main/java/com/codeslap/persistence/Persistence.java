@@ -55,7 +55,8 @@ public class Persistence {
    * @return implementation of the {@link SqlAdapter} using passed parameters
    */
   public static SqlAdapter getAdapter(Context context, String dbName, String specId) {
-    d(TAG, StrUtil.concat("Getting database adapter for ", dbName, " database with ", specId, " spec"));
+    d(TAG, StrUtil
+        .concat("Getting database adapter for ", dbName, " database with ", specId, " spec"));
     return new SqliteAdapterImpl(context, dbName, specId);
   }
 

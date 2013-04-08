@@ -26,7 +26,6 @@ class ManyToManySpec {
   private final Field firstRelationField;
 
   ManyToManySpec(DataObject<?> dataObjectA, Field firstRelationField, DataObject<?> dataObjectB) {
-
     mDataObjectA = dataObjectA;
     this.firstRelationField = firstRelationField;
     mDataObjectB = dataObjectB;

@@ -95,7 +95,9 @@ class PrefsAdapterImpl implements PreferencesAdapter {
           String def = defaultEnabled ? annotation.defaultValue() : null;
           value = getSharedPreferences(theClass).getString(keyName, def);
         } else {
-          String msg = StrUtil.concat("Current object (", bean, ") has incompatible fields: ", field, " of type ", type);
+          String msg = StrUtil
+              .concat("Current object (", bean, ") has incompatible fields: ", field, " of type ",
+                  type);
           PersistenceLogManager.e("pref", msg);
         }
         field.set(bean, value);

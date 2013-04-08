@@ -35,7 +35,6 @@ import static com.codeslap.persistence.StrUtil.concat;
 public class SqliteAdapterImpl implements SqlAdapter {
 
   private static final String TAG = "sqliteImpl";
-
   private final SqliteDb mDbHelper;
 
   SqliteAdapterImpl(Context context, String name, String specId) {
@@ -102,7 +101,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     }
     Class<?> theClass = bean.getClass();
     List<String> transactions = new ArrayList<String>();
-    String sqlStatement = getSqlStatement(bean, new Node(theClass), null);
+    String sqlStatement = getSqlStatement(bean, classesTree(theClass), null);
     if (sqlStatement != null) {
       String[] statements = sqlStatement.split(SQLHelper.STATEMENT_SEPARATOR);
       for (String statement : statements) {
@@ -175,7 +174,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
       int all = collection.size() + 1; // 1 == commit phase
       for (int i = 0, collectionSize = collection.size(); i < collectionSize; i++) {
         T object = collection.get(i);
-        String sqlStatement = getSqlStatement(object, new Node(object.getClass()), parent);
+        Set tree = classesTree(object.getClass());
+        String sqlStatement = getSqlStatement(object, tree, parent);
         if (sqlStatement == null) {
           continue;
         }
@@ -452,7 +452,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     List<T> beans = new ArrayList<T>();
     if (query.moveToFirst()) {
       do {
-        T bean = getBeanFromCursor(clazz, query, new Node(clazz));
+        T bean = getBeanFromCursor(clazz, query, classesTree(clazz));
         beans.add(bean);
       } while (query.moveToNext());
     }
@@ -465,7 +465,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         .query(SQLHelper.getTableName(clazz), null, where, args, null, null, null, null);
   }
 
-  private <T, Parent> String getSqlStatement(T bean, Node tree, Parent parent) {
+  private <T, Parent> String getSqlStatement(T bean, Set tree, Parent parent) {
     String updateStatement = getUpdateStatementIfPossible(bean);
     if (!TextUtils.isEmpty(updateStatement)) {
       return updateStatement;
@@ -521,7 +521,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     return result;
   }
 
-  private <T> String getSqlInsertForChildrenOf(T bean, Node tree) throws IllegalAccessException {
+  private <T> String getSqlInsertForChildrenOf(T bean, Set tree) throws IllegalAccessException {
     String sqlStatement = getSqlInsertForHasManyRelations(bean, tree);
 
     // get a list with the fields that are lists
@@ -530,8 +530,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
     Collection<ManyToManySpec> manyToManySpecs = dataObject.manyToMany();
     for (ManyToManySpec manyToManySpec : manyToManySpecs) {
-      Node child = new Node(manyToManySpec.getSecondRelation().getObjectClass());
-      if (!tree.addChild(child)) {
+      if (!tree.add(manyToManySpec.getSecondRelation().getObjectClass())) {
         continue;
       }
 
@@ -560,7 +559,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
         String insertStatement = getManyToManyInsertStatement(bean, object);
         sqlStatement += insertStatement;
       }
-      tree.removeChild(child);
     }
     return sqlStatement;
   }
@@ -630,7 +628,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
   }
 
   private <T> String getSqlInsertForHasManyRelations(T bean,
-                                                     Node tree) throws IllegalAccessException {
+                                                     Set tree) throws IllegalAccessException {
     Class<T> theClass1 = (Class<T>) bean.getClass();
     DataObject<T> dataObject1 = getDataObject(theClass1);
 
@@ -653,7 +651,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   private <T> T findFirstFromCursor(Class<T> clazz, Cursor query) {
     if (query.moveToFirst()) {
-      T bean = getBeanFromCursor(clazz, query, new Node(clazz));
+      T bean = getBeanFromCursor(clazz, query, classesTree(clazz));
       query.close();
       return bean;
     }
@@ -661,7 +659,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     return null;
   }
 
-  private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Node tree) {
+  private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Set tree) {
     T bean;
     DataObject<? extends T> dataObject = getDataObject(theClass);
     try {
@@ -683,8 +681,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       if (columnIndex == -1 && type == List.class) {
         ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
         Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
-        Node node = new Node(collectionClass);
-        if (tree.addChild(node)) {
+        if (tree.add(collectionClass)) {
           DataObject<? extends T> collectionDataObject = (DataObject<? extends T>) getDataObject(
               collectionClass);
           Class<?> belongsTo = collectionDataObject.belongsTo();
@@ -754,8 +751,6 @@ public class SqliteAdapterImpl implements SqlAdapter {
             join.close();
             value = listValue;
           }
-
-          tree.removeChild(node);
         }
       } else {// do not process collections here
         value = getValueFromCursor(type, ReflectHelper.getColumnName(field), query);
@@ -797,5 +792,17 @@ public class SqliteAdapterImpl implements SqlAdapter {
     } catch (Exception e) {
       throw new IllegalStateException("Error getting column " + name, e);
     }
+  }
+
+  static Comparator<Class<?>> CLASS_COMPARATOR = new Comparator<Class<?>>() {
+    @Override public int compare(Class<?> foo, Class<?> bar) {
+      return foo.getName().compareToIgnoreCase(bar.getName());
+    }
+  };
+
+  private static Set<Class<?>> classesTree(Class<?> type) {
+    TreeSet<Class<?>> tree = new TreeSet<Class<?>>(CLASS_COMPARATOR);
+    tree.add(type);
+    return tree;
   }
 }

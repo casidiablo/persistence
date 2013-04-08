@@ -38,11 +38,7 @@ public class ReflectDataObject implements DataObject<Object> {
   private final String primaryKeyName;
 
   public ReflectDataObject(Class<?> type) {
-    this(type, new TreeSet<Class<?>>(new Comparator<Class<?>>() {
-      @Override public int compare(Class<?> foo, Class<?> bar) {
-        return foo.getSimpleName().compareToIgnoreCase(bar.getSimpleName());
-      }
-    }));
+    this(type, new TreeSet<Class<?>>(SqliteAdapterImpl.CLASS_COMPARATOR));
   }
 
   ReflectDataObject(Class<?> type, Set<Class<?>> graph) {
