@@ -16,8 +16,6 @@
 
 package com.codeslap.test.persistence;
 
-import android.app.Activity;
-import com.codeslap.persistence.*;
 import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,25 +49,5 @@ public class HasManyTest extends SqliteTest {
     PolyTheist found = mAdapter.findFirst(PolyTheist.class, "_id = ?", new String[]{String.valueOf(store)});
     assertNotNull(found);
     assertEquals(polyTheist, found);
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldFailWhenThroughDoesNotExist() {
-    DatabaseSpec dbSpec = PersistenceConfig.registerSpec("failing_spec", 1);
-    dbSpec.match(InternalPolyTheist.class, InternalGod.class);
-    SqlAdapter db = mAdapter = Persistence.getAdapter(new Activity(), "failing_spec");
-    db.delete(InternalPolyTheist.class, null, null);
-  }
-
-  public static class InternalPolyTheist {
-    long id;
-    @HasMany(through = "something") List<InternalGod> gods;
-  }
-
-  @Belongs(to = InternalPolyTheist.class)
-  public static class InternalGod {
-    long id;
-    String name;
-    double power;
   }
 }

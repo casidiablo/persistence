@@ -19,6 +19,7 @@ package com.codeslap.persistence;
 import android.app.Activity;
 import com.codeslap.test.persistence.SqliteTest;
 import org.junit.Test;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -43,28 +44,14 @@ public class PersistenceHelpersTest extends SqliteTest {
 
   @Belongs(to = Cyclic2.class)
   public static class Cyclic1 {
-    long id;
+    @PrimaryKey long id;
     @HasMany List<Cyclic2> list;
   }
 
   @Belongs(to = Cyclic1.class)
   public static class Cyclic2 {
-    long id;
+    @PrimaryKey long id;
     @HasMany List<Cyclic1> list;
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldFailWithMultipleManyToManyRelationships() {
-    DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
-    dbSpec.match(new ManyToMany(Author.class, Book.class));
-    dbSpec.match(new ManyToMany(Book.class, Author.class));
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void shouldFailWithRepeatedManyToManyRelationships() {
-    DatabaseSpec dbSpec = PersistenceConfig.registerSpec(FAILING_SPEC_ID, 1);
-    dbSpec.match(new ManyToMany(Author.class, Book.class));
-    dbSpec.match(new ManyToMany(Author.class, Book.class));
   }
 
   @Test(expected = IllegalStateException.class)
@@ -73,13 +60,13 @@ public class PersistenceHelpersTest extends SqliteTest {
   }
 
   public static class Mother {
-    long id;
+    @PrimaryKey long id;
     @HasMany List<Dauther> children;
   }
 
   @Belongs(to = Parent.class)
   public static class Dauther {
-    long id;
+    @PrimaryKey long id;
   }
 
   @Test(expected = IllegalStateException.class)
@@ -97,21 +84,20 @@ public class PersistenceHelpersTest extends SqliteTest {
   }
 
   @Test
-  public void testGetRelationship() {
-    DatabaseSpec.Relationship unknown = getDatabase()
-        .getRelationship(ExampleAutoincrement.class, ExampleNotAutoincrement.class);
-    assertEquals(DatabaseSpec.Relationship.UNKNOWN, unknown);
-    DatabaseSpec.Relationship manyToMany = getDatabase().getRelationship(Author.class, Book.class);
-    assertEquals(DatabaseSpec.Relationship.MANY_TO_MANY, manyToMany);
-  }
-
-  @Test
   public void testGetManyToMany() {
-    List<ManyToMany> manyToMany = getDatabase().getManyToMany(Book.class);
-    assertNotNull(manyToMany);
-    assertEquals(1, manyToMany.size());
-    assertEquals(Author.class, manyToMany.get(0).getFirstRelation());
-    assertEquals(Book.class, manyToMany.get(0).getSecondRelation());
+    DataObject<Book> dataObject = DataObjectFactory.getDataObject(Book.class);
+    Collection<ManyToManySpec> manyToManySpecs = dataObject.manyToMany();
+    assertNotNull(manyToManySpecs);
+    assertEquals(1, manyToManySpecs.size());
+    ManyToManySpec[] manyToManySpecsArr = manyToManySpecs
+        .toArray(new ManyToManySpec[0]);
+    boolean either = manyToManySpecsArr[0]
+        .getFirstRelation().getObjectClass() == Author.class && Book.class == manyToManySpecsArr[0]
+        .getSecondRelation().getObjectClass();
+    boolean or = manyToManySpecsArr[0]
+        .getFirstRelation().getObjectClass() == Book.class && Author.class == manyToManySpecsArr[0]
+        .getSecondRelation().getObjectClass();
+    assertTrue(either || or);
   }
 
   @Test
@@ -124,8 +110,7 @@ public class PersistenceHelpersTest extends SqliteTest {
     assertEquals(dataObject.hasMany(God.class).container, PolyTheist.class);
     assertEquals(dataObject.hasMany(God.class).contained, God.class);
     assertNotNull(dataObject.hasMany(God.class).listField);
-    assertNotNull(dataObject.hasMany(God.class).fieldThrough);
-    assertEquals(dataObject.hasMany(God.class).through, "id");
+    assertNotNull(dataObject.hasMany(God.class).throughField);
     assertNotNull(dataObject.hasMany(God.class).getThroughColumnName());
   }
 

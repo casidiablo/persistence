@@ -28,10 +28,8 @@ import java.util.List;
  * @author cristian
  */
 public class DatabaseSpec {
-  private final List<Class<?>> mSqliteList = new ArrayList<Class<?>>();
-  private final List<ManyToMany> mManyToManyList = new ArrayList<ManyToMany>();
-
   private final int mVersion;
+  private final List<DataObject<?>> mDataObjects = new ArrayList<DataObject<?>>();
   private final List<Importer> mBeforeImporters = new ArrayList<Importer>();
   private final List<Importer> mAfterImporters = new ArrayList<Importer>();
   DbOpenHelperBuilder mDbOpenHelperBuilder;
@@ -82,83 +80,11 @@ public class DatabaseSpec {
    */
   public void match(Class<?>... classes) {
     for (Class<?> theClass : classes) {
-      if (!mSqliteList.contains(theClass)) {
-        mSqliteList.add(theClass);
+      DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass);
+      if (!mDataObjects.contains(dataObject)) {
+        mDataObjects.add(dataObject);
       }
     }
-  }
-
-  /**
-   * Use this to register many-to-many relationships. You shall no pass repeated relations
-   * (including those that has the same classes but in different order). Classes in the relation
-   * will be passed to the {@link DatabaseSpec#match(Class[])} method, which means that, by default,
-   * they will be treated as tables with an autoincrement primary key; if you want to avoid this
-   * behavior, use the {@link PrimaryKey} annotation and customize your primary key.
-   *
-   * @param manyToMany an instance containing the many-to-many relation
-   */
-  public void match(ManyToMany manyToMany) {
-    // make sure there are no inverted many-to-many relations
-    for (ManyToMany mtm : mManyToManyList) {
-      if ((mtm.getFirstRelation() == manyToMany.getSecondRelation() && mtm
-          .getSecondRelation() == manyToMany.getFirstRelation()) || (mtm
-          .getFirstRelation() == manyToMany.getFirstRelation() && mtm
-          .getSecondRelation() == manyToMany.getSecondRelation())) {
-        throw new IllegalStateException(StrUtil.concat("Error adding ", manyToMany,
-            ": there should not be two many-to-many relations with the same classes."));
-      }
-    }
-    match(manyToMany.getFirstRelation(), manyToMany.getSecondRelation());
-    if (!mManyToManyList.contains(manyToMany)) {
-      mManyToManyList.add(manyToMany);
-    }
-  }
-
-  /**
-   * Returns the relationship of the specified classes
-   *
-   * @param theClass        a class
-   * @param collectionClass another class
-   * @return the type of relationship between two classes
-   */
-  Relationship getRelationship(Class<?> theClass, Class<?> collectionClass) {
-    for (ManyToMany manyToMany : mManyToManyList) {
-      if ((manyToMany.getFirstRelation() == theClass && manyToMany
-          .getSecondRelation() == collectionClass) || (manyToMany
-          .getSecondRelation() == theClass && manyToMany.getFirstRelation() == collectionClass)) {
-        return Relationship.MANY_TO_MANY;
-      }
-    }
-    return Relationship.UNKNOWN;
-  }
-
-  /**
-   * Returns a relationship of the specified class.
-   *
-   * @param theClass a class
-   * @return the type of relationship between this class and any other
-   */
-  Relationship getRelationship(Class<?> theClass) {
-    for (ManyToMany manyToMany : mManyToManyList) {
-      if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
-        return Relationship.MANY_TO_MANY;
-      }
-    }
-    return Relationship.UNKNOWN;
-  }
-
-  /**
-   * @param theClass the table to search for
-   * @return a list with the many-to-many relations of this table
-   */
-  List<ManyToMany> getManyToMany(Class<?> theClass) {
-    List<ManyToMany> manyToManyList = new ArrayList<ManyToMany>();
-    for (ManyToMany manyToMany : mManyToManyList) {
-      if (manyToMany.getFirstRelation() == theClass || manyToMany.getSecondRelation() == theClass) {
-        manyToManyList.add(manyToMany);
-      }
-    }
-    return manyToManyList;
   }
 
   /**
@@ -239,14 +165,8 @@ public class DatabaseSpec {
     return mBeforeImporters;
   }
 
-  enum Relationship {MANY_TO_MANY, UNKNOWN}
-
-  List<Class<?>> getSqliteClasses() {
-    return mSqliteList;
-  }
-
-  List<ManyToMany> getSqliteManyToMany() {
-    return mManyToManyList;
+  List<DataObject<?>> getDataObjects() {
+    return mDataObjects;
   }
 
   @Override
@@ -257,16 +177,14 @@ public class DatabaseSpec {
     DatabaseSpec that = (DatabaseSpec) o;
 
     if (mVersion != that.mVersion) return false;
-    if (!mManyToManyList.equals(that.mManyToManyList)) return false;
-    if (!mSqliteList.equals(that.mSqliteList)) return false;
+    if (!mDataObjects.equals(that.mDataObjects)) return false;
 
     return true;
   }
 
   @Override
   public int hashCode() {
-    int result = mSqliteList.hashCode();
-    result = 31 * result + (mManyToManyList.hashCode());
+    int result = mDataObjects.hashCode();
     result = 31 * result + mVersion;
     return result;
   }
@@ -274,8 +192,7 @@ public class DatabaseSpec {
   @Override
   public String toString() {
     return "DatabaseSpec{" +
-        "mSqliteList=" + mSqliteList +
-        ", mManyToManyList=" + mManyToManyList +
+        "mSqliteList=" + mDataObjects +
         ", mVersion=" + mVersion +
         ", mBeforeImporters=" + mBeforeImporters +
         ", mAfterImporters=" + mAfterImporters +

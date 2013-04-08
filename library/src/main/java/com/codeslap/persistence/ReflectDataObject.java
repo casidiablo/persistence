@@ -19,9 +19,7 @@ package com.codeslap.persistence;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * Data object that gets object information using reflection.
@@ -35,13 +33,24 @@ public class ReflectDataObject implements DataObject<Object> {
   private final boolean hasAutoincrement;
   private final String tableName;
   private final Collection<HasManySpec> hasManyList = new ArrayList<HasManySpec>();
+  private final Collection<ManyToManySpec> manyToManyList = new ArrayList<ManyToManySpec>();
   private final Class<?> belongsTo;
+  private final String primaryKeyName;
 
   public ReflectDataObject(Class<?> type) {
+    this(type, new TreeSet<Class<?>>(new Comparator<Class<?>>() {
+      @Override public int compare(Class<?> foo, Class<?> bar) {
+        return foo.getSimpleName().compareToIgnoreCase(bar.getSimpleName());
+      }
+    }));
+  }
+
+  ReflectDataObject(Class<?> type, Set<Class<?>> graph) {
     objectType = type;
     fields = new ArrayList<Field>();
 
-    boolean autoincrement = true;
+    PrimaryKey primaryKey = null;
+    String primaryKeyName = null;
     for (Field field : objectType.getDeclaredFields()) {
       field.setAccessible(true);
       if (!field.isAnnotationPresent(Ignore.class) &&
@@ -50,19 +59,19 @@ public class ReflectDataObject implements DataObject<Object> {
         fields.add(field);
       }
 
-      PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
-      if (primaryKey != null) {
-        if (field.getType() == String.class ||
-            field.getType() == Boolean.class || field.getType() == boolean.class ||
-            field.getType() == Float.class || field.getType() == float.class ||
-            field.getType() == Double.class || field.getType() == double.class) {
-          autoincrement = false;
-        } else {
-          autoincrement = primaryKey.autoincrement();
+      PrimaryKey pk = primaryKey == null ? field.getAnnotation(PrimaryKey.class) : null;
+      Class<?> fieldType = field.getType();
+      if (pk != null) {
+        if (pk.autoincrement() && fieldType != long.class && fieldType != Long.class &&
+            fieldType != int.class && fieldType != Integer.class) {
+          throw new RuntimeException(
+              "Only long and int can be used with autoincrement = true: " + objectType.getSimpleName());
         }
+        primaryKey = pk;
+        primaryKeyName = field.getName();
       }
 
-      if (field.getType() == List.class) {
+      if (fieldType == List.class) {
         HasMany hasMany = field.getAnnotation(HasMany.class);
         if (hasMany != null) {
           ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
@@ -86,20 +95,55 @@ public class ReflectDataObject implements DataObject<Object> {
                     .getSimpleName() + " and viceversa");
           }
 
-          String through = hasMany.through();
-          if (HasMany.NULL.equals(through)) {
-            through = SQLHelper.getPrimaryKey(objectType);
-          }
-          HasManySpec hasManySpec = new HasManySpec(objectType, collectionClass, through, field);
+          HasManySpec hasManySpec = new HasManySpec(objectType, field);
           hasManyList.add(hasManySpec);
+        }
+
+        ManyToMany manyToMany = field.getAnnotation(ManyToMany.class);
+        if (manyToMany != null && !graph.contains(objectType)) {
+          ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+          Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+
+          boolean relationExists = false;
+          ManyToMany manyToManyColl;
+          for (Field collField : collectionClass.getDeclaredFields()) {
+            manyToManyColl = collField.getAnnotation(ManyToMany.class);
+            if (manyToManyColl != null && collField.getType() == List.class) {
+              ParameterizedType parameterizedTypeColl = (ParameterizedType) collField
+                  .getGenericType();
+              Class<?> selfClass = (Class<?>) parameterizedTypeColl.getActualTypeArguments()[0];
+              if (selfClass == objectType) {
+                relationExists = true;
+                break;
+              }
+            }
+          }
+
+          if (!relationExists) {
+            throw new IllegalStateException(
+                "When defining a ManyToMany relation both classes must use the ManyToMany annotation");
+          }
+
+          if (graph.add(objectType)) {
+            ReflectDataObject collDataObject = new ReflectDataObject(collectionClass, graph);
+            ManyToManySpec manyToManySpec = new ManyToManySpec(this, field,
+                collDataObject);
+            manyToManyList.add(manyToManySpec);
+          }
         }
       }
     }
 
+    if (primaryKey == null) {
+      throw new IllegalArgumentException(
+          "Primay keys are mandatory: " + objectType.getSimpleName());
+    }
+    this.primaryKeyName = primaryKeyName;
+
     Belongs annotation = objectType.getAnnotation(Belongs.class);
     belongsTo = annotation != null ? annotation.to() : null;
 
-    hasAutoincrement = autoincrement && !PersistenceConfig.isNotAutoincrement(objectType);
+    hasAutoincrement = primaryKey.autoincrement();
     tableName = SQLHelper.getTableName(objectType);
   }
 
@@ -120,6 +164,10 @@ public class ReflectDataObject implements DataObject<Object> {
     return hasManyList;
   }
 
+  @Override public Collection<ManyToManySpec> manyToMany() {
+    return manyToManyList;
+  }
+
   @Override public HasManySpec hasMany(Class<?> theClass) {
     for (HasManySpec hasManySpec : hasManyList) {
       if (hasManySpec.contained == theClass) {
@@ -132,6 +180,18 @@ public class ReflectDataObject implements DataObject<Object> {
 
   @Override public Class<?> belongsTo() {
     return belongsTo;
+  }
+
+  @Override public Class<?> getObjectClass() {
+    return objectType;
+  }
+
+  @Override public String getTableName() {
+    return tableName;
+  }
+
+  @Override public String getPrimaryKeyFieldName() {
+    return primaryKeyName;
   }
 
   @Override public String getCreateTableSentence() {
@@ -164,7 +224,7 @@ public class ReflectDataObject implements DataObject<Object> {
         // add a new field to the table creation statement to create the relation
         // TODO is it really necessary to mark this field as "not null"?
         createTable
-            .add(hasManySpec.getThroughColumnName(), getTypeFrom(hasManySpec.fieldThrough), false);
+            .add(hasManySpec.getThroughColumnName(), getTypeFrom(hasManySpec.throughField), false);
         break;
       }
     }

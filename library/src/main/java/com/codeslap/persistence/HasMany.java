@@ -27,11 +27,4 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
 public @interface HasMany {
-  /**
-   *
-   */
-  String NULL = "";
-
-  /** Name of the field in the container class used to create the relation. */
-  String through() default NULL;
 }

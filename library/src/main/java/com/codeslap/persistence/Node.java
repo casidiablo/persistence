@@ -21,6 +21,7 @@ import java.util.List;
 
 /**
  * Nodes used to create a non-cyclic hierarchy of classes.
+ * // TODO bdmtssss
  */
 class Node {
   private final Class<?> mContent;
@@ -99,7 +100,7 @@ class Node {
 
     Node node = (Node) o;
 
-    if (mContent == null || node == null) {
+    if (mContent == null) {
       return false;
     }
 

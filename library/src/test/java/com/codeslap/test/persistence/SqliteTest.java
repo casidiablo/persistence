@@ -43,10 +43,7 @@ public abstract class SqliteTest {
     assertEquals(mDatabaseSpec, PersistenceConfig.getDatabaseSpec());
     mDatabaseSpec.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,
         AnnotationNotAutoincrement.class, StringAsPrimaryKey.class, PolyTheist.class, God.class,
-        ExampleNotAutoincrement.class);
-    mDatabaseSpec.match(new ManyToMany(Author.class, "id", Book.class, "id"));
-    mDatabaseSpec.match(new ManyToMany(Pet.class, Owner.class));
-    PersistenceConfig.notAutoIncrement(ExampleNotAutoincrement.class);
+        ExampleNotAutoincrement.class, Author.class, Book.class, Pet.class, Owner.class);
 
     mAdapter = Persistence.getAdapter(new Activity());
     mAdapter.truncate(ExampleAutoincrement.class, ExampleNotAutoincrement.class,
@@ -59,7 +56,7 @@ public abstract class SqliteTest {
   }
 
   @Table("automatic") public static class ExampleAutoincrement {
-    long id;
+    @PrimaryKey long id;
     String name;
     int number;
     float decimal;
@@ -105,7 +102,7 @@ public abstract class SqliteTest {
   }
 
   public static class StringAsPrimaryKey {
-    @PrimaryKey String primaryKey;
+    @PrimaryKey(autoincrement = false) String primaryKey;
     String foo;
 
     @Override public boolean equals(Object o) {
@@ -226,7 +223,7 @@ public abstract class SqliteTest {
   }
 
   public static class ExampleNotAutoincrement {
-    long id;
+    @PrimaryKey(autoincrement = false) long id;
     String name;
     int number;
     float decimal;
@@ -268,7 +265,7 @@ public abstract class SqliteTest {
   }
 
   public static class PolyTheist {
-    long id;
+    @PrimaryKey long id;
     @HasMany List<God> gods;
 
     @Override public boolean equals(Object o) {
@@ -298,7 +295,7 @@ public abstract class SqliteTest {
 
   @Belongs(to = PolyTheist.class)
   public static class God {
-    long id;
+    @PrimaryKey long id;
     String name;
     double power;
 
@@ -335,9 +332,9 @@ public abstract class SqliteTest {
   }
 
   public static class Owner {
-    long id;
+    @PrimaryKey long id;
     @Column("full_name") String name;
-    List<Pet> pets;
+    @ManyToMany("id") List<Pet> pets;
 
     @Override
     public boolean equals(Object o) {
@@ -372,7 +369,7 @@ public abstract class SqliteTest {
   public static class Pet {
     @PrimaryKey long petId;
     @Column("nickname") String nick;
-    List<Owner> owners;
+    @ManyToMany("petId") List<Owner> owners;
 
     @Override
     public boolean equals(Object o) {
@@ -405,9 +402,9 @@ public abstract class SqliteTest {
   }
 
   public static class Book {
-    long id;
+    @PrimaryKey long id;
     String name;
-    List<Author> authors;
+    @ManyToMany("id") List<Author> authors;
 
     @Override
     public boolean equals(Object o) {
@@ -451,9 +448,9 @@ public abstract class SqliteTest {
   }
 
   public static class Author {
+    @PrimaryKey long id;
     String name;
-    List<Book> books;
-    long id;
+    @ManyToMany("id") List<Book> books;
 
     @Override
     public boolean equals(Object o) {

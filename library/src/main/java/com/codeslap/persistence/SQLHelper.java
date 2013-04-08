@@ -106,7 +106,7 @@ public class SQLHelper {
 
     // if there is an attachment
     if (parent != null) {
-      DataObject.HasManySpec hasManySpec = getHasManySpec(theClass, parent);
+      HasManySpec hasManySpec = getHasManySpec(theClass, parent);
       Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
       if (foreignValue != null) {
         if (args == null) {
@@ -121,7 +121,7 @@ public class SQLHelper {
     return join(conditions, " AND ");
   }
 
-  private static <Parent> DataObject.HasManySpec getHasManySpec(Class<?> theClass, Parent parent) {
+  private static <Parent> HasManySpec getHasManySpec(Class<?> theClass, Parent parent) {
     Class<Parent> containerClass = (Class<Parent>) getDataObject(theClass).belongsTo();
     if (containerClass != parent.getClass()) {
       throw new IllegalArgumentException(
@@ -328,7 +328,7 @@ public class SQLHelper {
       }
     }
     if (parent != null) {
-      DataObject.HasManySpec hasManySpec = getHasManySpec(theClass, parent);
+      HasManySpec hasManySpec = getHasManySpec(theClass, parent);
       Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
       if (columns != null) {
         columns.add(hasManySpec.getThroughColumnName());
@@ -345,15 +345,16 @@ public class SQLHelper {
   }
 
   private static <Parent> Object getRelationValueFromParent(Parent parent,
-                                                            DataObject.HasManySpec hasManySpec) {
+                                                            HasManySpec hasManySpec) {
     Object foreignValue = null;
     try {
-      foreignValue = hasManySpec.fieldThrough.get(parent);
+      foreignValue = hasManySpec.throughField.get(parent);
     } catch (Exception ignored) {
     }
     return foreignValue;
   }
 
+  // TODO reduce use of this method
   public static String getTableName(Class<?> theClass) {
     if (TABLE_NAMES_CACHE.containsKey(theClass)) {
       return TABLE_NAMES_CACHE.get(theClass);

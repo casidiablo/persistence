@@ -54,10 +54,10 @@ public abstract class BaseContentProvider extends ContentProvider {
     sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     // get the list of registered classes and add them to the matcher
-    List<Class<?>> objects = mDatabaseSpec.getSqliteClasses();
     int id = 1;
-    for (Class<?> theClass : objects) {
-      String tableName = SQLHelper.getTableName(theClass);
+    List<DataObject<?>> dataObjects = mDatabaseSpec.getDataObjects();
+    for (DataObject<?> dataObject : dataObjects) {
+      String tableName = dataObject.getTableName();
       TABLE_NAME_IDS.put(id, tableName);
       sUriMatcher.addURI(getAuthority(), tableName, id);
       id++;
