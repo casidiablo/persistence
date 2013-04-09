@@ -29,15 +29,6 @@ public class ReflectHelper {
   private static final Map<Field, String> COLUMN_NAMES_CACHE = new HashMap<Field, String>();
 
   /**
-   * @param theClass the class to inspect
-   * @return the primary key column name
-   */
-  public static String getPrimaryKeyColumnName(Class<?> theClass) {
-    Field collectionId = SQLHelper.getPrimaryKeyField(theClass);
-    return getIdColumn(collectionId);
-  }
-
-  /**
    * @param field field to get the column name from
    * @return gets the column name version of the specified field
    */

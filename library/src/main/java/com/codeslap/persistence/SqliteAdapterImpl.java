@@ -21,8 +21,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 import static com.codeslap.persistence.DataObjectFactory.getDataObject;
@@ -439,11 +437,12 @@ public class SqliteAdapterImpl implements SqlAdapter {
     return findAllFromCursor(type, query);
   }
 
-  private <T> List<T> findAllFromCursor(Class<T> clazz, Cursor query) {
+  private <T> List<T> findAllFromCursor(Class<T> type, Cursor query) {
     List<T> beans = new ArrayList<T>();
     if (query.moveToFirst()) {
+      DataObject<T> dataObject = getDataObject(type);
       do {
-        T bean = getBeanFromCursor(clazz, query, classesTree(clazz));
+        T bean = dataObject.getBeanFromCursor(query, classesTree(type), mDbHelper);
         beans.add(bean);
       } while (query.moveToNext());
     }
@@ -475,16 +474,10 @@ public class SqliteAdapterImpl implements SqlAdapter {
     Class<T> theClass = (Class<T>) bean.getClass();
     DataObject<T> dataObject = getDataObject(theClass);
     // get its ID and make sure primary key is not null
-    Field theId = SQLHelper.getPrimaryKeyField(theClass);
     String pkFieldName = dataObject.getPrimaryKeyFieldName();
-    if (theId.getType() == String.class ||
-        theId.getType() == Float.class ||
-        theId.getType() == Double.class) {
-      Object idValue = dataObject.get(pkFieldName, bean);
-      if (idValue == null) {
-        throw new IllegalStateException(
-            "You cannot insert an object whose primary key is null and it is not int or long");
-      }
+    if (!dataObject.hasAutoincrement() && !dataObject.hasData(pkFieldName, bean)) {
+      throw new IllegalStateException(
+          "You cannot insert an object whose primary key is null and it is not autoincrementable");
     }
 
     String result = null;
@@ -639,169 +632,12 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   private <T> T findFirstFromCursor(Class<T> clazz, Cursor query) {
     if (query.moveToFirst()) {
-      T bean = getBeanFromCursor(clazz, query, classesTree(clazz));
+      T bean = getDataObject(clazz).getBeanFromCursor(query, classesTree(clazz), mDbHelper);
       query.close();
       return bean;
     }
     query.close();
     return null;
-  }
-
-  private <T> T getBeanFromCursor(Class<T> theClass, Cursor query, Set tree) {
-    T bean;
-    DataObject<T> dataObject = getDataObject(theClass);
-    try {
-      bean = dataObject.newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(
-          "Could not initialize object of type " + theClass + ", " + e.getMessage());
-    }
-
-    // get each field and put its value in a content values object
-    Field[] fields = SQLHelper.getDeclaredFields(theClass);
-    for (Field field : fields) {
-      // get the column index
-      String normalize = ReflectHelper.getColumnName(field);
-      int columnIndex = query.getColumnIndex(normalize);
-      // get an object value depending on the type
-      Class type = field.getType();
-      Object value = null;
-      if (columnIndex == -1 && type == List.class) {
-        ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
-        Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
-        if (tree.add(collectionClass)) {
-          value = processInnerCollection(query, tree, dataObject, getDataObject(collectionClass));
-        }
-      } else {// do not process collections here
-        value = getValueFromCursor(type, ReflectHelper.getColumnName(field), query);
-      }
-      try {
-        if (value != null) {
-          field.setAccessible(true);
-          field.set(bean, value);
-        }
-      } catch (Exception e) {
-        throw new RuntimeException(
-            concat("An error occurred setting value to ", field, ", ", value, ": ",
-                e.getMessage()));
-      }
-    }
-    return bean;
-  }
-
-  private <Parent, Child> Object processInnerCollection(Cursor query, Set tree, DataObject<Parent> dataObject,
-                                                        DataObject<Child> collectionDataObject) {
-    Object value = getListFromHasMany(query, tree, dataObject, collectionDataObject);
-    if (value != null) {
-      return value;
-    }
-    return getListFromManyToMany(query, tree, dataObject, collectionDataObject);
-  }
-
-  private <Parent, Child> Object getListFromHasMany(Cursor query, Set tree, DataObject<Parent> dataObject,
-                                                    DataObject<Child> collectionDataObject) {
-    Class<Parent> theClass = dataObject.getObjectClass();
-    Class<?> belongsTo = collectionDataObject.belongsTo();
-    if (belongsTo != theClass) {
-      return null;
-    }
-    Class<Child> collectionClass = collectionDataObject.getObjectClass();
-    for (HasManySpec hasManySpec : dataObject.hasMany()) {
-      if (hasManySpec.contained != collectionClass) {
-        continue;
-      }
-      // build a query that uses the joining table and the joined object
-      Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
-          ReflectHelper.getIdColumn(SQLHelper.getPrimaryKeyField(theClass)) /* this is not like this all the time*/,
-          query);
-      if (foreignValue != null) {
-        String sql = new StringBuilder().append("SELECT * FROM ")
-            .append(collectionDataObject.getTableName()).append(" WHERE ")
-            .append(hasManySpec.getThroughColumnName()).append(" = '")
-            .append(foreignValue).append(SQLHelper.QUOTE).toString();
-        // execute the query and set the result to the current field
-        Cursor join = mDbHelper.getDatabase().rawQuery(sql, null);
-        List listValue = new ArrayList();
-        if (join.moveToFirst()) {
-          do {
-            Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
-            listValue.add(beanFromCursor);
-          } while (join.moveToNext());
-        }
-        join.close();
-        return listValue;
-      }
-    }
-    return null;
-  }
-
-  private <T> Object getListFromManyToMany(Cursor query, Set tree, DataObject<? extends T> dataObject, DataObject<? extends T> collectionDataObject) {
-    Class<?> collectionClass = collectionDataObject.getObjectClass();
-    boolean manyToMany = false;
-    ManyToManySpec currentManyToMany = null;
-    for (ManyToManySpec manyToManySpec : dataObject.manyToMany()) {
-      currentManyToMany = manyToManySpec;
-      if (currentManyToMany.getFirstRelation()
-          .getObjectClass() == collectionClass || currentManyToMany.getSecondRelation()
-          .getObjectClass() == collectionClass) {
-        manyToMany = true;
-        break;
-      }
-    }
-
-    if (!manyToMany) {
-      return null;
-    }
-
-    Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
-    getDataObject(collectionClass);
-    // build a query that uses the joining table and the joined object
-    String sql = new StringBuilder().append("SELECT * FROM ")
-        .append(collectionDataObject.getTableName()).append(" WHERE ")
-        .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
-        .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
-        .append(currentManyToMany.getTableName()).append(" WHERE ")
-        .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
-    // execute the query
-    String[] selectionArgs = new String[1];
-    long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
-    selectionArgs[0] = String.valueOf(id);
-    Cursor join = mDbHelper.getDatabase().rawQuery(sql, selectionArgs);
-    // build a list based on the cursor result
-    List listValue = new ArrayList();
-    if (join.moveToFirst()) {
-      do {
-        Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
-        listValue.add(beanFromCursor);
-      } while (join.moveToNext());
-    }
-    join.close();
-    return listValue;
-  }
-
-  private Object getValueFromCursor(Class<?> type, String name, Cursor query) {
-    try {
-      // get the column index
-      int columnIndex = query.getColumnIndex(name);
-      // get an object value depending on the type
-      Object value = null;
-      if (type == int.class || type == Integer.class) {
-        value = query.getInt(columnIndex);
-      } else if (type == long.class || type == Long.class) {
-        value = query.getLong(columnIndex);
-      } else if (type == boolean.class || type == Boolean.class) {
-        value = query.getInt(columnIndex) == 1;
-      } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
-        value = query.getFloat(columnIndex);
-      } else if (type == String.class) {
-        value = query.getString(columnIndex);
-      } else if (type == byte[].class || type == Byte[].class) {
-        value = query.getBlob(columnIndex);
-      }
-      return value;
-    } catch (Exception e) {
-      throw new IllegalStateException("Error getting column " + name, e);
-    }
   }
 
   static Comparator<Class<?>> CLASS_COMPARATOR = new Comparator<Class<?>>() {

@@ -16,6 +16,7 @@
 
 package com.codeslap.persistence;
 
+import android.database.Cursor;
 import android.text.TextUtils;
 
 import java.lang.reflect.Field;
@@ -23,6 +24,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
+import static com.codeslap.persistence.DataObjectFactory.getDataObject;
 import static com.codeslap.persistence.StrUtil.concat;
 
 /**
@@ -148,7 +150,8 @@ public class ReflectDataObject implements DataObject<Object> {
     tableName = getTableName(objectType);
   }
 
-  @Override public Object newInstance() {
+  @Override
+  public Object newInstance() {
     try {
       return objectType.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
@@ -157,19 +160,23 @@ public class ReflectDataObject implements DataObject<Object> {
     return null;
   }
 
-  @Override public boolean hasAutoincrement() {
+  @Override
+  public boolean hasAutoincrement() {
     return hasAutoincrement;
   }
 
-  @Override public Collection<HasManySpec> hasMany() {
+  @Override
+  public Collection<HasManySpec> hasMany() {
     return hasManyList;
   }
 
-  @Override public Collection<ManyToManySpec> manyToMany() {
+  @Override
+  public Collection<ManyToManySpec> manyToMany() {
     return manyToManyList;
   }
 
-  @Override public HasManySpec hasMany(Class<?> theClass) {
+  @Override
+  public HasManySpec hasMany(Class<?> theClass) {
     for (HasManySpec hasManySpec : hasManyList) {
       if (hasManySpec.contained == theClass) {
         return hasManySpec;
@@ -179,23 +186,28 @@ public class ReflectDataObject implements DataObject<Object> {
         "Cannot find has-many relation between " + objectType + "and" + theClass);
   }
 
-  @Override public Class<?> belongsTo() {
+  @Override
+  public Class<?> belongsTo() {
     return belongsTo;
   }
 
-  @Override public Class getObjectClass() {
+  @Override
+  public Class getObjectClass() {
     return objectType;
   }
 
-  @Override public String getTableName() {
+  @Override
+  public String getTableName() {
     return tableName;
   }
 
-  @Override public String getPrimaryKeyFieldName() {
+  @Override
+  public String getPrimaryKeyFieldName() {
     return primaryKeyName;
   }
 
-  @Override public boolean set(String fieldName, Object target, Object value) {
+  @Override
+  public boolean set(String fieldName, Object target, Object value) {
     if (!fields.containsKey(fieldName)) {
       throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
     }
@@ -207,7 +219,8 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  @Override public Object get(String fieldName, Object target) {
+  @Override
+  public Object get(String fieldName, Object target) {
     if (!fields.containsKey(fieldName)) {
       throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
     }
@@ -218,7 +231,8 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  @Override public boolean hasData(String fieldName, Object bean) {
+  @Override
+  public boolean hasData(String fieldName, Object bean) {
     Object value = get(fieldName, bean);
     Class<?> type = fields.get(fieldName).getType();
     if (type == long.class || type == Long.class) {
@@ -248,7 +262,8 @@ public class ReflectDataObject implements DataObject<Object> {
     return value != null;
   }
 
-  @Override public String getCreateTableSentence() {
+  @Override
+  public String getCreateTableSentence() {
     CreateTableHelper createTable = CreateTableHelper.init(tableName);
     for (Field field : fields.values()) {
       String columnName = ReflectHelper.getColumnName(field);
@@ -284,6 +299,164 @@ public class ReflectDataObject implements DataObject<Object> {
     }
 
     return createTable.build();
+  }
+
+  @Override
+  public Object getBeanFromCursor(Cursor query, Set<Class<?>> tree, SqliteDb dbHelper) {
+    Object bean;
+    try {
+      bean = newInstance();
+    } catch (Exception e) {
+      throw new RuntimeException(
+          "Could not initialize object of type " + objectType + ", " + e.getMessage());
+    }
+
+    // get each field and put its value in a content values object
+    for (Field field : fields.values()) {
+      // get the column index
+      String normalize = ReflectHelper.getColumnName(field);
+      int columnIndex = query.getColumnIndex(normalize);
+      // get an object value depending on the type
+      Class type = field.getType();
+      Object value = null;
+      if (columnIndex == -1 && type == List.class) {
+        ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
+        Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+        if (tree.add(collectionClass)) {
+          value = processInnerCollection(query, tree, getDataObject(collectionClass), dbHelper);
+        }
+      } else {// do not process collections here
+        value = getValueFromCursor(type, ReflectHelper.getColumnName(field), query);
+      }
+      try {
+        if (value != null) {
+          field.setAccessible(true);
+          field.set(bean, value);
+        }
+      } catch (Exception e) {
+        throw new RuntimeException(
+            concat("An error occurred setting value to ", field, ", ", value, ": ",
+                e.getMessage()));
+      }
+    }
+    return bean;
+  }
+
+  private <Child> List<Child> processInnerCollection(Cursor query, Set<Class<?>> tree,
+                                                     DataObject<Child> collectionDataObject,
+                                                     SqliteDb dbHelper) {
+    List<Child> value = getListFromHasMany(query, tree, collectionDataObject, dbHelper);
+    if (value != null) {
+      return value;
+    }
+    return getListFromManyToMany(query, tree, collectionDataObject, dbHelper);
+  }
+
+  private <Child> List<Child> getListFromHasMany(Cursor query, Set<Class<?>> tree,
+                                                 DataObject<Child> collectionDataObject, SqliteDb dbHelper) {
+    Class<?> belongsTo = collectionDataObject.belongsTo();
+    if (belongsTo != objectType) {
+      return null;
+    }
+    Class<Child> collectionClass = collectionDataObject.getObjectClass();
+    for (HasManySpec hasManySpec : hasMany()) {
+      if (hasManySpec.contained != collectionClass) {
+        continue;
+      }
+      // build a query that uses the joining table and the joined object
+      Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
+          ReflectHelper.getIdColumn(SQLHelper.getPrimaryKeyField(objectType)) /* this is not like this all the time*/,
+          query);
+      if (foreignValue != null) {
+        String sql = new StringBuilder().append("SELECT * FROM ")
+            .append(collectionDataObject.getTableName()).append(" WHERE ")
+            .append(hasManySpec.getThroughColumnName()).append(" = '")
+            .append(foreignValue).append(SQLHelper.QUOTE).toString();
+        // execute the query and set the result to the current field
+        Cursor join = dbHelper.getDatabase().rawQuery(sql, null);
+        List<Child> listValue = new ArrayList<Child>();
+        if (join.moveToFirst()) {
+          do {
+            Child beanFromCursor = collectionDataObject.getBeanFromCursor(join, tree, dbHelper);
+            listValue.add(beanFromCursor);
+          } while (join.moveToNext());
+        }
+        join.close();
+        return listValue;
+      }
+    }
+    return null;
+  }
+
+  private <Child> List<Child> getListFromManyToMany(Cursor query, Set tree, DataObject<Child> collectionDataObject,
+                                                    SqliteDb dbHelper) {
+    Class<?> collectionClass = collectionDataObject.getObjectClass();
+    boolean manyToMany = false;
+    ManyToManySpec currentManyToMany = null;
+    for (ManyToManySpec manyToManySpec : manyToMany()) {
+      currentManyToMany = manyToManySpec;
+      if (currentManyToMany.getFirstRelation()
+          .getObjectClass() == collectionClass || currentManyToMany.getSecondRelation()
+          .getObjectClass() == collectionClass) {
+        manyToMany = true;
+        break;
+      }
+    }
+
+    if (!manyToMany) {
+      return null;
+    }
+
+// TODO avoid using this method
+    Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
+//    ReflectHelper.getIdColumn(field)
+    // build a query that uses the joining table and the joined object
+    String sql = new StringBuilder().append("SELECT * FROM ")
+        .append(collectionDataObject.getTableName()).append(" WHERE ")
+        .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
+        .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
+        .append(currentManyToMany.getTableName()).append(" WHERE ")
+        .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
+    // execute the query
+    String[] selectionArgs = new String[1];
+    long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
+    selectionArgs[0] = String.valueOf(id);
+    Cursor join = dbHelper.getDatabase().rawQuery(sql, selectionArgs);
+    // build a list based on the cursor result
+    List<Child> listValue = new ArrayList<Child>();
+    if (join.moveToFirst()) {
+      do {
+        Child beanFromCursor = collectionDataObject.getBeanFromCursor(join, tree, dbHelper);
+        listValue.add(beanFromCursor);
+      } while (join.moveToNext());
+    }
+    join.close();
+    return listValue;
+  }
+
+  private Object getValueFromCursor(Class<?> type, String name, Cursor query) {
+    try {
+      // get the column index
+      int columnIndex = query.getColumnIndex(name);
+      // get an object value depending on the type
+      Object value = null;
+      if (type == int.class || type == Integer.class) {
+        value = query.getInt(columnIndex);
+      } else if (type == long.class || type == Long.class) {
+        value = query.getLong(columnIndex);
+      } else if (type == boolean.class || type == Boolean.class) {
+        value = query.getInt(columnIndex) == 1;
+      } else if (type == float.class || type == Float.class || type == double.class || type == Double.class) {
+        value = query.getFloat(columnIndex);
+      } else if (type == String.class) {
+        value = query.getString(columnIndex);
+      } else if (type == byte[].class || type == Byte[].class) {
+        value = query.getBlob(columnIndex);
+      }
+      return value;
+    } catch (Exception e) {
+      throw new IllegalStateException("Error getting column " + name, e);
+    }
   }
 
   private static CreateTableHelper.Type getTypeFrom(Field field) {
