@@ -17,6 +17,7 @@
 package com.codeslap.persistence;
 
 import android.text.TextUtils;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -182,7 +183,7 @@ public class ReflectDataObject implements DataObject<Object> {
     return belongsTo;
   }
 
-  @Override public Class<?> getObjectClass() {
+  @Override public Class getObjectClass() {
     return objectType;
   }
 

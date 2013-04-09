@@ -38,7 +38,7 @@ public interface DataObject<T> {
 
   Class<?> belongsTo();
 
-  Class<?> getObjectClass();
+  Class<T> getObjectClass();
 
   String getTableName();
 

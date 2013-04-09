@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -266,7 +267,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     int count = count(bean.getClass(), where, whereArgs);
     if (whereArgs != null) {
       for (String arg : whereArgs) {
-        where = where.replaceFirst("\\?", concat("'", arg, "'"));
+        where = where.replaceFirst("\\?", concat(SQLHelper.QUOTE, arg, SQLHelper.QUOTE));
       }
     }
     String sqlStatement = SQLHelper.buildUpdateStatement(bean, where);
@@ -308,7 +309,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         for (HasManySpec hasManySpec : hasManySpecs) {
           Object objectId = dataObject.get(pkFieldName, object);
           String whereForeign = concat(hasManySpec.getThroughColumnName(), " = '",
-              String.valueOf(objectId), "'");
+              String.valueOf(objectId), SQLHelper.QUOTE);
           delete(hasManySpec.contained, whereForeign, null);
         }
       }
@@ -330,7 +331,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       List<T> toRemove = findAll(theClass, where, whereArgs);
       for (T object : toRemove) {
         Object objectId = dataObject.get(pkFieldName, object);
-        String whereForeign = concat(foreignKey, " = '", String.valueOf(objectId), "'");
+        String whereForeign = concat(foreignKey, " = '", String.valueOf(objectId), SQLHelper.QUOTE);
 
         List<String> ids = new ArrayList<String>();
         if (onCascade) {
@@ -348,7 +349,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         mDbHelper.getDatabase().delete(manyToMany.getTableName(), whereForeign, null);
 
         for (String id : ids) {
-          String whereRest = concat(foreignCurrentKey, " = '", id, "'");
+          String whereRest = concat(foreignCurrentKey, " = '", id, SQLHelper.QUOTE);
           Cursor cursorRest = mDbHelper.getDatabase()
               .query(manyToMany.getTableName(), null, whereRest, null, null, null, null);
           // this means there is no other relation with this object, so we can delete it on cascade :)
@@ -646,9 +647,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
     return null;
   }
 
-  private <T> T getBeanFromCursor(Class<? extends T> theClass, Cursor query, Set tree) {
+  private <T> T getBeanFromCursor(Class<T> theClass, Cursor query, Set tree) {
     T bean;
-    DataObject<? extends T> dataObject = getDataObject(theClass);
+    DataObject<T> dataObject = getDataObject(theClass);
     try {
       bean = dataObject.newInstance();
     } catch (Exception e) {
@@ -669,76 +670,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
         Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
         if (tree.add(collectionClass)) {
-          DataObject<? extends T> collectionDataObject = (DataObject<? extends T>) getDataObject(
-              collectionClass);
-          Class<?> belongsTo = collectionDataObject.belongsTo();
-          if (belongsTo == theClass) {
-            for (HasManySpec hasManySpec : dataObject.hasMany()) {
-              if (hasManySpec.contained == collectionClass) {
-                // build a query that uses the joining table and the joined object
-                Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
-                    ReflectHelper.getIdColumn(SQLHelper.getPrimaryKeyField(theClass)) /* this is not like this all the time*/,
-                    query);
-                if (foreignValue != null) {
-                  String sql = new StringBuilder().append("SELECT * FROM ")
-                      .append(collectionDataObject.getTableName()).append(" WHERE ")
-                      .append(hasManySpec.getThroughColumnName()).append(" = '")
-                      .append(foreignValue).append("'").toString();
-                  // execute the query and set the result to the current field
-                  Cursor join = mDbHelper.getDatabase().rawQuery(sql, null);
-                  List listValue = new ArrayList();
-                  if (join.moveToFirst()) {
-                    do {
-                      Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
-                      listValue.add(beanFromCursor);
-                    } while (join.moveToNext());
-                  }
-                  join.close();
-                  value = listValue;
-                }
-                break;
-              }
-            }
-          }
-
-          boolean manyToMany = false;
-          ManyToManySpec currentManyToMany = null;
-          for (ManyToManySpec manyToManySpec : dataObject.manyToMany()) {
-            currentManyToMany = manyToManySpec;
-            if (currentManyToMany.getFirstRelation()
-                .getObjectClass() == collectionClass || currentManyToMany.getSecondRelation()
-                .getObjectClass() == collectionClass) {
-              manyToMany = true;
-              break;
-            }
-          }
-
-          if (manyToMany) {
-            Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
-            getDataObject(collectionClass);
-            // build a query that uses the joining table and the joined object
-            String sql = new StringBuilder().append("SELECT * FROM ")
-                .append(collectionDataObject.getTableName()).append(" WHERE ")
-                .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
-                .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
-                .append(currentManyToMany.getTableName()).append(" WHERE ")
-                .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
-            // execute the query
-            String[] selectionArgs = new String[1];
-            long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
-            selectionArgs[0] = String.valueOf(id);
-            Cursor join = mDbHelper.getDatabase().rawQuery(sql, selectionArgs);
-            // set the result to the current field
-            List listValue = new ArrayList();
-            if (join.moveToFirst()) {
-              do {
-                Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
-                listValue.add(beanFromCursor);
-              } while (join.moveToNext());
-            }
-            join.close();
-            value = listValue;
-          }
+          value = processInnerCollection(query, tree, dataObject, getDataObject(collectionClass));
         }
       } else {// do not process collections here
         value = getValueFromCursor(type, ReflectHelper.getColumnName(field), query);
@@ -755,6 +687,96 @@ public class SqliteAdapterImpl implements SqlAdapter {
       }
     }
     return bean;
+  }
+
+  private <Parent, Child> Object processInnerCollection(Cursor query, Set tree, DataObject<Parent> dataObject,
+                                                        DataObject<Child> collectionDataObject) {
+    Object value = getListFromHasMany(query, tree, dataObject, collectionDataObject);
+    if (value != null) {
+      return value;
+    }
+    return getListFromManyToMany(query, tree, dataObject, collectionDataObject);
+  }
+
+  private <Parent, Child> Object getListFromHasMany(Cursor query, Set tree, DataObject<Parent> dataObject,
+                                                    DataObject<Child> collectionDataObject) {
+    Class<Parent> theClass = dataObject.getObjectClass();
+    Class<?> belongsTo = collectionDataObject.belongsTo();
+    if (belongsTo != theClass) {
+      return null;
+    }
+    Class<Child> collectionClass = collectionDataObject.getObjectClass();
+    for (HasManySpec hasManySpec : dataObject.hasMany()) {
+      if (hasManySpec.contained != collectionClass) {
+        continue;
+      }
+      // build a query that uses the joining table and the joined object
+      Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
+          ReflectHelper.getIdColumn(SQLHelper.getPrimaryKeyField(theClass)) /* this is not like this all the time*/,
+          query);
+      if (foreignValue != null) {
+        String sql = new StringBuilder().append("SELECT * FROM ")
+            .append(collectionDataObject.getTableName()).append(" WHERE ")
+            .append(hasManySpec.getThroughColumnName()).append(" = '")
+            .append(foreignValue).append(SQLHelper.QUOTE).toString();
+        // execute the query and set the result to the current field
+        Cursor join = mDbHelper.getDatabase().rawQuery(sql, null);
+        List listValue = new ArrayList();
+        if (join.moveToFirst()) {
+          do {
+            Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
+            listValue.add(beanFromCursor);
+          } while (join.moveToNext());
+        }
+        join.close();
+        return listValue;
+      }
+    }
+    return null;
+  }
+
+  private <T> Object getListFromManyToMany(Cursor query, Set tree, DataObject<? extends T> dataObject, DataObject<? extends T> collectionDataObject) {
+    Class<?> collectionClass = collectionDataObject.getObjectClass();
+    boolean manyToMany = false;
+    ManyToManySpec currentManyToMany = null;
+    for (ManyToManySpec manyToManySpec : dataObject.manyToMany()) {
+      currentManyToMany = manyToManySpec;
+      if (currentManyToMany.getFirstRelation()
+          .getObjectClass() == collectionClass || currentManyToMany.getSecondRelation()
+          .getObjectClass() == collectionClass) {
+        manyToMany = true;
+        break;
+      }
+    }
+
+    if (!manyToMany) {
+      return null;
+    }
+
+    Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
+    getDataObject(collectionClass);
+    // build a query that uses the joining table and the joined object
+    String sql = new StringBuilder().append("SELECT * FROM ")
+        .append(collectionDataObject.getTableName()).append(" WHERE ")
+        .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
+        .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
+        .append(currentManyToMany.getTableName()).append(" WHERE ")
+        .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
+    // execute the query
+    String[] selectionArgs = new String[1];
+    long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
+    selectionArgs[0] = String.valueOf(id);
+    Cursor join = mDbHelper.getDatabase().rawQuery(sql, selectionArgs);
+    // build a list based on the cursor result
+    List listValue = new ArrayList();
+    if (join.moveToFirst()) {
+      do {
+        Object beanFromCursor = getBeanFromCursor(collectionClass, join, tree);
+        listValue.add(beanFromCursor);
+      } while (join.moveToNext());
+    }
+    join.close();
+    return listValue;
   }
 
   private Object getValueFromCursor(Class<?> type, String name, Cursor query) {

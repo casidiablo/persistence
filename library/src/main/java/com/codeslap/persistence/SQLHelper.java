@@ -39,7 +39,7 @@ public class SQLHelper {
   private static final Map<Class<?>, Field[]> FIELDS_CACHE = new HashMap<Class<?>, Field[]>();
 
   static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
-  private static final char QUOTE = '\'';
+  static final char QUOTE = '\'';
   private static final String DOUBLE_QUOTE = "''";
 
   static Field[] getDeclaredFields(Class theClass) {
