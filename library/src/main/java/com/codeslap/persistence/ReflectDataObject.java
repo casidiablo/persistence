@@ -32,7 +32,7 @@ import static com.codeslap.persistence.StrUtil.concat;
 public class ReflectDataObject implements DataObject<Object> {
 
   private final Class<?> objectType;
-  private final List<Field> fields;
+  private final Map<String, Field> fields;
   private final boolean hasAutoincrement;
   private final String tableName;
   private final Collection<HasManySpec> hasManyList = new ArrayList<HasManySpec>();
@@ -46,17 +46,18 @@ public class ReflectDataObject implements DataObject<Object> {
 
   ReflectDataObject(Class<?> type, Set<Class<?>> graph) {
     objectType = type;
-    fields = new ArrayList<Field>();
+    fields = new HashMap<String, Field>();
 
     PrimaryKey primaryKey = null;
     String primaryKeyName = null;
     for (Field field : objectType.getDeclaredFields()) {
-      field.setAccessible(true);
-      if (!field.isAnnotationPresent(Ignore.class) &&
-          !Modifier.isStatic(field.getModifiers()) &&// ignore static fields
-          !Modifier.isFinal(field.getModifiers())) {// ignore final fields
-        fields.add(field);
+      if (field.isAnnotationPresent(Ignore.class) ||
+          Modifier.isStatic(field.getModifiers()) ||// ignore static fields
+          Modifier.isFinal(field.getModifiers())) { // ignore final fields
+        continue;
       }
+      fields.put(field.getName(), field);
+      field.setAccessible(true);
 
       PrimaryKey pk = primaryKey == null ? field.getAnnotation(PrimaryKey.class) : null;
       Class<?> fieldType = field.getType();
@@ -64,7 +65,8 @@ public class ReflectDataObject implements DataObject<Object> {
         if (pk.autoincrement() && fieldType != long.class && fieldType != Long.class &&
             fieldType != int.class && fieldType != Integer.class) {
           throw new RuntimeException(
-              "Only long and int can be used with autoincrement = true: " + objectType.getSimpleName());
+              "Only long and int can be used with autoincrement = true: " + objectType
+                  .getSimpleName());
         }
         primaryKey = pk;
         primaryKeyName = field.getName();
@@ -125,8 +127,7 @@ public class ReflectDataObject implements DataObject<Object> {
 
           if (graph.add(objectType)) {
             ReflectDataObject collDataObject = new ReflectDataObject(collectionClass, graph);
-            ManyToManySpec manyToManySpec = new ManyToManySpec(this, field,
-                collDataObject);
+            ManyToManySpec manyToManySpec = new ManyToManySpec(this, field.getName(), collDataObject);
             manyToManyList.add(manyToManySpec);
           }
         }
@@ -193,9 +194,62 @@ public class ReflectDataObject implements DataObject<Object> {
     return primaryKeyName;
   }
 
+  @Override public boolean set(String fieldName, Object target, Object value) {
+    if (!fields.containsKey(fieldName)) {
+      throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
+    }
+    try {
+      fields.get(fieldName).set(target, value);
+      return true;
+    } catch (IllegalAccessException e) {
+      return false;
+    }
+  }
+
+  @Override public Object get(String fieldName, Object target) {
+    if (!fields.containsKey(fieldName)) {
+      throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
+    }
+    try {
+      return fields.get(fieldName).get(target);
+    } catch (IllegalAccessException e) {
+      return null;
+    }
+  }
+
+  @Override public boolean hasData(String fieldName, Object bean) {
+    Object value = get(fieldName, bean);
+    Class<?> type = fields.get(fieldName).getType();
+    if (type == long.class || type == Long.class) {
+      return value != null && ((Long) value) != 0L;
+    }
+    if (type == int.class || type == Integer.class) {
+      return value != null && ((Integer) value) != 0;
+    }
+    if (type == float.class || type == Float.class) {
+      return value != null && ((Float) value) != 0.0;
+    }
+    if (type == double.class || type == Double.class) {
+      return value != null && ((Double) value) != 0.0;
+    }
+    if (type == boolean.class || type == Boolean.class) {
+      if (value instanceof Boolean) {
+        return (Boolean) value;
+      }
+      if (value instanceof Integer) {
+        return ((Integer) value) != 0;
+      }
+      return false;
+    }
+    if (type == byte[].class || type == Byte[].class) {
+      return value != null && ((byte[]) value).length > 0;
+    }
+    return value != null;
+  }
+
   @Override public String getCreateTableSentence() {
     CreateTableHelper createTable = CreateTableHelper.init(tableName);
-    for (Field field : fields) {
+    for (Field field : fields.values()) {
       String columnName = ReflectHelper.getColumnName(field);
       CreateTableHelper.Type type = getTypeFrom(field);
       if (ReflectHelper.isPrimaryKey(field)) {

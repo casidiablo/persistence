@@ -16,18 +16,16 @@
 
 package com.codeslap.persistence;
 
-import java.lang.reflect.Field;
-
 import static com.codeslap.persistence.StrUtil.concat;
 
 public class ManyToManySpec {
   private final DataObject<?> mDataObjectA;
   private final DataObject<?> mDataObjectB;
-  private final Field firstRelationField;
+  private final String dataObjectARelationFieldName;
 
-  ManyToManySpec(DataObject<?> dataObjectA, Field firstRelationField, DataObject<?> dataObjectB) {
+  ManyToManySpec(DataObject<?> dataObjectA, String relationFieldName, DataObject<?> dataObjectB) {
     mDataObjectA = dataObjectA;
-    this.firstRelationField = firstRelationField;
+    dataObjectARelationFieldName = relationFieldName;
     mDataObjectB = dataObjectB;
   }
 
@@ -39,8 +37,8 @@ public class ManyToManySpec {
     return mDataObjectB;
   }
 
-  Field getFirstRelationField() {
-    return firstRelationField;
+  String getFirstRelationFieldName() {
+    return dataObjectARelationFieldName;
   }
 
   /** @return the SQL statement for the join table creation */

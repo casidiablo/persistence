@@ -43,4 +43,10 @@ public interface DataObject<T> {
   String getTableName();
 
   String getPrimaryKeyFieldName();
+
+  boolean set(String fieldName, T target, Object value);
+
+  Object get(String fieldName, T target);
+
+  boolean hasData(String fieldName, Object bean);
 }

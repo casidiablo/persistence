@@ -1,8 +1,6 @@
 package com.codeslap.persistence.processor;
 
-import com.codeslap.persistence.DataObject;
-import com.codeslap.persistence.Ignore;
-import com.codeslap.persistence.PrimaryKey;
+import com.codeslap.persistence.*;
 import com.squareup.java.JavaWriter;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -51,24 +49,24 @@ public class PersistenceProcessor extends AbstractProcessor {
             jw.endMethod();
 
             jw.beginMethod("boolean", "hasAutoincrement", Modifier.PUBLIC);
-            jw.emitStatement("return "+shouldBeAutoIncrement(table));
+            jw.emitStatement("return " + shouldBeAutoIncrement(table));
             jw.endMethod();
 
             jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC);
             jw.emitStatement("return null");
             jw.endMethod();
 
-            jw.beginMethod("java.util.Collection<com.codeslap.persistence.HasManySpec>",
-                "hasMany", Modifier.PUBLIC);
+            jw.beginMethod("java.util.Collection<" + HasManySpec.class.getName() + ">", "hasMany",
+                Modifier.PUBLIC);
             jw.emitStatement("return null");
             jw.endMethod();
 
-            jw.beginMethod("com.codeslap.persistence.HasManySpec",
-                "hasMany", Modifier.PUBLIC, "Class<?>", "type");
+            jw.beginMethod(HasManySpec.class.getName(), "hasMany", Modifier.PUBLIC, "Class<?>",
+                "type");
             jw.emitStatement("return null");
             jw.endMethod();
 
-            jw.beginMethod("java.util.Collection<com.codeslap.persistence.ManyToManySpec>",
+            jw.beginMethod("java.util.Collection<" + ManyToManySpec.class.getName() + ">",
                 "manyToMany", Modifier.PUBLIC);
             jw.emitStatement("return null");
             jw.endMethod();

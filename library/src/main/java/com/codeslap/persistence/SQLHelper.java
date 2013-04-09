@@ -177,6 +177,7 @@ public class SQLHelper {
     return builder.toString();
   }
 
+  // TODO remove this :P
   static boolean hasData(Class<?> type, Object value) {
     if (type == long.class || type == Long.class) {
       return value != null && ((Long) value) != 0L;
