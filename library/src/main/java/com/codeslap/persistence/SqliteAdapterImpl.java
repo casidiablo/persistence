@@ -20,7 +20,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
-
 import java.util.*;
 
 import static com.codeslap.persistence.DataObjectFactory.getDataObject;
@@ -78,19 +77,19 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T, Parent> List<T> findAll(T where, Parent parent) {
-    return findAll((Class<T>) where.getClass(), where, parent, null);
+    return findAll(getDataObject((Class<T>) where.getClass()), where, parent, null);
   }
 
   @Override
   public <T> List<T> findAll(Class<T> clazz, String where, String[] whereArgs) {
     Cursor query = getCursorFindAllWhere(clazz, where, whereArgs);
-    return findAllFromCursor(clazz, query);
+    return findAllFromCursor(getDataObject(clazz), query);
   }
 
   @Override
   public <T> List<T> findAll(T where, Constraint constraint) {
     Class<T> clazz = (Class<T>) where.getClass();
-    return findAll(clazz, where, null, constraint);
+    return findAll(getDataObject(clazz), where, null, constraint);
   }
 
   @Override
@@ -430,19 +429,20 @@ public class SqliteAdapterImpl implements SqlAdapter {
     }
   }
 
-  private <T, Parent> List<T> findAll(Class<T> type, T where, Parent parent,
+  private <T, Parent> List<T> findAll(DataObject<T> dataObject, T where, Parent parent,
                                       Constraint constraint) {
     Cursor query = SQLHelper
-        .getCursorFindAllWhere(mDbHelper.getDatabase(), type, where, parent, constraint);
-    return findAllFromCursor(type, query);
+        .getCursorFindAllWhere(mDbHelper.getDatabase(), dataObject.getObjectClass(), where, parent,
+            constraint);
+    return findAllFromCursor(dataObject, query);
   }
 
-  private <T> List<T> findAllFromCursor(Class<T> type, Cursor query) {
+  private <T> List<T> findAllFromCursor(DataObject<T> dataObject, Cursor query) {
     List<T> beans = new ArrayList<T>();
     if (query.moveToFirst()) {
-      DataObject<T> dataObject = getDataObject(type);
       do {
-        T bean = dataObject.getBeanFromCursor(query, classesTree(type), mDbHelper);
+        T bean = dataObject
+            .getBeanFromCursor(query, classesTree(dataObject.getObjectClass()), mDbHelper);
         beans.add(bean);
       } while (query.moveToNext());
     }
@@ -613,7 +613,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     Class<T> type = (Class<T>) bean.getClass();
     DataObject<T> dataObject1 = getDataObject(type);
 
-    String sqlStatement = "";
+    StringBuilder sqlStatement = new StringBuilder();
     for (HasManySpec hasManySpec : dataObject1.hasMany()) {
       List list = (List) hasManySpec.listField.get(bean);
       if (list == null) {
@@ -623,11 +623,11 @@ public class SqliteAdapterImpl implements SqlAdapter {
         // prepare the object by setting the foreign value
         String partialSqlStatement = getSqlStatement(object, tree, bean);
         if (partialSqlStatement != null) {
-          sqlStatement += partialSqlStatement;
+          sqlStatement.append(partialSqlStatement);
         }
       }
     }
-    return sqlStatement;
+    return sqlStatement.toString();
   }
 
   private <T> T findFirstFromCursor(Class<T> clazz, Cursor query) {

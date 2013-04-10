@@ -42,6 +42,7 @@ public class ReflectDataObject implements DataObject<Object> {
   private final Collection<ManyToManySpec> manyToManyList = new ArrayList<ManyToManySpec>();
   private final Class<?> belongsTo;
   private final String primaryKeyName;
+  private final Field primaryKeyField;
 
   public ReflectDataObject(Class<?> type) {
     this(type, new TreeSet<Class<?>>(SqliteAdapterImpl.CLASS_COMPARATOR));
@@ -53,6 +54,7 @@ public class ReflectDataObject implements DataObject<Object> {
 
     PrimaryKey primaryKey = null;
     String primaryKeyName = null;
+    Field primaryKeyField = null;
     for (Field field : objectType.getDeclaredFields()) {
       if (field.isAnnotationPresent(Ignore.class) ||
           Modifier.isStatic(field.getModifiers()) ||// ignore static fields
@@ -73,67 +75,12 @@ public class ReflectDataObject implements DataObject<Object> {
         }
         primaryKey = pk;
         primaryKeyName = field.getName();
+        primaryKeyField = field;
       }
 
       if (fieldType == List.class) {
-        HasMany hasMany = field.getAnnotation(HasMany.class);
-        if (hasMany != null) {
-          ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
-          Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
-
-          if (!collectionClass.isAnnotationPresent(Belongs.class)) {
-            throw new IllegalStateException(
-                "When defining a HasMany relation you must specify a Belongs annotation in the child class");
-          }
-          Belongs belongs = collectionClass.getAnnotation(Belongs.class);
-          if (belongs.to() != objectType) {
-            throw new IllegalStateException(
-                "Belongs class points to " + belongs.to() + " but should point to " + objectType);
-          }
-
-          Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
-          if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
-            throw new IllegalStateException(
-                "Cyclic has-many relations not supported. Use many-to-many instead: " +
-                    collectionClass.getSimpleName() + " belongs to " + objectType
-                    .getSimpleName() + " and viceversa");
-          }
-
-          HasManySpec hasManySpec = new HasManySpec(objectType, field);
-          hasManyList.add(hasManySpec);
-        }
-
-        ManyToMany manyToMany = field.getAnnotation(ManyToMany.class);
-        if (manyToMany != null && !graph.contains(objectType)) {
-          ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
-          Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
-
-          boolean relationExists = false;
-          ManyToMany manyToManyColl;
-          for (Field collField : collectionClass.getDeclaredFields()) {
-            manyToManyColl = collField.getAnnotation(ManyToMany.class);
-            if (manyToManyColl != null && collField.getType() == List.class) {
-              ParameterizedType parameterizedTypeColl = (ParameterizedType) collField
-                  .getGenericType();
-              Class<?> selfClass = (Class<?>) parameterizedTypeColl.getActualTypeArguments()[0];
-              if (selfClass == objectType) {
-                relationExists = true;
-                break;
-              }
-            }
-          }
-
-          if (!relationExists) {
-            throw new IllegalStateException(
-                "When defining a ManyToMany relation both classes must use the ManyToMany annotation");
-          }
-
-          if (graph.add(objectType)) {
-            ReflectDataObject collDataObject = new ReflectDataObject(collectionClass, graph);
-            ManyToManySpec manyToManySpec = new ManyToManySpec(this, field.getName(), collDataObject);
-            manyToManyList.add(manyToManySpec);
-          }
-        }
+        searchForHasMany(field);
+        searchForManyToMany(graph, field);
       }
     }
 
@@ -142,6 +89,7 @@ public class ReflectDataObject implements DataObject<Object> {
           "Primay keys are mandatory: " + objectType.getSimpleName());
     }
     this.primaryKeyName = primaryKeyName;
+    this.primaryKeyField = primaryKeyField;
 
     Belongs annotation = objectType.getAnnotation(Belongs.class);
     belongsTo = annotation != null ? annotation.to() : null;
@@ -342,6 +290,69 @@ public class ReflectDataObject implements DataObject<Object> {
     return bean;
   }
 
+  private void searchForManyToMany(Set<Class<?>> graph, Field field) {
+    ManyToMany manyToMany = field.getAnnotation(ManyToMany.class);
+    if (manyToMany != null && !graph.contains(objectType)) {
+      ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+      Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+
+      boolean relationExists = false;
+      ManyToMany manyToManyColl;
+      for (Field collField : collectionClass.getDeclaredFields()) {
+        manyToManyColl = collField.getAnnotation(ManyToMany.class);
+        if (manyToManyColl != null && collField.getType() == List.class) {
+          ParameterizedType parameterizedTypeColl = (ParameterizedType) collField
+              .getGenericType();
+          Class<?> selfClass = (Class<?>) parameterizedTypeColl.getActualTypeArguments()[0];
+          if (selfClass == objectType) {
+            relationExists = true;
+            break;
+          }
+        }
+      }
+
+      if (!relationExists) {
+        throw new IllegalStateException(
+            "When defining a ManyToMany relation both classes must use the ManyToMany annotation");
+      }
+
+      if (graph.add(objectType)) {
+        ReflectDataObject collDataObject = new ReflectDataObject(collectionClass, graph);
+        ManyToManySpec manyToManySpec = new ManyToManySpec(this, field.getName(), collDataObject);
+        manyToManyList.add(manyToManySpec);
+      }
+    }
+  }
+
+  private void searchForHasMany(Field field) {
+    HasMany hasMany = field.getAnnotation(HasMany.class);
+    if (hasMany != null) {
+      ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+      Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+
+      if (!collectionClass.isAnnotationPresent(Belongs.class)) {
+        throw new IllegalStateException(
+            "When defining a HasMany relation you must specify a Belongs annotation in the child class");
+      }
+      Belongs belongs = collectionClass.getAnnotation(Belongs.class);
+      if (belongs.to() != objectType) {
+        throw new IllegalStateException(
+            "Belongs class points to " + belongs.to() + " but should point to " + objectType);
+      }
+
+      Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
+      if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
+        throw new IllegalStateException(
+            "Cyclic has-many relations not supported. Use many-to-many instead: " +
+                collectionClass.getSimpleName() + " belongs to " + objectType
+                .getSimpleName() + " and viceversa");
+      }
+
+      HasManySpec hasManySpec = new HasManySpec(objectType, field);
+      hasManyList.add(hasManySpec);
+    }
+  }
+
   private <Child> List<Child> processInnerCollection(Cursor query, Set<Class<?>> tree,
                                                      DataObject<Child> collectionDataObject,
                                                      SqliteDb dbHelper) {
@@ -407,13 +418,10 @@ public class ReflectDataObject implements DataObject<Object> {
       return null;
     }
 
-// TODO avoid using this method
-    Field collectionId = SQLHelper.getPrimaryKeyField(collectionClass);
-//    ReflectHelper.getIdColumn(field)
     // build a query that uses the joining table and the joined object
     String sql = new StringBuilder().append("SELECT * FROM ")
         .append(collectionDataObject.getTableName()).append(" WHERE ")
-        .append(ReflectHelper.getIdColumn(collectionId)).append(" IN (SELECT ")
+        .append(ReflectHelper.getIdColumn(primaryKeyField)).append(" IN (SELECT ")
         .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
         .append(currentManyToMany.getTableName()).append(" WHERE ")
         .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
