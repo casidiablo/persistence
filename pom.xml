@@ -48,7 +48,6 @@
     <!-- Dependencies -->
     <android.version>4.1.1.4</android.version>
     <android.platform>16</android.platform>
-    <javawriter.version>1.0.2</javawriter.version>
 
     <!-- Test Dependencies -->
     <junit.version>4.10</junit.version>
@@ -98,11 +97,6 @@
         <groupId>com.google.android</groupId>
         <artifactId>android</artifactId>
         <version>${android.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup</groupId>
-        <artifactId>javawriter</artifactId>
-        <version>${javawriter.version}</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>

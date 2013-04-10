@@ -51,7 +51,7 @@ public interface DataObject<T> {
 
   Object get(String fieldName, T target);
 
-  boolean hasData(String fieldName, Object bean);
+  boolean hasData(String fieldName, T bean);
 
   T getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper);
 }

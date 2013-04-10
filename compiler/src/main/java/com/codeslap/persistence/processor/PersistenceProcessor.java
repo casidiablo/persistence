@@ -1,7 +1,10 @@
 package com.codeslap.persistence.processor;
 
-import com.codeslap.persistence.*;
-import com.squareup.java.JavaWriter;
+import com.codeslap.persistence.Ignore;
+import com.codeslap.persistence.PrimaryKey;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -15,7 +18,8 @@ import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
-import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.util.Properties;
 import java.util.Set;
 
 @SupportedAnnotationTypes("com.codeslap.persistence.Table")
@@ -38,59 +42,27 @@ public class PersistenceProcessor extends AbstractProcessor {
             JavaFileObject sourceFile = createSourceFile(sourceName, table);
 
             Writer out = sourceFile.openWriter();
-            JavaWriter jw = new JavaWriter(out);
-            jw.emitPackage(packageElement.getSimpleName().toString());
 
-            String superClass = DataObject.class.getName() + "<" + mainClassName + ">";
-            jw.beginType(className, "class", Modifier.PUBLIC, null, superClass);
+            Properties props = new Properties();
+            URL url = this.getClass().getClassLoader().getResource("velocity.properties");
+            props.load(url.openStream());
 
-            jw.beginMethod(mainClassName, "newInstance", Modifier.PUBLIC);
-            jw.emitStatement("return new " + mainClassName + "()");
-            jw.endMethod();
+            // first, get and initialize an engine
+            VelocityEngine ve = new VelocityEngine(props);
+            ve.init();
 
-            jw.beginMethod("boolean", "hasAutoincrement", Modifier.PUBLIC);
-            jw.emitStatement("return " + shouldBeAutoIncrement(table));
-            jw.endMethod();
+            // next, get the Template
+            Template t = ve.getTemplate("data_object_impl.vm");
 
-            jw.beginMethod("String", "getCreateTableSentence", Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
+            // create a context and add data
+            VelocityContext context = new VelocityContext();
+            context.put("packageName", packageElement.getSimpleName().toString());
+            context.put("className", mainClassName);
 
-            jw.beginMethod("java.util.Collection<" + HasManySpec.class.getName() + ">", "hasMany",
-                Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.beginMethod(HasManySpec.class.getName(), "hasMany", Modifier.PUBLIC, "Class<?>",
-                "type");
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.beginMethod("java.util.Collection<" + ManyToManySpec.class.getName() + ">",
-                "manyToMany", Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.beginMethod("Class<?>", "belongsTo", Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.beginMethod("Class<?>", "getObjectClass", Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.beginMethod("String", "getTableName", Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.beginMethod("String", "getPrimaryKeyFieldName", Modifier.PUBLIC);
-            jw.emitStatement("return null");
-            jw.endMethod();
-
-            jw.endType();
-
+            // now render the template into a StringWriter
+            t.merge(context, out);
             out.close();
-          } catch (IOException e) {
+          } catch (Exception e) {
             e.printStackTrace();
           }
         }

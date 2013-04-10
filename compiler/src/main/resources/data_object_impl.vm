@@ -1,0 +1,67 @@
+package ${packageName};
+
+import android.database.Cursor;
+import com.codeslap.persistence.DataObject;
+import com.codeslap.persistence.HasManySpec;
+import com.codeslap.persistence.ManyToManySpec;
+import com.codeslap.persistence.SqliteDb;
+import java.util.Collection;
+import java.util.Set;
+
+public class ${className}DataObject implements DataObject<${className}> {
+  @Override public String getCreateTableSentence() {
+    return null;
+  }
+
+  @Override public ${className} newInstance() {
+    return new ${className}();
+  }
+
+  @Override public boolean hasAutoincrement() {
+    return false;
+  }
+
+  @Override public Collection<HasManySpec> hasMany() {
+    return null;
+  }
+
+  @Override public Collection<ManyToManySpec> manyToMany() {
+    return null;
+  }
+
+  @Override public HasManySpec hasMany(Class<?> theClass) {
+    return null;
+  }
+
+  @Override public Class<?> belongsTo() {
+    return null;
+  }
+
+  @Override public Class<${className}> getObjectClass() {
+    return null;
+  }
+
+  @Override public String getTableName() {
+    return null;
+  }
+
+  @Override public String getPrimaryKeyFieldName() {
+    return null;
+  }
+
+  @Override public boolean set(String fieldName, ${className} target, Object value) {
+    return false;
+  }
+
+  @Override public Object get(String fieldName, ${className} target) {
+    return null;
+  }
+
+  @Override public boolean hasData(String fieldName, ${className} bean) {
+    return false;
+  }
+
+  @Override public ${className} getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper) {
+    return null;
+  }
+}

@@ -28,7 +28,8 @@ import java.util.Map;
  * persist and retrieve data. This will also create the database if it's not
  * created yet, or update it in case the version number changes.
  */
-class SqliteDb {
+// TODO hide this again
+public class SqliteDb {
   private static final String TAG = SqliteDb.class.getSimpleName();
   private static final Map<String, SqliteDb> instances = new HashMap<String, SqliteDb>();
   private final DbOpenHelper mDbHelper;

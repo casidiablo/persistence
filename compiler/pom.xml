@@ -22,8 +22,14 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.squareup</groupId>
-      <artifactId>javawriter</artifactId>
+      <groupId>com.google.android</groupId>
+      <artifactId>android</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.velocity</groupId>
+      <artifactId>velocity</artifactId>
+      <version>1.5</version>
     </dependency>
   </dependencies>
 
@@ -54,6 +60,7 @@
             <persistence.groupId>${project.groupId}</persistence.groupId>
             <persistence.version>${project.version}</persistence.version>
             <junit.version>${junit.version}</junit.version>
+            <android.version>${android.version}</android.version>
           </filterProperties>
         </configuration>
         <executions>
