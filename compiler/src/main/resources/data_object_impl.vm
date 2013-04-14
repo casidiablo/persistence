@@ -18,7 +18,7 @@ public class ${className}DataObject implements DataObject<${className}> {
   }
 
   @Override public boolean hasAutoincrement() {
-    return false;
+    return ${hasAutoincrement};
   }
 
   @Override public Collection<HasManySpec> hasMany() {
@@ -42,7 +42,7 @@ public class ${className}DataObject implements DataObject<${className}> {
   }
 
   @Override public String getTableName() {
-    return null;
+    return "${tableName}";
   }
 
   @Override public String getPrimaryKeyFieldName() {

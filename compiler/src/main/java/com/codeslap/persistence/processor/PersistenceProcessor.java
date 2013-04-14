@@ -2,6 +2,7 @@ package com.codeslap.persistence.processor;
 
 import com.codeslap.persistence.Ignore;
 import com.codeslap.persistence.PrimaryKey;
+import com.codeslap.persistence.Table;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
@@ -58,6 +59,8 @@ public class PersistenceProcessor extends AbstractProcessor {
             VelocityContext context = new VelocityContext();
             context.put("packageName", packageElement.getSimpleName().toString());
             context.put("className", mainClassName);
+            context.put("hasAutoincrement", shouldBeAutoIncrement(table));
+            context.put("tableName", getTableName(table));
 
             // now render the template into a StringWriter
             t.merge(context, out);
@@ -69,6 +72,10 @@ public class PersistenceProcessor extends AbstractProcessor {
       }
     }
     return true;
+  }
+
+  private String getTableName(Element tableName) {
+    return tableName.getAnnotation(Table.class).value();
   }
 
   private JavaFileObject createSourceFile(String name, Element element) throws IOException {
