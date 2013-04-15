@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.codeslap.persistence.processor;
+package com.codeslap.persistence;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -124,5 +124,50 @@ class CodeGenHelper {
       result.append('.');
       result.append(qualifiedName.substring(packageName.length() + 1).replace('.', innerClassSeparator));
     }
+  }
+
+  public static String getColumnName(Element element) {
+    if (isPrimaryKey(element) && !forcedName(element)) {
+      return getIdColumn(element);
+    }
+    Column column = element.getAnnotation(Column.class);
+    if (column != null) {
+      return column.value();
+    }
+    String name = element.getSimpleName().toString();
+    StringBuilder newName = new StringBuilder();
+    newName.append(name.charAt(0));
+    for (int i = 1; i < name.length(); i++) {
+      if (Character.isUpperCase(name.charAt(i))) {
+        newName.append("_");
+      }
+      newName.append(name.charAt(i));
+    }
+    return newName.toString().toLowerCase();
+  }
+
+  public static String getIdColumn(Element element) {
+    if (forcedName(element)) {
+      return getColumnName(element);
+    }
+    return SQLHelper._ID;
+  }
+
+  private static boolean forcedName(Element element) {
+    Column column = element.getAnnotation(Column.class);
+    if (column == null) {
+      return false;
+    }
+    return column.forceName();
+  }
+
+  static boolean isPrimaryKey(Element element) {
+    PrimaryKey primaryKey = element.getAnnotation(PrimaryKey.class);
+    if (primaryKey != null) {
+      return true;
+    }
+    String elementName = element.getSimpleName().toString();
+    return elementName.equals(SQLHelper.ID) || elementName
+        .equals(getIdColumn(element));
   }
 }

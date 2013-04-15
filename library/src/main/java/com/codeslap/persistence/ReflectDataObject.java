@@ -18,7 +18,6 @@ package com.codeslap.persistence;
 
 import android.database.Cursor;
 import android.text.TextUtils;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -240,12 +239,11 @@ public class ReflectDataObject implements DataObject<Object> {
         }
         // add a new field to the table creation statement to create the relation
         // TODO is it really necessary to mark this field as "not null"?
-        createTable
-            .add(hasManySpec.getThroughColumnName(), getTypeFrom(hasManySpec.throughField), false);
+        String columnName = hasManySpec.getThroughColumnName();
+        createTable.add(columnName, getTypeFrom(hasManySpec.throughField), false);
         break;
       }
     }
-
     return createTable.build();
   }
 
@@ -301,8 +299,7 @@ public class ReflectDataObject implements DataObject<Object> {
       for (Field collField : collectionClass.getDeclaredFields()) {
         manyToManyColl = collField.getAnnotation(ManyToMany.class);
         if (manyToManyColl != null && collField.getType() == List.class) {
-          ParameterizedType parameterizedTypeColl = (ParameterizedType) collField
-              .getGenericType();
+          ParameterizedType parameterizedTypeColl = (ParameterizedType) collField.getGenericType();
           Class<?> selfClass = (Class<?>) parameterizedTypeColl.getActualTypeArguments()[0];
           if (selfClass == objectType) {
             relationExists = true;
@@ -364,7 +361,8 @@ public class ReflectDataObject implements DataObject<Object> {
   }
 
   private <Child> List<Child> getListFromHasMany(Cursor query, Set<Class<?>> tree,
-                                                 DataObject<Child> collectionDataObject, SqliteDb dbHelper) {
+                                                 DataObject<Child> collectionDataObject,
+                                                 SqliteDb dbHelper) {
     Class<?> belongsTo = collectionDataObject.belongsTo();
     if (belongsTo != objectType) {
       return null;
@@ -381,8 +379,8 @@ public class ReflectDataObject implements DataObject<Object> {
       if (foreignValue != null) {
         String sql = new StringBuilder().append("SELECT * FROM ")
             .append(collectionDataObject.getTableName()).append(" WHERE ")
-            .append(hasManySpec.getThroughColumnName()).append(" = '")
-            .append(foreignValue).append(SQLHelper.QUOTE).toString();
+            .append(hasManySpec.getThroughColumnName()).append(" = '").append(foreignValue)
+            .append(SQLHelper.QUOTE).toString();
         // execute the query and set the result to the current field
         Cursor join = dbHelper.getDatabase().rawQuery(sql, null);
         List<Child> listValue = new ArrayList<Child>();
@@ -399,7 +397,8 @@ public class ReflectDataObject implements DataObject<Object> {
     return null;
   }
 
-  private <Child> List<Child> getListFromManyToMany(Cursor query, Set tree, DataObject<Child> collectionDataObject,
+  private <Child> List<Child> getListFromManyToMany(Cursor query, Set tree,
+                                                    DataObject<Child> collectionDataObject,
                                                     SqliteDb dbHelper) {
     Class<?> collectionClass = collectionDataObject.getObjectClass();
     boolean manyToMany = false;

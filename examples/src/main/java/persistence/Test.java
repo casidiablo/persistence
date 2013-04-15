@@ -1,9 +1,11 @@
 package persistence;
 
+import com.codeslap.persistence.PrimaryKey;
 import com.codeslap.persistence.Table;
 
 @Table("tests")
 public class Test {
+  @PrimaryKey(autoincrement = false)
   private long _id;
   private String name;
   private int age;

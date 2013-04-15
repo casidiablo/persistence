@@ -1,8 +1,5 @@
-package com.codeslap.persistence.processor;
+package com.codeslap.persistence;
 
-import com.codeslap.persistence.Ignore;
-import com.codeslap.persistence.PrimaryKey;
-import com.codeslap.persistence.Table;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
@@ -14,8 +11,10 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.SimpleTypeVisitor6;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.Writer;
@@ -61,6 +60,7 @@ public class PersistenceProcessor extends AbstractProcessor {
             context.put("className", mainClassName);
             context.put("hasAutoincrement", shouldBeAutoIncrement(table));
             context.put("tableName", getTableName(table));
+            context.put("createTableSentence", getCreateTableStatement(table));
 
             // now render the template into a StringWriter
             t.merge(context, out);
@@ -74,7 +74,76 @@ public class PersistenceProcessor extends AbstractProcessor {
     return true;
   }
 
-  private String getTableName(Element tableName) {
+  private static String getCreateTableStatement(Element table) {
+    CreateTableHelper createTable = CreateTableHelper.init(getTableName(table));
+
+    for (Element element : table.getEnclosedElements()) {
+      if (element.getKind() != ElementKind.FIELD) {
+        continue;
+      }
+      String columnName = CodeGenHelper.getColumnName(element);
+      CreateTableHelper.Type type = getTypeFrom(element);
+      if (CodeGenHelper.isPrimaryKey(element)) {
+        String column = CodeGenHelper.getIdColumn(element);
+        createTable.addPk(column, type, shouldBeAutoIncrement(element));
+      } else /*if (field.getType() != List.class) */ {
+        boolean notNull = false;
+        Column columnAnnotation = element.getAnnotation(Column.class);
+        if (columnAnnotation != null) {
+          notNull = columnAnnotation.notNull();
+        }
+        createTable.add(columnName, type, notNull);
+      }
+    }
+
+    // check whether this class belongs to a has-many relation,
+    // in which case we need to create an additional field
+//    Class<?> containerClass = belongsTo();
+//    if (containerClass != null) {
+//      DataObject<?> containerDataObject = DataObjectFactory.getDataObject(containerClass);
+//      for (HasManySpec hasManySpec : containerDataObject.hasMany()) {
+//        if (hasManySpec.contained != objectType) {
+//          continue;
+//        }
+//        // add a new field to the table creation statement to create the relation
+//        // TODO is it really necessary to mark this field as "not null"?
+//        String columnName = hasManySpec.getThroughColumnName();
+//        createTable.add(columnName, getTypeFrom(hasManySpec.throughField), false);
+//        break;
+//      }
+//    }
+
+    return createTable.build();
+  }
+
+  private static CreateTableHelper.Type getTypeFrom(Element element) {
+    TypeMirror typeMirror = element.asType();
+    return typeMirror.accept(new SimpleTypeVisitor6<CreateTableHelper.Type, Void>() {
+      @Override public CreateTableHelper.Type visitPrimitive(PrimitiveType primitiveType,
+                                                             Void aVoid) {
+        switch (primitiveType.getKind()) {
+          case BOOLEAN:
+          case BYTE:
+          case SHORT:
+          case INT:
+          case LONG:
+            return CreateTableHelper.Type.INTEGER;
+          case FLOAT:
+          case DOUBLE:
+            return CreateTableHelper.Type.REAL;
+          case CHAR:
+          default:
+            return CreateTableHelper.Type.TEXT;
+        }
+      }
+
+      @Override protected CreateTableHelper.Type defaultAction(TypeMirror typeMirror, Void aVoid) {
+        return CreateTableHelper.Type.TEXT;
+      }
+    }, null);
+  }
+
+  private static String getTableName(Element tableName) {
     return tableName.getAnnotation(Table.class).value();
   }
 

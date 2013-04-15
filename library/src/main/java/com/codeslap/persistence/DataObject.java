@@ -17,20 +17,27 @@
 package com.codeslap.persistence;
 
 import android.database.Cursor;
-
 import java.util.Collection;
 import java.util.Set;
 
 /**
- * //
+ * This class contains all necessary information to save/retrieve an object to/from the database.
  *
  * @author cristian
  */
 public interface DataObject<T> {
+  /** @return SQLite compatible sentence to create a table representing this object */
   String getCreateTableSentence();
 
+  /**
+   * It assumes the object has no constructor or it's both public and without parameters
+   * @return new instance of this object
+   */
   T newInstance();
 
+  /**
+   * @return true if the table has an auto-incrementable primary key
+   */
   boolean hasAutoincrement();
 
   Collection<HasManySpec> hasMany();

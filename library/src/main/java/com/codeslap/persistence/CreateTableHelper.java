@@ -28,13 +28,13 @@ class CreateTableHelper {
     return new CreateTableHelper(name);
   }
 
-  public CreateTableHelper add(String name, Type type, boolean notNull) {
+  public CreateTableHelper add(String columnName, Type type, boolean notNull) {
     String notNullSentence = notNull ? NOT_NULL : "";
-    if (columns.contains(name)) {
-      throw new IllegalStateException(name + " already added");
+    if (columns.contains(columnName)) {
+      throw new IllegalStateException(columnName + " already added");
     }
-    columns.add(name);
-    columnSentences.add(name + " " + type.toString() + notNullSentence);
+    columns.add(columnName);
+    columnSentences.add(columnName + " " + type.toString() + notNullSentence);
     return this;
   }
 
