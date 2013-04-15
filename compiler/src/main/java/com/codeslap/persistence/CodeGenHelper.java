@@ -48,7 +48,8 @@ class CodeGenHelper {
    *                            references to existing types in code. Use '$' to define new class
    *                            names and for strings that will be used by runtime reflection.
    */
-  public static void typeToString(final TypeMirror type, final StringBuilder result, final char innerClassSeparator) {
+  public static void typeToString(final TypeMirror type, final StringBuilder result,
+                                  final char innerClassSeparator) {
     type.accept(new SimpleTypeVisitor6<Void, Void>() {
       @Override public Void visitDeclared(DeclaredType declaredType, Void v) {
         TypeElement typeElement = (TypeElement) declaredType.asElement();
@@ -84,7 +85,8 @@ class CodeGenHelper {
       }
 
       @Override protected Void defaultAction(TypeMirror typeMirror, Void v) {
-        throw new UnsupportedOperationException("Unexpected TypeKind " + typeMirror.getKind() + " for " + typeMirror);
+        throw new UnsupportedOperationException(
+            "Unexpected TypeKind " + typeMirror.getKind() + " for " + typeMirror);
       }
     }, null);
   }
@@ -114,7 +116,8 @@ class CodeGenHelper {
     }
   }
 
-  private static void rawTypeToString(StringBuilder result, TypeElement type, char innerClassSeparator) {
+  private static void rawTypeToString(StringBuilder result, TypeElement type,
+                                      char innerClassSeparator) {
     String packageName = getPackage(type).getQualifiedName().toString();
     String qualifiedName = type.getQualifiedName().toString();
     if (packageName.isEmpty()) {
@@ -122,52 +125,12 @@ class CodeGenHelper {
     } else {
       result.append(packageName);
       result.append('.');
-      result.append(qualifiedName.substring(packageName.length() + 1).replace('.', innerClassSeparator));
+      result.append(
+          qualifiedName.substring(packageName.length() + 1).replace('.', innerClassSeparator));
     }
   }
 
-  public static String getColumnName(Element element) {
-    if (isPrimaryKey(element) && !forcedName(element)) {
-      return getIdColumn(element);
-    }
-    Column column = element.getAnnotation(Column.class);
-    if (column != null) {
-      return column.value();
-    }
-    String name = element.getSimpleName().toString();
-    StringBuilder newName = new StringBuilder();
-    newName.append(name.charAt(0));
-    for (int i = 1; i < name.length(); i++) {
-      if (Character.isUpperCase(name.charAt(i))) {
-        newName.append("_");
-      }
-      newName.append(name.charAt(i));
-    }
-    return newName.toString().toLowerCase();
-  }
-
-  public static String getIdColumn(Element element) {
-    if (forcedName(element)) {
-      return getColumnName(element);
-    }
-    return SQLHelper._ID;
-  }
-
-  private static boolean forcedName(Element element) {
-    Column column = element.getAnnotation(Column.class);
-    if (column == null) {
-      return false;
-    }
-    return column.forceName();
-  }
-
-  static boolean isPrimaryKey(Element element) {
-    PrimaryKey primaryKey = element.getAnnotation(PrimaryKey.class);
-    if (primaryKey != null) {
-      return true;
-    }
-    String elementName = element.getSimpleName().toString();
-    return elementName.equals(SQLHelper.ID) || elementName
-        .equals(getIdColumn(element));
+  static boolean isPrimaryKey(ProcessorColumnField element) {
+    return ColumnHelper.isPrimaryKey(element);
   }
 }

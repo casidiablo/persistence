@@ -25,53 +25,27 @@ import java.util.Map;
  *
  * @author cristian
  */
-public class ReflectHelper {
+class ReflectHelper {
   private static final Map<Field, String> COLUMN_NAMES_CACHE = new HashMap<Field, String>();
 
   /**
    * @param field field to get the column name from
    * @return gets the column name version of the specified field
    */
-  public static String getColumnName(Field field) {
+  static String getColumnName(Field field) {
     if (COLUMN_NAMES_CACHE.containsKey(field)) {
       return COLUMN_NAMES_CACHE.get(field);
     }
-    if (isPrimaryKey(field) && !forcedName(field)) {
-      return getIdColumn(field);
-    }
-    Column column = field.getAnnotation(Column.class);
-    if (column != null) {
-      return column.value();
-    }
-    String name = field.getName();
-    StringBuilder newName = new StringBuilder();
-    newName.append(name.charAt(0));
-    for (int i = 1; i < name.length(); i++) {
-      if (Character.isUpperCase(name.charAt(i))) {
-        newName.append("_");
-      }
-      newName.append(name.charAt(i));
-    }
-    String columnName = newName.toString().toLowerCase();
+    String columnName = ColumnHelper.getColumnName(new ReflectColumnField(field));
     COLUMN_NAMES_CACHE.put(field, columnName);
     return columnName;
   }
 
-  public static boolean isPrimaryKey(Field field) {
-    if (field.isAnnotationPresent(PrimaryKey.class)) {
-      return true;
-    }
-    return field.getName().equals(SQLHelper.ID) || field.getName().equals(getIdColumn(field));
+  static boolean isPrimaryKey(Field field) {
+    return ColumnHelper.isPrimaryKey(new ReflectColumnField(field));
   }
 
-  public static String getIdColumn(Field field) {
-    if (forcedName(field)) {
-      return getColumnName(field);
-    }
-    return SQLHelper._ID;
-  }
-
-  private static boolean forcedName(Field field) {
-    return field.isAnnotationPresent(Column.class) && field.getAnnotation(Column.class).forceName();
+  static String getIdColumn(Field field) {
+    return ColumnHelper.getIdColumn(new ReflectColumnField(field));
   }
 }

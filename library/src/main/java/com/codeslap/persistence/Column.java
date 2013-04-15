@@ -29,23 +29,21 @@ import java.lang.annotation.Target;
 public @interface Column {
   String NULL = "This is a default value you are not going to use this, isn't it?";
 
-  /**
-   * @return the column name
-   */
+  /** @return the column name */
   String value();
 
-  /**
-   * @return true if you do not want to allow this field to be null
-   */
+  /** @return true if you do not want to allow this field to be null */
   boolean notNull() default false;
 
   /**
-   * @return the value to set to this element when no argument is assigned. This works for TEXT columns only.
+   * @return the value to set to this element when no argument is assigned. This works for TEXT
+   *         columns only.
    */
   String defaultValue() default NULL;
 
   /**
-   * @return true if the name of this column must be forced. Useful when handling primary keys whose name is not _id
+   * @return true if the name of this column must be forced. Useful when handling primary keys whose
+   *         name is not _id
    */
   boolean forceName() default false;
 }

@@ -81,10 +81,11 @@ public class PersistenceProcessor extends AbstractProcessor {
       if (element.getKind() != ElementKind.FIELD) {
         continue;
       }
-      String columnName = CodeGenHelper.getColumnName(element);
+      ProcessorColumnField columnField = new ProcessorColumnField(element);
+      String columnName = ColumnHelper.getColumnName(columnField);
       CreateTableHelper.Type type = getTypeFrom(element);
-      if (CodeGenHelper.isPrimaryKey(element)) {
-        String column = CodeGenHelper.getIdColumn(element);
+      if (CodeGenHelper.isPrimaryKey(columnField)) {
+        String column = ColumnHelper.getIdColumn(columnField);
         createTable.addPk(column, type, shouldBeAutoIncrement(element));
       } else /*if (field.getType() != List.class) */ {
         boolean notNull = false;
