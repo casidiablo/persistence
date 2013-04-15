@@ -275,8 +275,7 @@ public class ReflectDataObject implements DataObject<Object> {
           value = processInnerCollection(query, tree, getDataObject(collectionClass), dbHelper);
         }
       } else {// do not process collections here
-        value = getValueFromCursor(type, ColumnHelper.getColumnName(columnField),
-            query);
+        value = getValueFromCursor(type, ColumnHelper.getColumnName(columnField), query);
       }
       try {
         if (value != null) {
@@ -561,12 +560,12 @@ public class ReflectDataObject implements DataObject<Object> {
 
     // if there is an attachment
     if (parent != null) {
-      HasManySpec hasManySpec = SQLHelper.getHasManySpec(objectType, parent);
+      HasManySpec hasManySpec = getHasManySpec(parent);
       Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
       if (foreignValue != null) {
         if (args == null) {
-          conditions.add(
-              concat(hasManySpec.getThroughColumnName(), " = '", foreignValue.toString(), SQLHelper.QUOTE));
+          conditions.add(concat(hasManySpec.getThroughColumnName(), " = '", foreignValue.toString(),
+              SQLHelper.QUOTE));
         } else {
           conditions.add(concat(hasManySpec.getThroughColumnName(), " = ?"));
           args.add(foreignValue.toString());
@@ -574,6 +573,85 @@ public class ReflectDataObject implements DataObject<Object> {
       }
     }
     return StrUtil.join(conditions, " AND ");
+  }
+
+  @Override public <Parent> void populateColumnsAndValues(Object bean, Parent parent,
+                                                          List<String> values,
+                                                          List<String> columns) {
+    if (bean == null) {
+      return;
+    }
+    for (Field field : fields.values()) {
+      // if the class has an autoincrement, ignore the ID
+      ReflectColumnField columnField = new ReflectColumnField(field);
+      if (ColumnHelper.isPrimaryKey(columnField) && hasAutoincrement()) {
+        continue;
+      }
+      try {
+        Class<?> type = field.getType();
+        if (type == List.class) {
+          continue;
+        }
+        field.setAccessible(true);
+        Object value = field.get(bean);
+        if (columns != null) {
+          columns.add(ColumnHelper.getColumnName(columnField));
+        }
+        if (values == null) {
+          continue;
+        }
+        if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+          int intValue = (Boolean) value ? 1 : 0;
+          values.add(String.valueOf(intValue));
+        } else if (field.getType() == Byte[].class || field.getType() == byte[].class) {
+          if (value == null) {
+            values.add("NULL");
+          } else {
+            String hex = getHex((byte[]) value);
+            values.add(concat("X'", hex, SQLHelper.QUOTE));
+          }
+        } else if (value == null) {
+          Column columnAnnotation = field.getAnnotation(Column.class);
+          boolean hasDefault = false;
+          if (columnAnnotation != null) {
+            hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+          }
+          if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
+            String msg = concat("Field ", field.getName(), " from class ", objectType.getSimpleName(),
+                " cannot be null. It was marked with the @Column not null annotation and it has not a default value");
+            throw new IllegalStateException(msg);
+          }
+          if (hasDefault) {
+            values.add(concat(SQLHelper.QUOTE, columnAnnotation.defaultValue()
+                .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE),
+                SQLHelper.QUOTE));
+          } else {
+            values.add("NULL");
+          }
+        } else {
+          values.add(concat(SQLHelper.QUOTE, String.valueOf(value)
+              .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE), SQLHelper.QUOTE));
+        }
+      } catch (IllegalAccessException ignored) {
+      }
+    }
+    if (parent != null) {
+      HasManySpec hasManySpec = getHasManySpec(parent);
+      Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
+
+      if (columns != null) {
+        columns.add(hasManySpec.getThroughColumnName());
+      }
+      if (values != null) {
+        if (foreignValue != null && SQLHelper.hasData(foreignValue.getClass(), foreignValue)) {
+          values.add(String.valueOf(foreignValue));
+        } else {
+          DataObject<?> parentDataObject = getDataObject(parent.getClass());
+          String tableName = parentDataObject.getTableName();
+          values.add(concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')"));
+        }
+      }
+    }
   }
 
   private static <Parent> Object getRelationValueFromParent(Parent parent,
@@ -584,5 +662,27 @@ public class ReflectDataObject implements DataObject<Object> {
     } catch (Exception ignored) {
     }
     return foreignValue;
+  }
+
+  private static String getHex(byte[] raw) {
+    if (raw == null) {
+      return null;
+    }
+    final StringBuilder hex = new StringBuilder(2 * raw.length);
+    for (final byte b : raw) {
+      hex.append(SQLHelper.HEXES.charAt((b & 0xF0) >> 4))
+          .append(SQLHelper.HEXES.charAt((b & 0x0F)));
+    }
+    return hex.toString();
+  }
+
+  <Parent> HasManySpec getHasManySpec(Parent parent) {
+    Class<Parent> containerClass = (Class<Parent>) belongsTo();
+    if (containerClass != parent.getClass()) {
+      throw new IllegalArgumentException(
+          "Cannot find has-many relation between " + containerClass + "and" + objectType);
+    }
+    DataObject<Parent> containerDataObject = getDataObject(containerClass);
+    return containerDataObject.hasMany(objectType);
   }
 }

@@ -69,4 +69,9 @@ public class ${className}DataObject implements DataObject<${className}> {
   @Override public <Parent> String getWhere(${className} bean, List<String> args, Parent parent) {
     return null;
   }
+
+  @Override public <Parent> void populateColumnsAndValues(${className} bean, Parent parent,
+    List<String> values,
+    List<String> columns) {
+  }
 }

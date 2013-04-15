@@ -33,7 +33,7 @@ public class SQLHelper {
 
   static final String ID = "id";
   static final String _ID = "_id";
-  private static final String HEXES = "0123456789ABCDEF";
+  static final String HEXES = "0123456789ABCDEF";
 
   private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
   private static final Map<Class<?>, Field[]> FIELDS_CACHE = new HashMap<Class<?>, Field[]>();
@@ -57,16 +57,6 @@ public class SQLHelper {
       FIELDS_CACHE.put(theClass, list.toArray(new Field[list.size()]));
     }
     return FIELDS_CACHE.get(theClass);
-  }
-
-  static <Parent> HasManySpec getHasManySpec(Class<?> theClass, Parent parent) {
-    Class<Parent> containerClass = (Class<Parent>) getDataObject(theClass).belongsTo();
-    if (containerClass != parent.getClass()) {
-      throw new IllegalArgumentException(
-          "Cannot find has-many relation between " + containerClass + "and" + theClass);
-    }
-    DataObject<Parent> containerDataObject = getDataObject(containerClass);
-    return containerDataObject.hasMany(theClass);
   }
 
   private static <T> String getSet(T bean) {
@@ -169,7 +159,8 @@ public class SQLHelper {
     if (!INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
       columns = new ArrayList<String>();
     }
-    populateColumnsAndValues(bean, parent, values, columns);
+    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    dataObject.populateColumnsAndValues(bean, parent, values, columns);
 
     String columnsSet;
     if (INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
@@ -180,7 +171,6 @@ public class SQLHelper {
     }
 
     // build insert statement for the main object
-    DataObject<?> dataObject = getDataObject(bean.getClass());
     String tableName = dataObject.getTableName();
     if (values.size() == 0 && dataObject.hasAutoincrement()) {
       String hack = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')+1");
@@ -191,98 +181,6 @@ public class SQLHelper {
     }
     return concat("INSERT OR IGNORE INTO ", tableName, " (", columnsSet, ") VALUES (",
         StrUtil.join(values, ", "), ");", STATEMENT_SEPARATOR);
-  }
-
-  private static <T, Parent> void populateColumnsAndValues(T bean, Parent parent,
-                                                           List<String> values,
-                                                           List<String> columns) {
-    if (bean == null) {
-      return;
-    }
-    Class<?> theClass = bean.getClass();
-    Field[] fields = getDeclaredFields(theClass);
-    DataObject<?> dataObject = getDataObject(theClass);
-    for (Field field : fields) {
-      // if the class has an autoincrement, ignore the ID
-      ReflectColumnField columnField = new ReflectColumnField(field);
-      if (ColumnHelper.isPrimaryKey(columnField) && dataObject.hasAutoincrement()) {
-        continue;
-      }
-      try {
-        Class<?> type = field.getType();
-        if (type == List.class) {
-          continue;
-        }
-        field.setAccessible(true);
-        Object value = field.get(bean);
-        if (columns != null) {
-          columns.add(ColumnHelper.getColumnName(columnField));
-        }
-        if (values == null) {
-          continue;
-        }
-        if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-          int intValue = (Boolean) value ? 1 : 0;
-          values.add(String.valueOf(intValue));
-        } else if (field.getType() == Byte[].class || field.getType() == byte[].class) {
-          if (value == null) {
-            values.add("NULL");
-          } else {
-            String hex = getHex((byte[]) value);
-            values.add(concat("X'", hex, QUOTE));
-          }
-        } else if (value == null) {
-          Column columnAnnotation = field.getAnnotation(Column.class);
-          boolean hasDefault = false;
-          if (columnAnnotation != null) {
-            hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
-          }
-          if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
-            String msg = concat("Field ", field.getName(), " from class ", theClass.getSimpleName(),
-                " cannot be null. It was marked with the @Column not null annotation and it has not a default value");
-            throw new IllegalStateException(msg);
-          }
-          if (hasDefault) {
-            values.add(concat(QUOTE,
-                columnAnnotation.defaultValue().replace(String.valueOf(QUOTE), DOUBLE_QUOTE),
-                QUOTE));
-          } else {
-            values.add("NULL");
-          }
-        } else {
-          values.add(
-              concat(QUOTE, String.valueOf(value).replace(String.valueOf(QUOTE), DOUBLE_QUOTE),
-                  QUOTE));
-        }
-      } catch (IllegalAccessException ignored) {
-      }
-    }
-    if (parent != null) {
-      HasManySpec hasManySpec = getHasManySpec(theClass, parent);
-      Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
-      if (columns != null) {
-        columns.add(hasManySpec.getThroughColumnName());
-      }
-      if (values != null) {
-        if (foreignValue != null && hasData(foreignValue.getClass(), foreignValue)) {
-          values.add(String.valueOf(foreignValue));
-        } else {
-          DataObject<?> parentDataObject = getDataObject(parent.getClass());
-          String tableName = parentDataObject.getTableName();
-          values.add(concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')"));
-        }
-      }
-    }
-  }
-
-  private static <Parent> Object getRelationValueFromParent(Parent parent,
-                                                            HasManySpec hasManySpec) {
-    Object foreignValue = null;
-    try {
-      foreignValue = hasManySpec.throughField.get(parent);
-    } catch (Exception ignored) {
-    }
-    return foreignValue;
   }
 
   private static String getHex(byte[] raw) {
@@ -355,11 +253,12 @@ public class SQLHelper {
   static <T> String getFastInsertSqlHeader(T bean) {
     ArrayList<String> values = new ArrayList<String>();
     ArrayList<String> columns = new ArrayList<String>();
-    populateColumnsAndValues(bean, null, values, columns);
+
+    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    dataObject.populateColumnsAndValues(bean, null, values, columns);
 
     StringBuilder result = new StringBuilder();
 
-    DataObject<?> dataObject = getDataObject(bean.getClass());
     result.append("INSERT OR IGNORE INTO ").append(dataObject.getTableName()).append(" ");
     // set insert columns
     result.append("(");
@@ -382,7 +281,8 @@ public class SQLHelper {
 
   static <T> String getUnionInsertSql(T bean) {
     ArrayList<String> values = new ArrayList<String>();
-    populateColumnsAndValues(bean, null, values, null);
+    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    dataObject.populateColumnsAndValues(bean, null, values, null);
     StringBuilder builder = new StringBuilder();
     builder.append(" UNION SELECT ");
     builder.append(StrUtil.join(values, ", "));

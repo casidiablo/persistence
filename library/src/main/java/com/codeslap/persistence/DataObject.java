@@ -32,13 +32,12 @@ public interface DataObject<T> {
 
   /**
    * It assumes the object has no constructor or it's both public and without parameters
+   *
    * @return new instance of this object
    */
   T newInstance();
 
-  /**
-   * @return true if the table has an auto-incrementable primary key
-   */
+  /** @return true if the table has an auto-incrementable primary key */
   boolean hasAutoincrement();
 
   Collection<HasManySpec> hasMany();
@@ -64,4 +63,7 @@ public interface DataObject<T> {
   T getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper);
 
   <Parent> String getWhere(T bean, List<String> args, Parent parent);
+
+  <Parent> void populateColumnsAndValues(T bean, Parent parent, List<String> values,
+                                         List<String> columns);
 }
