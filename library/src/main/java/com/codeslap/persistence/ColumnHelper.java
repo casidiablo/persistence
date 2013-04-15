@@ -16,17 +16,25 @@
 
 package com.codeslap.persistence;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * // TODO write description
  *
  * @author cristian
  */
 class ColumnHelper {
+  private static final Map<ColumnField, String> COLUMN_NAMES_CACHE = new HashMap<ColumnField, String>();
+
   /**
    * @param field field to get the column name from
    * @return gets the column name version of the specified field
    */
   static String getColumnName(ColumnField field) {
+    if (COLUMN_NAMES_CACHE.containsKey(field)) {
+      return COLUMN_NAMES_CACHE.get(field);
+    }
     if (isPrimaryKey(field) && !forcedName(field)) {
       return getIdColumn(field);
     }
@@ -44,6 +52,7 @@ class ColumnHelper {
       newName.append(name.charAt(i));
     }
     String columnName = newName.toString().toLowerCase();
+    COLUMN_NAMES_CACHE.put(field, columnName);
     return columnName;
   }
 

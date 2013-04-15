@@ -213,10 +213,11 @@ public class ReflectDataObject implements DataObject<Object> {
   public String getCreateTableSentence() {
     CreateTableHelper createTable = CreateTableHelper.init(tableName);
     for (Field field : fields.values()) {
-      String columnName = ReflectHelper.getColumnName(field);
+      ReflectColumnField columnField = new ReflectColumnField(field);
+      String columnName = ColumnHelper.getColumnName(columnField);
       CreateTableHelper.Type type = getTypeFrom(field);
-      if (ReflectHelper.isPrimaryKey(field)) {
-        String column = ReflectHelper.getIdColumn(field);
+      if (ColumnHelper.isPrimaryKey(columnField)) {
+        String column = ColumnHelper.getIdColumn(columnField);
         createTable.addPk(column, type, hasAutoincrement);
       } else if (field.getType() != List.class) {
         boolean notNull = false;
@@ -260,7 +261,8 @@ public class ReflectDataObject implements DataObject<Object> {
     // get each field and put its value in a content values object
     for (Field field : fields.values()) {
       // get the column index
-      String normalize = ReflectHelper.getColumnName(field);
+      ReflectColumnField columnField = new ReflectColumnField(field);
+      String normalize = ColumnHelper.getColumnName(columnField);
       int columnIndex = query.getColumnIndex(normalize);
       // get an object value depending on the type
       Class type = field.getType();
@@ -272,7 +274,8 @@ public class ReflectDataObject implements DataObject<Object> {
           value = processInnerCollection(query, tree, getDataObject(collectionClass), dbHelper);
         }
       } else {// do not process collections here
-        value = getValueFromCursor(type, ReflectHelper.getColumnName(field), query);
+        value = getValueFromCursor(type, ColumnHelper.getColumnName(columnField),
+            query);
       }
       try {
         if (value != null) {
@@ -374,7 +377,7 @@ public class ReflectDataObject implements DataObject<Object> {
       }
       // build a query that uses the joining table and the joined object
       Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
-          ReflectHelper.getIdColumn(SQLHelper.getPrimaryKeyField(objectType)) /* this is not like this all the time*/,
+          ColumnHelper.getIdColumn(new ReflectColumnField(SQLHelper.getPrimaryKeyField(objectType))) /* this is not like this all the time*/,
           query);
       if (foreignValue != null) {
         String sql = new StringBuilder().append("SELECT * FROM ")
@@ -420,8 +423,8 @@ public class ReflectDataObject implements DataObject<Object> {
     // build a query that uses the joining table and the joined object
     String sql = new StringBuilder().append("SELECT * FROM ")
         .append(collectionDataObject.getTableName()).append(" WHERE ")
-        .append(ReflectHelper.getIdColumn(primaryKeyField)).append(" IN (SELECT ")
-        .append(currentManyToMany.getSecondaryKey()).append(" FROM ")
+        .append(ColumnHelper.getIdColumn(new ReflectColumnField(primaryKeyField)))
+        .append(" IN (SELECT ").append(currentManyToMany.getSecondaryKey()).append(" FROM ")
         .append(currentManyToMany.getTableName()).append(" WHERE ")
         .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
     // execute the query

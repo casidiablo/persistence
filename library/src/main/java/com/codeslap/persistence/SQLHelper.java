@@ -75,7 +75,7 @@ public class SQLHelper {
           if (!hasData(type, value)) {
             continue;
           }
-          String columnName = ReflectHelper.getColumnName(field);
+          String columnName = ColumnHelper.getColumnName(new ReflectColumnField(field));
           if (args == null) {
             if (field.getType() == String.class) {
               String cleanedValue = String.valueOf(value)
@@ -144,16 +144,17 @@ public class SQLHelper {
           Object value = field.get(bean);
           boolean isBoolean = field.getType() == Boolean.class || field.getType() == boolean.class;
           if (isBoolean || hasData(type, value)) {
+            ReflectColumnField columnField = new ReflectColumnField(field);
             if (isBoolean) {
               int intValue = (Boolean) value ? 1 : 0;
-              sets.add(concat(ReflectHelper.getColumnName(field), " = '", intValue, QUOTE));
+              sets.add(concat(ColumnHelper.getColumnName(columnField), " = '", intValue, QUOTE));
             } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
               String hex = getHex((byte[]) value);
-              sets.add(concat(ReflectHelper.getColumnName(field), " = X'", hex, QUOTE));
+              sets.add(concat(ColumnHelper.getColumnName(columnField), " = X'", hex, QUOTE));
             } else {
               String cleanedVal = String.valueOf(value)
                   .replace(String.valueOf(QUOTE), DOUBLE_QUOTE);
-              sets.add(concat(ReflectHelper.getColumnName(field), " = '", cleanedVal, QUOTE));
+              sets.add(concat(ColumnHelper.getColumnName(columnField), " = '", cleanedVal, QUOTE));
             }
           }
         } catch (IllegalAccessException ignored) {
@@ -258,7 +259,8 @@ public class SQLHelper {
     String tableName = dataObject.getTableName();
     if (values.size() == 0 && dataObject.hasAutoincrement()) {
       String hack = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')+1");
-      String idColumn = ReflectHelper.getIdColumn(getPrimaryKeyField(bean.getClass()));
+      String idColumn = ColumnHelper
+          .getIdColumn(new ReflectColumnField(getPrimaryKeyField(bean.getClass())));
       return concat("INSERT OR IGNORE INTO ", tableName, " (", idColumn, ") VALUES (", hack, ");",
           STATEMENT_SEPARATOR);
     }
@@ -277,7 +279,8 @@ public class SQLHelper {
     DataObject<?> dataObject = getDataObject(theClass);
     for (Field field : fields) {
       // if the class has an autoincrement, ignore the ID
-      if (ReflectHelper.isPrimaryKey(field) && dataObject.hasAutoincrement()) {
+      ReflectColumnField columnField = new ReflectColumnField(field);
+      if (ColumnHelper.isPrimaryKey(columnField) && dataObject.hasAutoincrement()) {
         continue;
       }
       try {
@@ -288,7 +291,7 @@ public class SQLHelper {
         field.setAccessible(true);
         Object value = field.get(bean);
         if (columns != null) {
-          columns.add(ReflectHelper.getColumnName(field));
+          columns.add(ColumnHelper.getColumnName(columnField));
         }
         if (values == null) {
           continue;
@@ -374,7 +377,7 @@ public class SQLHelper {
    */
   static String getPrimaryKey(Class<?> theClass) {
     for (Field field : getDeclaredFields(theClass)) {
-      if (ReflectHelper.isPrimaryKey(field)) {
+      if (ColumnHelper.isPrimaryKey(new ReflectColumnField(field))) {
         return field.getName();
       }
     }
@@ -387,7 +390,7 @@ public class SQLHelper {
    */
   static Field getPrimaryKeyField(Class<?> theClass) {
     for (Field field : getDeclaredFields(theClass)) {
-      if (ReflectHelper.isPrimaryKey(field)) {
+      if (ColumnHelper.isPrimaryKey(new ReflectColumnField(field))) {
         field.setAccessible(true);
         return field;
       }

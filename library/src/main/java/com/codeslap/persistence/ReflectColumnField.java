@@ -38,4 +38,17 @@ public class ReflectColumnField implements ColumnField {
   @Override public <T extends Annotation> boolean isAnnotationPresent(Class<T> annotation) {
     return field.isAnnotationPresent(annotation);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ReflectColumnField that = (ReflectColumnField) o;
+    return !(field != null ? !field.equals(that.field) : that.field != null);
+  }
+
+  @Override
+  public int hashCode() {
+    return field != null ? field.hashCode() : 0;
+  }
 }
