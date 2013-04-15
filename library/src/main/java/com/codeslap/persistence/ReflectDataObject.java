@@ -172,7 +172,8 @@ public class ReflectDataObject implements DataObject<Object> {
       throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
     }
     try {
-      return fields.get(fieldName).get(target);
+      Field field = fields.get(fieldName);
+      return field.get(target);
     } catch (IllegalAccessException e) {
       return null;
     }
@@ -514,5 +515,74 @@ public class ReflectDataObject implements DataObject<Object> {
       tableName = SQLHelper.normalize(name);
     }
     return tableName;
+  }
+
+  @Override
+  public <Parent> String getWhere(Object bean, List<String> args, Parent parent) {
+    List<String> conditions = new ArrayList<String>();
+    if (bean != null) {
+      for (Field field : fields.values()) {
+        Class<?> type = field.getType();
+        if (type == byte[].class || type == Byte[].class || type == List.class) {
+          continue;
+        }
+        try {
+          if (!hasData(field.getName(), bean)) {
+            continue;
+          }
+          Object value = field.get(bean);
+          String columnName = ColumnHelper.getColumnName(new ReflectColumnField(field));
+          if (args == null) {
+            if (field.getType() == String.class) {
+              String cleanedValue = String.valueOf(value)
+                  .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE);
+              conditions.add(concat(columnName, " LIKE '", cleanedValue, SQLHelper.QUOTE));
+            } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+              int intValue = (Boolean) value ? 1 : 0;
+              conditions.add(concat(columnName, " = '", intValue, SQLHelper.QUOTE));
+            } else {
+              conditions.add(concat(columnName, " = '", value, SQLHelper.QUOTE));
+            }
+          } else {
+            if (field.getType() == String.class) {
+              conditions.add(concat(columnName, " LIKE ?"));
+            } else {
+              conditions.add(concat(columnName, " = ?"));
+            }
+            if (field.getType() == Boolean.class || field.getType() == boolean.class) {
+              value = (Boolean) value ? 1 : 0;
+            }
+            args.add(String.valueOf(value));
+          }
+        } catch (IllegalAccessException ignored) {
+        }
+      }
+    }
+
+    // if there is an attachment
+    if (parent != null) {
+      HasManySpec hasManySpec = SQLHelper.getHasManySpec(objectType, parent);
+      Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
+      if (foreignValue != null) {
+        if (args == null) {
+          conditions.add(
+              concat(hasManySpec.getThroughColumnName(), " = '", foreignValue.toString(), SQLHelper.QUOTE));
+        } else {
+          conditions.add(concat(hasManySpec.getThroughColumnName(), " = ?"));
+          args.add(foreignValue.toString());
+        }
+      }
+    }
+    return StrUtil.join(conditions, " AND ");
+  }
+
+  private static <Parent> Object getRelationValueFromParent(Parent parent,
+                                                            HasManySpec hasManySpec) {
+    Object foreignValue = null;
+    try {
+      foreignValue = hasManySpec.throughField.get(parent);
+    } catch (Exception ignored) {
+    }
+    return foreignValue;
   }
 }

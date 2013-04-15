@@ -40,7 +40,7 @@ public class SQLHelper {
 
   static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
   static final char QUOTE = '\'';
-  private static final String DOUBLE_QUOTE = "''";
+  static final String DOUBLE_QUOTE = "''";
 
   static Field[] getDeclaredFields(Class theClass) {
     if (!FIELDS_CACHE.containsKey(theClass)) {
@@ -59,68 +59,7 @@ public class SQLHelper {
     return FIELDS_CACHE.get(theClass);
   }
 
-  static <T, Parent> String getWhere(Class<?> theClass, T bean, List<String> args, Parent parent) {
-    List<String> conditions = new ArrayList<String>();
-    if (bean != null) {
-      Class<?> clazz = bean.getClass();
-      Field[] fields = getDeclaredFields(clazz);
-      for (Field field : fields) {
-        Class<?> type = field.getType();
-        if (type == byte[].class || type == Byte[].class || type == List.class) {
-          continue;
-        }
-        try {
-          field.setAccessible(true);
-          Object value = field.get(bean);
-          if (!hasData(type, value)) {
-            continue;
-          }
-          String columnName = ColumnHelper.getColumnName(new ReflectColumnField(field));
-          if (args == null) {
-            if (field.getType() == String.class) {
-              String cleanedValue = String.valueOf(value)
-                  .replace(String.valueOf(QUOTE), DOUBLE_QUOTE);
-              conditions.add(concat(columnName, " LIKE '", cleanedValue, QUOTE));
-            } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-              int intValue = (Boolean) value ? 1 : 0;
-              conditions.add(concat(columnName, " = '", intValue, QUOTE));
-            } else {
-              conditions.add(concat(columnName, " = '", value, QUOTE));
-            }
-          } else {
-            if (field.getType() == String.class) {
-              conditions.add(concat(columnName, " LIKE ?"));
-            } else {
-              conditions.add(concat(columnName, " = ?"));
-            }
-            if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-              value = (Boolean) value ? 1 : 0;
-            }
-            args.add(String.valueOf(value));
-          }
-        } catch (IllegalAccessException ignored) {
-        }
-      }
-    }
-
-    // if there is an attachment
-    if (parent != null) {
-      HasManySpec hasManySpec = getHasManySpec(theClass, parent);
-      Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
-      if (foreignValue != null) {
-        if (args == null) {
-          conditions.add(
-              concat(hasManySpec.getThroughColumnName(), " = '", foreignValue.toString(), QUOTE));
-        } else {
-          conditions.add(concat(hasManySpec.getThroughColumnName(), " = ?"));
-          args.add(foreignValue.toString());
-        }
-      }
-    }
-    return join(conditions, " AND ");
-  }
-
-  private static <Parent> HasManySpec getHasManySpec(Class<?> theClass, Parent parent) {
+  static <Parent> HasManySpec getHasManySpec(Class<?> theClass, Parent parent) {
     Class<Parent> containerClass = (Class<Parent>) getDataObject(theClass).belongsTo();
     if (containerClass != parent.getClass()) {
       throw new IllegalArgumentException(
@@ -161,21 +100,7 @@ public class SQLHelper {
         }
       }
     }
-
-    return join(sets, ", ");
-  }
-
-  private static String join(List<String> sets, String glue) {
-    StringBuilder builder = new StringBuilder();
-    boolean glued = false;
-    for (String condition : sets) {
-      if (glued) {
-        builder.append(glue);
-      }
-      builder.append(condition);
-      glued = true;
-    }
-    return builder.toString();
+    return StrUtil.join(sets, ", ");
   }
 
   // TODO remove this :P
@@ -223,10 +148,10 @@ public class SQLHelper {
     return newName.toString().toLowerCase();
   }
 
-  static <T> String buildUpdateStatement(T bean, Object sample) {
-    String where = getWhere(bean.getClass(), sample, null, null);
+  static <T> String buildUpdateStatement(T bean, T sample) {
+    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    String where = dataObject.getWhere(sample, null, null);
     String set = getSet(bean);
-    DataObject<?> dataObject = getDataObject(bean.getClass());
     return concat("UPDATE ", dataObject.getTableName(), " SET ", set, " WHERE ", where, ";",
         STATEMENT_SEPARATOR);
   }
@@ -250,7 +175,7 @@ public class SQLHelper {
     if (INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
       columnsSet = INSERT_COLUMNS_CACHE.get(bean.getClass());
     } else {
-      columnsSet = join(columns, ", ");
+      columnsSet = StrUtil.join(columns, ", ");
       INSERT_COLUMNS_CACHE.put(bean.getClass(), columnsSet);
     }
 
@@ -265,7 +190,7 @@ public class SQLHelper {
           STATEMENT_SEPARATOR);
     }
     return concat("INSERT OR IGNORE INTO ", tableName, " (", columnsSet, ") VALUES (",
-        join(values, ", "), ");", STATEMENT_SEPARATOR);
+        StrUtil.join(values, ", "), ");", STATEMENT_SEPARATOR);
   }
 
   private static <T, Parent> void populateColumnsAndValues(T bean, Parent parent,
@@ -400,11 +325,13 @@ public class SQLHelper {
 
   static <T, Parent> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> type,
                                                   T sample, Parent parent, Constraint constraint) {
+    DataObject<T> dataObject = getDataObject((Class<T>) type);
     String[] selectionArgs = null;
     String where = null;
     if (sample != null || parent != null) {
       ArrayList<String> args = new ArrayList<String>();
-      where = getWhere(type, sample, args, parent);
+      getDataObject(type);
+      where = dataObject.getWhere(sample, args, parent);
       if (TextUtils.isEmpty(where)) {
         where = null;
       } else {
@@ -421,8 +348,8 @@ public class SQLHelper {
       }
       groupBy = constraint.getGroupBy();
     }
-    DataObject<? extends T> dataObject = getDataObject(type);
-    return db.query(dataObject.getTableName(), null, where, selectionArgs, groupBy, null, orderBy, limit);
+    return db.query(dataObject.getTableName(), null, where, selectionArgs, groupBy, null, orderBy,
+        limit);
   }
 
   static <T> String getFastInsertSqlHeader(T bean) {
@@ -436,7 +363,7 @@ public class SQLHelper {
     result.append("INSERT OR IGNORE INTO ").append(dataObject.getTableName()).append(" ");
     // set insert columns
     result.append("(");
-    result.append(join(columns, ", "));
+    result.append(StrUtil.join(columns, ", "));
     result.append(")");
     // add first insertion body
     result.append(" SELECT ");
@@ -449,7 +376,7 @@ public class SQLHelper {
       columnAndValue.append(value).append(" AS ").append(column);
       columnsAndValues.add(columnAndValue.toString());
     }
-    result.append(join(columnsAndValues, ", "));
+    result.append(StrUtil.join(columnsAndValues, ", "));
     return result.toString();
   }
 
@@ -458,7 +385,7 @@ public class SQLHelper {
     populateColumnsAndValues(bean, null, values, null);
     StringBuilder builder = new StringBuilder();
     builder.append(" UNION SELECT ");
-    builder.append(join(values, ", "));
+    builder.append(StrUtil.join(values, ", "));
     return builder.toString();
   }
 }

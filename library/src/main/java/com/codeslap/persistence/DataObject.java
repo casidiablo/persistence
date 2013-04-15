@@ -18,6 +18,7 @@ package com.codeslap.persistence;
 
 import android.database.Cursor;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -61,4 +62,6 @@ public interface DataObject<T> {
   boolean hasData(String fieldName, T bean);
 
   T getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper);
+
+  <Parent> String getWhere(T bean, List<String> args, Parent parent);
 }

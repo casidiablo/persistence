@@ -7,6 +7,7 @@ import com.codeslap.persistence.ManyToManySpec;
 import com.codeslap.persistence.SqliteDb;
 import java.util.Collection;
 import java.util.Set;
+import java.util.List;
 
 public class ${className}DataObject implements DataObject<${className}> {
   @Override public String getCreateTableSentence() {
@@ -62,6 +63,10 @@ public class ${className}DataObject implements DataObject<${className}> {
   }
 
   @Override public ${className} getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper) {
+    return null;
+  }
+
+  @Override public <Parent> String getWhere(${className} bean, List<String> args, Parent parent) {
     return null;
   }
 }

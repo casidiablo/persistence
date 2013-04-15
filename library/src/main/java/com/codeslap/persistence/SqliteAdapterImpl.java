@@ -42,12 +42,14 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> T findFirst(T sample) {
-    Class<T> clazz = (Class<T>) sample.getClass();
+    Class<T> type = (Class<T>) sample.getClass();
     ArrayList<String> args = new ArrayList<String>();
-    String where = SQLHelper.getWhere(clazz, sample, args, null);
-    Cursor query = mDbHelper.getDatabase().query(getDataObject(clazz).getTableName(), null, where,
-        args.toArray(new String[args.size()]), null, null, null, "1");
-    return findFirstFromCursor(clazz, query);
+    DataObject<T> dataObject = getDataObject(type);
+    String where = dataObject.getWhere(sample, args, null);
+    Cursor query = mDbHelper.getDatabase()
+        .query(dataObject.getTableName(), null, where, args.toArray(new String[args.size()]), null,
+            null, null, "1");
+    return findFirstFromCursor(type, query);
   }
 
   @Override
@@ -252,7 +254,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
       return 0;
     }
     ArrayList<String> args = new ArrayList<String>();
-    String where = SQLHelper.getWhere(object.getClass(), sample, args, null);
+    DataObject<T> dataObject = getDataObject((Class<T>) object.getClass());
+    String where = dataObject.getWhere(sample, args, null);
     return update(object, where, args.toArray(new String[args.size()]));
   }
 
@@ -284,7 +287,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
       return -1;
     }
     ArrayList<String> args = new ArrayList<String>();
-    String where = SQLHelper.getWhere(sample.getClass(), sample, args, null);
+    DataObject<T> dataObject = getDataObject((Class<T>) sample.getClass());
+    String where = dataObject.getWhere(sample, args, null);
     String[] argsArray = args.toArray(new String[args.size()]);
     return delete(sample.getClass(), where, argsArray);
   }
@@ -488,7 +492,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
         Object beanId = dataObject.get(pkFieldName, bean);
         dataObject.set(pkFieldName, sample, beanId);
 
-        Object match = findFirst(sample);
+        T match = findFirst(sample);
         if (match != null) {
           // if they are the same, do nothing...
           if (bean.equals(match)) {
