@@ -44,7 +44,7 @@ public interface DataObject<T> {
 
   Collection<ManyToManySpec> manyToMany();
 
-  HasManySpec hasMany(Class<?> theClass);
+  <Child> HasManySpec hasMany(Class<Child> theClass);
 
   Class<?> belongsTo();
 
@@ -66,4 +66,6 @@ public interface DataObject<T> {
 
   <Parent> void populateColumnsAndValues(T bean, Parent parent, List<String> values,
                                          List<String> columns);
+
+  SqliteType getTypeFrom(String fieldName);
 }

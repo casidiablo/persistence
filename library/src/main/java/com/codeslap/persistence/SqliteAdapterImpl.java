@@ -615,11 +615,11 @@ public class SqliteAdapterImpl implements SqlAdapter {
   private <T> String getSqlInsertForHasManyRelations(T bean,
                                                      Set tree) throws IllegalAccessException {
     Class<T> type = (Class<T>) bean.getClass();
-    DataObject<T> dataObject1 = getDataObject(type);
+    DataObject<T> dataObject = getDataObject(type);
 
     StringBuilder sqlStatement = new StringBuilder();
-    for (HasManySpec hasManySpec : dataObject1.hasMany()) {
-      List list = (List) hasManySpec.listField.get(bean);
+    for (HasManySpec hasManySpec : dataObject.hasMany()) {
+      List list = (List) dataObject.get(hasManySpec.listField, bean);
       if (list == null) {
         break;
       }

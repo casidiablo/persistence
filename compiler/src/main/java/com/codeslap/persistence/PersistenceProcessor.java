@@ -83,7 +83,7 @@ public class PersistenceProcessor extends AbstractProcessor {
       }
       ProcessorColumnField columnField = new ProcessorColumnField(element);
       String columnName = ColumnHelper.getColumnName(columnField);
-      CreateTableHelper.Type type = getTypeFrom(element);
+      SqliteType type = getTypeFrom(element);
       if (CodeGenHelper.isPrimaryKey(columnField)) {
         String column = ColumnHelper.getIdColumn(columnField);
         createTable.addPk(column, type, shouldBeAutoIncrement(element));
@@ -117,10 +117,10 @@ public class PersistenceProcessor extends AbstractProcessor {
     return createTable.build();
   }
 
-  private static CreateTableHelper.Type getTypeFrom(Element element) {
+  private static SqliteType getTypeFrom(Element element) {
     TypeMirror typeMirror = element.asType();
-    return typeMirror.accept(new SimpleTypeVisitor6<CreateTableHelper.Type, Void>() {
-      @Override public CreateTableHelper.Type visitPrimitive(PrimitiveType primitiveType,
+    return typeMirror.accept(new SimpleTypeVisitor6<SqliteType, Void>() {
+      @Override public SqliteType visitPrimitive(PrimitiveType primitiveType,
                                                              Void aVoid) {
         switch (primitiveType.getKind()) {
           case BOOLEAN:
@@ -128,18 +128,18 @@ public class PersistenceProcessor extends AbstractProcessor {
           case SHORT:
           case INT:
           case LONG:
-            return CreateTableHelper.Type.INTEGER;
+            return SqliteType.INTEGER;
           case FLOAT:
           case DOUBLE:
-            return CreateTableHelper.Type.REAL;
+            return SqliteType.REAL;
           case CHAR:
           default:
-            return CreateTableHelper.Type.TEXT;
+            return SqliteType.TEXT;
         }
       }
 
-      @Override protected CreateTableHelper.Type defaultAction(TypeMirror typeMirror, Void aVoid) {
-        return CreateTableHelper.Type.TEXT;
+      @Override protected SqliteType defaultAction(TypeMirror typeMirror, Void aVoid) {
+        return SqliteType.TEXT;
       }
     }, null);
   }

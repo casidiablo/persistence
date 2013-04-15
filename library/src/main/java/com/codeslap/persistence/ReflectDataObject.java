@@ -123,14 +123,14 @@ public class ReflectDataObject implements DataObject<Object> {
   }
 
   @Override
-  public HasManySpec hasMany(Class<?> theClass) {
+  public <Child> HasManySpec hasMany(Class<Child> childClass) {
     for (HasManySpec hasManySpec : hasManyList) {
-      if (hasManySpec.contained == theClass) {
+      if (hasManySpec.contained == childClass) {
         return hasManySpec;
       }
     }
     throw new IllegalArgumentException(
-        "Cannot find has-many relation between " + objectType + "and" + theClass);
+        "Cannot find has-many relation between " + objectType + "and" + childClass);
   }
 
   @Override
@@ -216,7 +216,7 @@ public class ReflectDataObject implements DataObject<Object> {
     for (Field field : fields.values()) {
       ReflectColumnField columnField = new ReflectColumnField(field);
       String columnName = ColumnHelper.getColumnName(columnField);
-      CreateTableHelper.Type type = getTypeFrom(field);
+      SqliteType type = getTypeFrom(field);
       if (ColumnHelper.isPrimaryKey(columnField)) {
         String column = ColumnHelper.getIdColumn(columnField);
         createTable.addPk(column, type, hasAutoincrement);
@@ -235,16 +235,13 @@ public class ReflectDataObject implements DataObject<Object> {
     Class<?> containerClass = belongsTo();
     if (containerClass != null) {
       DataObject<?> containerDataObject = DataObjectFactory.getDataObject(containerClass);
-      for (HasManySpec hasManySpec : containerDataObject.hasMany()) {
-        if (hasManySpec.contained != objectType) {
-          continue;
-        }
-        // add a new field to the table creation statement to create the relation
-        // TODO is it really necessary to mark this field as "not null"?
-        String columnName = hasManySpec.getThroughColumnName();
-        createTable.add(columnName, getTypeFrom(hasManySpec.throughField), false);
-        break;
-      }
+      HasManySpec hasManySpec = containerDataObject.hasMany(objectType);
+      // add a new field to the table creation statement to create the relation
+      // TODO is it really necessary to mark this field as "not null"?
+      String columnName = hasManySpec.getThroughColumnName();
+      SqliteType sqlType = containerDataObject
+          .getTypeFrom(containerDataObject.getPrimaryKeyFieldName());
+      createTable.add(columnName, sqlType, false);
     }
     return createTable.build();
   }
@@ -348,7 +345,7 @@ public class ReflectDataObject implements DataObject<Object> {
                 .getSimpleName() + " and viceversa");
       }
 
-      HasManySpec hasManySpec = new HasManySpec(objectType, field);
+      HasManySpec hasManySpec = new HasManySpec(objectType, field.getName(), collectionClass);
       hasManyList.add(hasManySpec);
     }
   }
@@ -469,18 +466,22 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  private static CreateTableHelper.Type getTypeFrom(Field field) {
+  @Override public SqliteType getTypeFrom(String fieldName) {
+    return getTypeFrom(fields.get(fieldName));
+  }
+
+  private static SqliteType getTypeFrom(Field field) {
     Class<?> type = field.getType();
     if (type == int.class || type == Integer.class || type == long.class || type == Long.class ||
         type == boolean.class || type == Boolean.class) {
-      return CreateTableHelper.Type.INTEGER;
+      return SqliteType.INTEGER;
     } else if (type == float.class || type == Float.class || type == double.class ||
         type == Double.class) {
-      return CreateTableHelper.Type.REAL;
+      return SqliteType.REAL;
     } else if (type == byte[].class || type == Byte[].class) {
-      return CreateTableHelper.Type.BLOB;
+      return SqliteType.BLOB;
     }
-    return CreateTableHelper.Type.TEXT;
+    return SqliteType.TEXT;
   }
 
   private void error(Exception e) {
@@ -561,7 +562,7 @@ public class ReflectDataObject implements DataObject<Object> {
     // if there is an attachment
     if (parent != null) {
       HasManySpec hasManySpec = getHasManySpec(parent);
-      Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
+      Object foreignValue = getRelationValueFromParent(parent);
       if (foreignValue != null) {
         if (args == null) {
           conditions.add(concat(hasManySpec.getThroughColumnName(), " = '", foreignValue.toString(),
@@ -617,7 +618,8 @@ public class ReflectDataObject implements DataObject<Object> {
             hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
           }
           if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
-            String msg = concat("Field ", field.getName(), " from class ", objectType.getSimpleName(),
+            String msg = concat("Field ", field.getName(), " from class ",
+                objectType.getSimpleName(),
                 " cannot be null. It was marked with the @Column not null annotation and it has not a default value");
             throw new IllegalStateException(msg);
           }
@@ -637,7 +639,7 @@ public class ReflectDataObject implements DataObject<Object> {
     }
     if (parent != null) {
       HasManySpec hasManySpec = getHasManySpec(parent);
-      Object foreignValue = getRelationValueFromParent(parent, hasManySpec);
+      Object foreignValue = getRelationValueFromParent(parent);
 
       if (columns != null) {
         columns.add(hasManySpec.getThroughColumnName());
@@ -654,11 +656,12 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  private static <Parent> Object getRelationValueFromParent(Parent parent,
-                                                            HasManySpec hasManySpec) {
+  // TODO rename this method
+  private static <Parent> Object getRelationValueFromParent(Parent parent) {
     Object foreignValue = null;
     try {
-      foreignValue = hasManySpec.throughField.get(parent);
+      DataObject<Parent> dataObjectParent = getDataObject((Class<Parent>) parent.getClass());
+      foreignValue = dataObjectParent.get(dataObjectParent.getPrimaryKeyFieldName(), parent);
     } catch (Exception ignored) {
     }
     return foreignValue;

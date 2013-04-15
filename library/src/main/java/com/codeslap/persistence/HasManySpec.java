@@ -16,9 +16,6 @@
 
 package com.codeslap.persistence;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-
 import static com.codeslap.persistence.StrUtil.concat;
 
 /**
@@ -29,27 +26,15 @@ import static com.codeslap.persistence.StrUtil.concat;
 public class HasManySpec {
   final Class<?> container;
   final Class<?> contained;
-  final Field throughField;
-  final Field listField;
+  final String listField;
   final String getThroughColumnName;
 
-  HasManySpec(Class<?> container, Field listField) {
+  HasManySpec(Class<?> container, String listField, Class<?> contained) {
     this.container = container;
     this.listField = listField;
-
-    ParameterizedType parameterizedType = (ParameterizedType) listField.getGenericType();
-    Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
-    contained = collectionClass;
+    this.contained = contained;
     if (contained == null || contained == Object.class) {
       throw new IllegalStateException("Cannot use Object class. Sorry :P");
-    }
-
-    String through = SQLHelper.getPrimaryKey(container);
-    try {
-      throughField = container.getDeclaredField(through);
-      throughField.setAccessible(true);
-    } catch (NoSuchFieldException e) {
-      throw new IllegalStateException("Cannot find field " + through);
     }
 
     // if so, add a new field to the table creation statement to create the relation

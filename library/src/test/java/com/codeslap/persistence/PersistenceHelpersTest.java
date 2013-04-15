@@ -110,7 +110,6 @@ public class PersistenceHelpersTest extends SqliteTest {
     assertEquals(dataObject.hasMany(God.class).container, PolyTheist.class);
     assertEquals(dataObject.hasMany(God.class).contained, God.class);
     assertNotNull(dataObject.hasMany(God.class).listField);
-    assertNotNull(dataObject.hasMany(God.class).throughField);
     assertNotNull(dataObject.hasMany(God.class).getThroughColumnName());
   }
 

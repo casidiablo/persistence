@@ -28,7 +28,7 @@ class CreateTableHelper {
     return new CreateTableHelper(name);
   }
 
-  public CreateTableHelper add(String columnName, Type type, boolean notNull) {
+  public CreateTableHelper add(String columnName, SqliteType type, boolean notNull) {
     String notNullSentence = notNull ? NOT_NULL : "";
     if (columns.contains(columnName)) {
       throw new IllegalStateException(columnName + " already added");
@@ -38,14 +38,14 @@ class CreateTableHelper {
     return this;
   }
 
-  public CreateTableHelper addPk(String name, Type type, boolean hasAutoincrement) {
+  public CreateTableHelper addPk(String name, SqliteType type, boolean hasAutoincrement) {
     if (columns.contains(name)) {
       throw new IllegalStateException(name + " already added");
     }
     if (pkSentence != null) {
       throw new IllegalStateException("Already have a primary key: " + pkSentence);
     }
-    String autoincrement = hasAutoincrement && type == Type.INTEGER ? AUTOINCREMENT : "";
+    String autoincrement = hasAutoincrement && type == SqliteType.INTEGER ? AUTOINCREMENT : "";
     columns.add(name);
     pkSentence = name + " " + type.toString() + " PRIMARY KEY " + autoincrement;
     return this;
@@ -72,6 +72,4 @@ class CreateTableHelper {
 
     return builder.append(");").toString();
   }
-
-  public enum Type {INTEGER, TEXT, REAL, BLOB}
 }
