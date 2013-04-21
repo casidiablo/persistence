@@ -1,30 +1,4 @@
-This library works as a `SQLite` wrapper and allows you to easily create, query and work with schemas based on objects. This means
-you can forget about handling queries and Cursors manually, and work directly with Java classes.
-
-Maven integration
-=================
-
-[![Build Status](https://travis-ci.org/casidiablo/persistence.png?branch=master)](https://travis-ci.org/casidiablo/persistence)
-
-In order to use this library from you Android project using maven your pom should look like this:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project ...>
-    <dependencies>
-        <dependency>
-            <groupId>com.codeslap</groupId>
-            <artifactId>persistence</artifactId>
-            <version>0.9.23</version>
-            <scope>compile</scope>
-        </dependency>
-    </dependencies>
-</project>
-```
-
-###Normal integration
-
-Refer to the downloads section to get a JAR to import to your project.
+![logo](https://f.cloud.github.com/assets/144458/407017/d0a0a35c-aad2-11e2-9672-9163c325c622.png) Hongo is a fast ORM library for Android and SQLite. This means you can forget about handling queries and Cursors manually, and work directly with Java classes.
 
 Get started
 ===========
@@ -36,7 +10,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        DatabaseSpec database = PersistenceConfig.registerSpec(/**db version**/1);
+        DatabaseSpec database = HongoConfig.registerSpec(/**db version**/1);
         database.match(Foo.class, Bar.class);
     }
 }
@@ -46,21 +20,20 @@ And add this to your manifest:
 
 ```xml
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="your.package.name"
-          ...>
-    <application ...
-                 android:name="your.package.name.App">
+  package="your.package.name">
+  <application ...
+    android:name="your.package.name.App">
      ...
 ```
 
-Here `Foo` and `Bar` are [POJO][1]s that you will use within your app. Persistence library will automatically create
+Here `Foo` and `Bar` are [POJO][1]s that you will use within your app. Hongo library will automatically create
 sqlite tables for those classes, which will allow you to insert, query, update and delete data easily:
 
 In order to interact with the database, you must get an implementation of the [SqlAdapter][2] interface. You can do
 so this way:
 
 ```java
-SqlAdapter adapter = Persistence.getAdapter(context);
+SqlAdapter adapter = Hongo.getAdapter(context);
 ```
 
 ### Inserting/updating data
@@ -165,11 +138,30 @@ adapter.delete(sample);
 
 Looking for examples? You might take a look at [Github Jobs][3] app.
 
+Maven integration [![Build Status](https://travis-ci.org/casidiablo/hongo.png?branch=master)](https://travis-ci.org/casidiablo/hongo)
+=================
+
+
+In order to use this library from you Android project using maven your pom should look like this:
+
+```xml
+<dependency>
+  <groupId>com.codeslap</groupId>
+  <artifactId>hongo</artifactId>
+  <version>0.9.25-SNAPSHOT</version>
+  <scope>compile</scope>
+</dependency>
+```
+
+###Normal integration
+
+Refer to the downloads section to get a JAR to import to your project.
+
 ### Feedback
 
 If you have any questions or suggestions do not hesitate to sending me an email about it (cristian@elhacker.net).
 Keep in mind that this is project is in beta phase and I do not warranty it will work as expected.
 
   [1]: http://en.wikipedia.org/wiki/Plain_Old_Java_Object
-  [2]: https://github.com/casidiablo/persistence/blob/master/src/main/java/com/codeslap/persistence/SqlAdapter.java
+  [2]: https://github.com/casidiablo/hongo/blob/develop/src/main/java/com/codeslap/hongo/SqlAdapter.java
   [3]: http://github.com/casidiablo/github-jobs
