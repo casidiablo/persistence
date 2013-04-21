@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package test;
+package com.codeslap.hongo;
 
-import com.codeslap.hongo.Table;
-import com.codeslap.hongo.PrimaryKey;
+import android.database.sqlite.SQLiteDatabase;
 
-@Table("table_name") public class Foo {
-  @PrimaryKey(autoincrement = false)
-  String id;
-  int age;
+/**
+ * When creating a database, an importer can be used to populate the database.
+ * Different type of importing can be represented by implementing this interface.
+ *
+ * @author cristian
+ */
+interface Importer {
+  void execute(SQLiteDatabase database);
 }

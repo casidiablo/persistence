@@ -14,13 +14,27 @@
  * limitations under the License.
  */
 
-package test;
+package com.codeslap.hongo;
 
-import com.codeslap.hongo.Table;
-import com.codeslap.hongo.PrimaryKey;
+import java.lang.annotation.Annotation;
 
-@Table("table_name") public class Foo {
-  @PrimaryKey(autoincrement = false)
-  String id;
-  int age;
+/**
+ * Representation of a column field
+ *
+ * @author cristian
+ */
+interface ColumnField {
+  <T extends Annotation> T getAnnotation(Class<T> annotation);
+
+  String getName();
+
+  <T extends Annotation> boolean isAnnotationPresent(Class<T> annotation);
+
+  Class<?> getType();
+
+  boolean set(Object target, Object value);
+
+  Object get(Object target);
+
+  Class<?> getGenericType();
 }

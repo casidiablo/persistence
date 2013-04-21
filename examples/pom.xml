@@ -20,16 +20,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>com.codeslap</groupId>
-    <artifactId>persistence-parent</artifactId>
+    <artifactId>hongo-project</artifactId>
     <version>0.9.25-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.codeslap</groupId>
-  <artifactId>persistence-examples</artifactId>
+  <artifactId>hongo-examples</artifactId>
   <packaging>apk</packaging>
-  <name>Codeslap Persistence Examples</name>
+  <name>Hongo Examples</name>
 
   <dependencies>
     <dependency>
@@ -39,12 +38,12 @@
     </dependency>
     <dependency>
       <groupId>com.codeslap</groupId>
-      <artifactId>persistence</artifactId>
+      <artifactId>hongo</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.codeslap</groupId>
-      <artifactId>persistence-compiler</artifactId>
+      <artifactId>hongo-compiler</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

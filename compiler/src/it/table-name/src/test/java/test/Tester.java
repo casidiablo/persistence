@@ -1,6 +1,6 @@
 package test;
 
-import com.codeslap.persistence.DataObject;
+import com.codeslap.hongo.DataObject;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;

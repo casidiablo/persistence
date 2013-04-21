@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
-package test;
+package com.codeslap.test.hongo;
 
-import com.codeslap.hongo.Table;
-import com.codeslap.hongo.PrimaryKey;
+import android.app.Activity;
+import com.codeslap.hongo.Hongo;
+import com.codeslap.hongo.PreferencesAdapter;
+import org.junit.Test;
 
-@Table("table_name") public class Foo {
-  @PrimaryKey(autoincrement = false)
-  String id;
-  int age;
+import static org.junit.Assert.assertNotNull;
+
+/**
+ * @author cristian
+ */
+public class PrefHelperTest extends PrefTest {
+  @Test
+  public void prefHelperTest() {
+    PreferencesAdapter adapter = Hongo.getPreferenceAdapter(new Activity());
+    assertNotNull(adapter);
+
+    adapter = Hongo.getPreferenceAdapter(new Activity(), "test.pref");
+    assertNotNull(adapter);
+  }
 }

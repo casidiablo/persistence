@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package test;
+package com.codeslap.hongo;
 
-import com.codeslap.hongo.Table;
-import com.codeslap.hongo.PrimaryKey;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Table("table_name") public class Foo {
-  @PrimaryKey(autoincrement = false)
-  String id;
-  int age;
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.FIELD)
+public @interface PrimaryKey {
+  boolean autoincrement() default true;
 }

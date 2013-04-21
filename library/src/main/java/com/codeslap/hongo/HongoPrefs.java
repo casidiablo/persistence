@@ -14,13 +14,27 @@
  * limitations under the License.
  */
 
-package test;
+package com.codeslap.hongo;
 
-import com.codeslap.hongo.Table;
-import com.codeslap.hongo.PrimaryKey;
+import java.util.ArrayList;
+import java.util.List;
 
-@Table("table_name") public class Foo {
-  @PrimaryKey(autoincrement = false)
-  String id;
-  int age;
+/**
+ * @author cristian
+ */
+@SuppressWarnings("UnusedDeclaration")
+public class HongoPrefs {
+  private final List<Class<?>> PREFS_MAP = new ArrayList<Class<?>>();
+
+  public void match(Class<?>... types) {
+    for (Class<?> type : types) {
+      if (!PREFS_MAP.contains(type)) {
+        PREFS_MAP.add(type);
+      }
+    }
+  }
+
+  boolean belongsToPreferences(Class<?> clazz) {
+    return PREFS_MAP.contains(clazz);
+  }
 }

@@ -19,15 +19,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>com.codeslap</groupId>
-    <artifactId>persistence-parent</artifactId>
+    <artifactId>hongo-project</artifactId>
     <version>0.9.25-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.codeslap</groupId>
-  <artifactId>persistence</artifactId>
-  <packaging>jar</packaging>
+  <artifactId>hongo</artifactId>
   <name>Codeslap Persistence Library</name>
 
   <dependencies>
