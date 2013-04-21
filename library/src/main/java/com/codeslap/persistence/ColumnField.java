@@ -29,4 +29,12 @@ interface ColumnField {
   String getName();
 
   <T extends Annotation> boolean isAnnotationPresent(Class<T> annotation);
+
+  Class<?> getType();
+
+  boolean set(Object target, Object value);
+
+  Object get(Object target);
+
+  Class<?> getGenericType();
 }

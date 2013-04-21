@@ -42,4 +42,20 @@ public class ProcessorColumnField implements ColumnField {
   @Override public <T extends Annotation> boolean isAnnotationPresent(Class<T> annotation) {
     return element.getAnnotation(annotation) != null;
   }
+
+  @Override public Class<?> getType() {
+    return null;
+  }
+
+  @Override public boolean set(Object target, Object value) {
+    return false;
+  }
+
+  @Override public Object get(Object target) {
+    return null;
+  }
+
+  @Override public Class<?> getGenericType() {
+    return null;
+  }
 }

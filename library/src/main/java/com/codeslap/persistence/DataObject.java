@@ -54,10 +54,6 @@ public interface DataObject<T> {
 
   String getPrimaryKeyFieldName();
 
-  boolean set(String fieldName, T target, Object value);
-
-  Object get(String fieldName, T target);
-
   boolean hasData(String fieldName, T bean);
 
   T getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper);
@@ -68,4 +64,8 @@ public interface DataObject<T> {
                                          List<String> columns);
 
   SqliteType getTypeFrom(String fieldName);
+
+  Collection<ColumnField> getDeclaredFields();
+
+  ColumnField getField(String name);
 }

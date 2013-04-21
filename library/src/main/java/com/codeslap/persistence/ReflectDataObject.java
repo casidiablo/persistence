@@ -34,11 +34,11 @@ import static com.codeslap.persistence.StrUtil.concat;
 public class ReflectDataObject implements DataObject<Object> {
 
   private final Class<?> objectType;
-  private final Map<String, Field> fields;
+  private final Map<String, ColumnField> fields;
   private final boolean hasAutoincrement;
   private final String tableName;
-  private final Collection<HasManySpec> hasManyList = new ArrayList<HasManySpec>();
-  private final Collection<ManyToManySpec> manyToManyList = new ArrayList<ManyToManySpec>();
+  private final Collection<HasManySpec> hasManyList;
+  private final Collection<ManyToManySpec> manyToManyList;
   private final Class<?> belongsTo;
   private final String primaryKeyName;
   private final Field primaryKeyField;
@@ -49,7 +49,9 @@ public class ReflectDataObject implements DataObject<Object> {
 
   ReflectDataObject(Class<?> type, Set<Class<?>> graph) {
     objectType = type;
-    fields = new HashMap<String, Field>();
+    fields = new HashMap<String, ColumnField>();
+    hasManyList = new ArrayList<HasManySpec>();
+    manyToManyList = new ArrayList<ManyToManySpec>();
 
     PrimaryKey primaryKey = null;
     String primaryKeyName = null;
@@ -60,7 +62,7 @@ public class ReflectDataObject implements DataObject<Object> {
           Modifier.isFinal(field.getModifiers())) { // ignore final fields
         continue;
       }
-      fields.put(field.getName(), field);
+      fields.put(field.getName(), new ReflectColumnField(field));
       field.setAccessible(true);
 
       PrimaryKey pk = primaryKey == null ? field.getAnnotation(PrimaryKey.class) : null;
@@ -69,8 +71,7 @@ public class ReflectDataObject implements DataObject<Object> {
         if (pk.autoincrement() && fieldType != long.class && fieldType != Long.class &&
             fieldType != int.class && fieldType != Integer.class) {
           throw new RuntimeException(
-              "Only long and int can be used with autoincrement = true: " + objectType
-                  .getSimpleName());
+              "Only long and int can be used with autoincrement = true: " + objectType.getSimpleName());
         }
         primaryKey = pk;
         primaryKeyName = field.getName();
@@ -78,7 +79,6 @@ public class ReflectDataObject implements DataObject<Object> {
       }
 
       if (fieldType == List.class) {
-        searchForHasMany(field);
         searchForManyToMany(graph, field);
       }
     }
@@ -114,6 +114,13 @@ public class ReflectDataObject implements DataObject<Object> {
 
   @Override
   public Collection<HasManySpec> hasMany() {
+    synchronized (hasManyList) {
+      if (hasManyList.isEmpty()) {
+        for (ColumnField columnField : fields.values()) {
+          searchForHasMany(columnField);
+        }
+      }
+    }
     return hasManyList;
   }
 
@@ -124,13 +131,13 @@ public class ReflectDataObject implements DataObject<Object> {
 
   @Override
   public <Child> HasManySpec hasMany(Class<Child> childClass) {
-    for (HasManySpec hasManySpec : hasManyList) {
+    for (HasManySpec hasManySpec : hasMany()) {
       if (hasManySpec.contained == childClass) {
         return hasManySpec;
       }
     }
     throw new IllegalArgumentException(
-        "Cannot find has-many relation between " + objectType + "and" + childClass);
+        "Cannot find has-many relation between " + objectType + " and " + childClass);
   }
 
   @Override
@@ -154,34 +161,8 @@ public class ReflectDataObject implements DataObject<Object> {
   }
 
   @Override
-  public boolean set(String fieldName, Object target, Object value) {
-    if (!fields.containsKey(fieldName)) {
-      throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
-    }
-    try {
-      fields.get(fieldName).set(target, value);
-      return true;
-    } catch (IllegalAccessException e) {
-      return false;
-    }
-  }
-
-  @Override
-  public Object get(String fieldName, Object target) {
-    if (!fields.containsKey(fieldName)) {
-      throw new IllegalStateException("Cannot find field " + fieldName + " in " + objectType);
-    }
-    try {
-      Field field = fields.get(fieldName);
-      return field.get(target);
-    } catch (IllegalAccessException e) {
-      return null;
-    }
-  }
-
-  @Override
   public boolean hasData(String fieldName, Object bean) {
-    Object value = get(fieldName, bean);
+    Object value = getField(fieldName).get(bean);
     Class<?> type = fields.get(fieldName).getType();
     if (type == long.class || type == Long.class) {
       return value != null && ((Long) value) != 0L;
@@ -213,16 +194,15 @@ public class ReflectDataObject implements DataObject<Object> {
   @Override
   public String getCreateTableSentence() {
     CreateTableHelper createTable = CreateTableHelper.init(tableName);
-    for (Field field : fields.values()) {
-      ReflectColumnField columnField = new ReflectColumnField(field);
+    for (ColumnField columnField : fields.values()) {
       String columnName = ColumnHelper.getColumnName(columnField);
-      SqliteType type = getTypeFrom(field);
+      SqliteType type = getTypeFrom(columnField);
       if (ColumnHelper.isPrimaryKey(columnField)) {
         String column = ColumnHelper.getIdColumn(columnField);
         createTable.addPk(column, type, hasAutoincrement);
-      } else if (field.getType() != List.class) {
+      } else if (columnField.getType() != List.class) {
         boolean notNull = false;
-        Column columnAnnotation = field.getAnnotation(Column.class);
+        Column columnAnnotation = columnField.getAnnotation(Column.class);
         if (columnAnnotation != null) {
           notNull = columnAnnotation.notNull();
         }
@@ -239,8 +219,8 @@ public class ReflectDataObject implements DataObject<Object> {
       // add a new field to the table creation statement to create the relation
       // TODO is it really necessary to mark this field as "not null"?
       String columnName = hasManySpec.getThroughColumnName();
-      SqliteType sqlType = containerDataObject
-          .getTypeFrom(containerDataObject.getPrimaryKeyFieldName());
+      SqliteType sqlType = containerDataObject.getTypeFrom(
+          containerDataObject.getPrimaryKeyFieldName());
       createTable.add(columnName, sqlType, false);
     }
     return createTable.build();
@@ -257,17 +237,15 @@ public class ReflectDataObject implements DataObject<Object> {
     }
 
     // get each field and put its value in a content values object
-    for (Field field : fields.values()) {
+    for (ColumnField columnField : fields.values()) {
       // get the column index
-      ReflectColumnField columnField = new ReflectColumnField(field);
       String normalize = ColumnHelper.getColumnName(columnField);
       int columnIndex = query.getColumnIndex(normalize);
       // get an object value depending on the type
-      Class type = field.getType();
+      Class type = columnField.getType();
       Object value = null;
       if (columnIndex == -1 && type == List.class) {
-        ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
-        Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+        Class<?> collectionClass = columnField.getGenericType();
         if (tree.add(collectionClass)) {
           value = processInnerCollection(query, tree, getDataObject(collectionClass), dbHelper);
         }
@@ -276,12 +254,11 @@ public class ReflectDataObject implements DataObject<Object> {
       }
       try {
         if (value != null) {
-          field.setAccessible(true);
-          field.set(bean, value);
+          columnField.set(bean, value);
         }
       } catch (Exception e) {
         throw new RuntimeException(
-            concat("An error occurred setting value to ", field, ", ", value, ": ",
+            concat("An error occurred setting value to ", columnField, ", ", value, ": ",
                 e.getMessage()));
       }
     }
@@ -321,33 +298,32 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  private void searchForHasMany(Field field) {
-    HasMany hasMany = field.getAnnotation(HasMany.class);
-    if (hasMany != null) {
-      ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
-      Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
-
-      if (!collectionClass.isAnnotationPresent(Belongs.class)) {
-        throw new IllegalStateException(
-            "When defining a HasMany relation you must specify a Belongs annotation in the child class");
-      }
-      Belongs belongs = collectionClass.getAnnotation(Belongs.class);
-      if (belongs.to() != objectType) {
-        throw new IllegalStateException(
-            "Belongs class points to " + belongs.to() + " but should point to " + objectType);
-      }
-
-      Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
-      if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
-        throw new IllegalStateException(
-            "Cyclic has-many relations not supported. Use many-to-many instead: " +
-                collectionClass.getSimpleName() + " belongs to " + objectType
-                .getSimpleName() + " and viceversa");
-      }
-
-      HasManySpec hasManySpec = new HasManySpec(objectType, field.getName(), collectionClass);
-      hasManyList.add(hasManySpec);
+  private void searchForHasMany(ColumnField columnField) {
+    HasMany hasMany = columnField.getAnnotation(HasMany.class);
+    if (hasMany == null) {
+      return;
     }
+    Class<?> collectionClass = columnField.getGenericType();
+
+    if (!collectionClass.isAnnotationPresent(Belongs.class)) {
+      throw new IllegalStateException(
+          "When defining a HasMany relation you must specify a Belongs annotation in the child class");
+    }
+    Belongs belongs = collectionClass.getAnnotation(Belongs.class);
+    if (belongs.to() != objectType) {
+      throw new IllegalStateException(
+          "Belongs class points to " + belongs.to() + " but should point to " + objectType);
+    }
+
+    Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
+    if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
+      throw new IllegalStateException(
+          "Cyclic has-many relations not supported. Use many-to-many instead: " +
+              collectionClass.getSimpleName() + " belongs to " + objectType.getSimpleName() + " and viceversa");
+    }
+
+    HasManySpec hasManySpec = new HasManySpec(objectType, columnField.getName(), collectionClass);
+    hasManyList.add(hasManySpec);
   }
 
   private <Child> List<Child> processInnerCollection(Cursor query, Set<Class<?>> tree,
@@ -378,9 +354,13 @@ public class ReflectDataObject implements DataObject<Object> {
           query);
       if (foreignValue != null) {
         String sql = new StringBuilder().append("SELECT * FROM ")
-            .append(collectionDataObject.getTableName()).append(" WHERE ")
-            .append(hasManySpec.getThroughColumnName()).append(" = '").append(foreignValue)
-            .append(SQLHelper.QUOTE).toString();
+            .append(collectionDataObject.getTableName())
+            .append(" WHERE ")
+            .append(hasManySpec.getThroughColumnName())
+            .append(" = '")
+            .append(foreignValue)
+            .append(SQLHelper.QUOTE)
+            .toString();
         // execute the query and set the result to the current field
         Cursor join = dbHelper.getDatabase().rawQuery(sql, null);
         List<Child> listValue = new ArrayList<Child>();
@@ -419,11 +399,17 @@ public class ReflectDataObject implements DataObject<Object> {
 
     // build a query that uses the joining table and the joined object
     String sql = new StringBuilder().append("SELECT * FROM ")
-        .append(collectionDataObject.getTableName()).append(" WHERE ")
+        .append(collectionDataObject.getTableName())
+        .append(" WHERE ")
         .append(ColumnHelper.getIdColumn(new ReflectColumnField(primaryKeyField)))
-        .append(" IN (SELECT ").append(currentManyToMany.getSecondaryKey()).append(" FROM ")
-        .append(currentManyToMany.getTableName()).append(" WHERE ")
-        .append(currentManyToMany.getMainKey()).append(" = ?)").toString();
+        .append(" IN (SELECT ")
+        .append(currentManyToMany.getSecondaryKey())
+        .append(" FROM ")
+        .append(currentManyToMany.getTableName())
+        .append(" WHERE ")
+        .append(currentManyToMany.getMainKey())
+        .append(" = ?)")
+        .toString();
     // execute the query
     String[] selectionArgs = new String[1];
     long id = query.getLong(query.getColumnIndex(SQLHelper._ID));
@@ -470,7 +456,18 @@ public class ReflectDataObject implements DataObject<Object> {
     return getTypeFrom(fields.get(fieldName));
   }
 
-  private static SqliteType getTypeFrom(Field field) {
+  @Override public Collection<ColumnField> getDeclaredFields() {
+    return fields.values();
+  }
+
+  @Override public ColumnField getField(String name) {
+    if (!fields.containsKey(name)) {
+      throw new IllegalStateException("Cannot find field " + name + " in " + objectType);
+    }
+    return fields.get(name);
+  }
+
+  private static SqliteType getTypeFrom(ColumnField field) {
     Class<?> type = field.getType();
     if (type == int.class || type == Integer.class || type == long.class || type == Long.class ||
         type == boolean.class || type == Boolean.class) {
@@ -521,40 +518,37 @@ public class ReflectDataObject implements DataObject<Object> {
   public <Parent> String getWhere(Object bean, List<String> args, Parent parent) {
     List<String> conditions = new ArrayList<String>();
     if (bean != null) {
-      for (Field field : fields.values()) {
-        Class<?> type = field.getType();
+      for (ColumnField columnField : fields.values()) {
+        Class<?> type = columnField.getType();
         if (type == byte[].class || type == Byte[].class || type == List.class) {
           continue;
         }
-        try {
-          if (!hasData(field.getName(), bean)) {
-            continue;
-          }
-          Object value = field.get(bean);
-          String columnName = ColumnHelper.getColumnName(new ReflectColumnField(field));
-          if (args == null) {
-            if (field.getType() == String.class) {
-              String cleanedValue = String.valueOf(value)
-                  .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE);
-              conditions.add(concat(columnName, " LIKE '", cleanedValue, SQLHelper.QUOTE));
-            } else if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-              int intValue = (Boolean) value ? 1 : 0;
-              conditions.add(concat(columnName, " = '", intValue, SQLHelper.QUOTE));
-            } else {
-              conditions.add(concat(columnName, " = '", value, SQLHelper.QUOTE));
-            }
+        if (!hasData(columnField.getName(), bean)) {
+          continue;
+        }
+        Object value = columnField.get(bean);
+        String columnName = ColumnHelper.getColumnName(columnField);
+        if (args == null) {
+          if (columnField.getType() == String.class) {
+            String cleanedValue = String.valueOf(value)
+                .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE);
+            conditions.add(concat(columnName, " LIKE '", cleanedValue, SQLHelper.QUOTE));
+          } else if (columnField.getType() == Boolean.class || columnField.getType() == boolean.class) {
+            int intValue = (Boolean) value ? 1 : 0;
+            conditions.add(concat(columnName, " = '", intValue, SQLHelper.QUOTE));
           } else {
-            if (field.getType() == String.class) {
-              conditions.add(concat(columnName, " LIKE ?"));
-            } else {
-              conditions.add(concat(columnName, " = ?"));
-            }
-            if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-              value = (Boolean) value ? 1 : 0;
-            }
-            args.add(String.valueOf(value));
+            conditions.add(concat(columnName, " = '", value, SQLHelper.QUOTE));
           }
-        } catch (IllegalAccessException ignored) {
+        } else {
+          if (columnField.getType() == String.class) {
+            conditions.add(concat(columnName, " LIKE ?"));
+          } else {
+            conditions.add(concat(columnName, " = ?"));
+          }
+          if (columnField.getType() == Boolean.class || columnField.getType() == boolean.class) {
+            value = (Boolean) value ? 1 : 0;
+          }
+          args.add(String.valueOf(value));
         }
       }
     }
@@ -582,59 +576,54 @@ public class ReflectDataObject implements DataObject<Object> {
     if (bean == null) {
       return;
     }
-    for (Field field : fields.values()) {
+    for (ColumnField columnField : fields.values()) {
       // if the class has an autoincrement, ignore the ID
-      ReflectColumnField columnField = new ReflectColumnField(field);
       if (ColumnHelper.isPrimaryKey(columnField) && hasAutoincrement()) {
         continue;
       }
-      try {
-        Class<?> type = field.getType();
-        if (type == List.class) {
-          continue;
-        }
-        field.setAccessible(true);
-        Object value = field.get(bean);
-        if (columns != null) {
-          columns.add(ColumnHelper.getColumnName(columnField));
-        }
-        if (values == null) {
-          continue;
-        }
-        if (field.getType() == Boolean.class || field.getType() == boolean.class) {
-          int intValue = (Boolean) value ? 1 : 0;
-          values.add(String.valueOf(intValue));
-        } else if (field.getType() == Byte[].class || field.getType() == byte[].class) {
-          if (value == null) {
-            values.add("NULL");
-          } else {
-            String hex = getHex((byte[]) value);
-            values.add(concat("X'", hex, SQLHelper.QUOTE));
-          }
-        } else if (value == null) {
-          Column columnAnnotation = field.getAnnotation(Column.class);
-          boolean hasDefault = false;
-          if (columnAnnotation != null) {
-            hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
-          }
-          if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
-            String msg = concat("Field ", field.getName(), " from class ",
-                objectType.getSimpleName(),
-                " cannot be null. It was marked with the @Column not null annotation and it has not a default value");
-            throw new IllegalStateException(msg);
-          }
-          if (hasDefault) {
-            values.add(concat(SQLHelper.QUOTE, columnAnnotation.defaultValue()
-                .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE),
-                SQLHelper.QUOTE));
-          } else {
-            values.add("NULL");
-          }
+      Class<?> type = columnField.getType();
+      if (type == List.class) {
+        continue;
+      }
+      Object value = columnField.get(bean);
+      if (columns != null) {
+        columns.add(ColumnHelper.getColumnName(columnField));
+      }
+      if (values == null) {
+        continue;
+      }
+      if (columnField.getType() == Boolean.class || columnField.getType() == boolean.class) {
+        int intValue = (Boolean) value ? 1 : 0;
+        values.add(String.valueOf(intValue));
+      } else if (columnField.getType() == Byte[].class || columnField.getType() == byte[].class) {
+        if (value == null) {
+          values.add("NULL");
         } else {
-          values.add(concat(SQLHelper.QUOTE, String.valueOf(value)
-              .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE), SQLHelper.QUOTE));
+          String hex = getHex((byte[]) value);
+          values.add(concat("X'", hex, SQLHelper.QUOTE));
         }
-      } catch (IllegalAccessException ignored) {
+      } else if (value == null) {
+        Column columnAnnotation = columnField.getAnnotation(Column.class);
+        boolean hasDefault = false;
+        if (columnAnnotation != null) {
+          hasDefault = !columnAnnotation.defaultValue().equals(Column.NULL);
+        }
+        if (columnAnnotation != null && columnAnnotation.notNull() && !hasDefault) {
+          String msg = concat("Field ", columnField.getName(), " from class ",
+              objectType.getSimpleName(),
+              " cannot be null. It was marked with the @Column not null annotation and it has not a default value");
+          throw new IllegalStateException(msg);
+        }
+        if (hasDefault) {
+          values.add(concat(SQLHelper.QUOTE, columnAnnotation.defaultValue()
+              .replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE), SQLHelper.QUOTE));
+        } else {
+          values.add("NULL");
+        }
+      } else {
+        values.add(concat(SQLHelper.QUOTE,
+            String.valueOf(value).replace(String.valueOf(SQLHelper.QUOTE), SQLHelper.DOUBLE_QUOTE),
+            SQLHelper.QUOTE));
       }
     }
     if (parent != null) {
@@ -661,7 +650,10 @@ public class ReflectDataObject implements DataObject<Object> {
     Object foreignValue = null;
     try {
       DataObject<Parent> dataObjectParent = getDataObject((Class<Parent>) parent.getClass());
-      foreignValue = dataObjectParent.get(dataObjectParent.getPrimaryKeyFieldName(), parent);
+
+      String parentPKeyName = dataObjectParent.getPrimaryKeyFieldName();
+      ColumnField field = dataObjectParent.getField(parentPKeyName);
+      foreignValue = field.get(parent);
     } catch (Exception ignored) {
     }
     return foreignValue;

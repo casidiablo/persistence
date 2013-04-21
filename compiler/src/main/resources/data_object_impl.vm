@@ -1,10 +1,7 @@
 package ${packageName};
 
 import android.database.Cursor;
-import com.codeslap.persistence.DataObject;
-import com.codeslap.persistence.HasManySpec;
-import com.codeslap.persistence.ManyToManySpec;
-import com.codeslap.persistence.SqliteDb;
+import com.codeslap.persistence.*;
 import java.util.Collection;
 import java.util.Set;
 import java.util.List;
@@ -54,10 +51,6 @@ public class ${className}DataObject implements DataObject<${className}> {
     return false;
   }
 
-  @Override public Object get(String fieldName, ${className} target) {
-    return null;
-  }
-
   @Override public boolean hasData(String fieldName, ${className} bean) {
     return false;
   }
@@ -77,5 +70,13 @@ public class ${className}DataObject implements DataObject<${className}> {
 
   @Override public com.codeslap.persistence.SqliteType getTypeFrom(String fieldName) {
     return com.codeslap.persistence.SqliteType.TEXT;
+  }
+
+  Collection<ColumnField> getDeclaredFields(){
+    return null;
+  }
+
+  ColumnField getField(String name){
+    return null;
   }
 }

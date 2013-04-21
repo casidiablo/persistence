@@ -174,8 +174,8 @@ public class SQLHelper {
     String tableName = dataObject.getTableName();
     if (values.size() == 0 && dataObject.hasAutoincrement()) {
       String hack = concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')+1");
-      String idColumn = ColumnHelper
-          .getIdColumn(new ReflectColumnField(getPrimaryKeyField(bean.getClass())));
+      String idColumn = ColumnHelper.getIdColumn(
+          new ReflectColumnField(getPrimaryKeyField(bean.getClass())));
       return concat("INSERT OR IGNORE INTO ", tableName, " (", idColumn, ") VALUES (", hack, ");",
           STATEMENT_SEPARATOR);
     }
@@ -199,8 +199,9 @@ public class SQLHelper {
    * @return the primary key from a class
    */
   static String getPrimaryKey(Class<?> theClass) {
-    for (Field field : getDeclaredFields(theClass)) {
-      if (ColumnHelper.isPrimaryKey(new ReflectColumnField(field))) {
+    DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass);
+    for (ColumnField field : dataObject.getDeclaredFields()) {
+      if (ColumnHelper.isPrimaryKey(field)) {
         return field.getName();
       }
     }

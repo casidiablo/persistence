@@ -24,10 +24,7 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-/** @author cristian */
 public class PersistenceHelpersTest extends SqliteTest {
-
-  private static final String FAILING_SPEC_ID = "some.db";
 
   @Test
   public void testHelpers() {
@@ -39,7 +36,7 @@ public class PersistenceHelpersTest extends SqliteTest {
 
   @Test(expected = IllegalStateException.class)
   public void shouldFailWithMultipleHasManyRelationships() {
-    DataObjectFactory.getDataObject(Cyclic1.class);
+    DataObjectFactory.getDataObject(Cyclic1.class).hasMany();
   }
 
   @Belongs(to = Cyclic2.class)
@@ -56,31 +53,31 @@ public class PersistenceHelpersTest extends SqliteTest {
 
   @Test(expected = IllegalStateException.class)
   public void shouldFailWithWhenHasManyRelationDoesNotExist() {
-    DataObjectFactory.getDataObject(Mother.class);
+    DataObjectFactory.getDataObject(Mother.class).hasMany();
   }
 
   public static class Mother {
     @PrimaryKey long id;
-    @HasMany List<Dauther> children;
+    @HasMany List<Daughter> children;
   }
 
   @Belongs(to = Parent.class)
-  public static class Dauther {
+  public static class Daughter {
     @PrimaryKey long id;
   }
 
   @Test(expected = IllegalStateException.class)
   public void shouldFailWithInvalidHasManyRelation() {
-    DataObjectFactory.getDataObject(Parent.class);
+    DataObjectFactory.getDataObject(Parent.class).hasMany();
   }
 
   public static class Parent {
-    long id;
+    @PrimaryKey long id;
     @HasMany List<Child> children;
   }
 
   public static class Child {
-    long id;
+    @PrimaryKey long id;
   }
 
   @Test
@@ -89,14 +86,13 @@ public class PersistenceHelpersTest extends SqliteTest {
     Collection<ManyToManySpec> manyToManySpecs = dataObject.manyToMany();
     assertNotNull(manyToManySpecs);
     assertEquals(1, manyToManySpecs.size());
-    ManyToManySpec[] manyToManySpecsArr = manyToManySpecs
-        .toArray(new ManyToManySpec[0]);
-    boolean either = manyToManySpecsArr[0]
-        .getFirstRelation().getObjectClass() == Author.class && Book.class == manyToManySpecsArr[0]
-        .getSecondRelation().getObjectClass();
-    boolean or = manyToManySpecsArr[0]
-        .getFirstRelation().getObjectClass() == Book.class && Author.class == manyToManySpecsArr[0]
-        .getSecondRelation().getObjectClass();
+    ManyToManySpec[] manyToManySpecsArr = manyToManySpecs.toArray(new ManyToManySpec[0]);
+    boolean either = manyToManySpecsArr[0].getFirstRelation()
+        .getObjectClass() == Author.class && Book.class == manyToManySpecsArr[0].getSecondRelation()
+        .getObjectClass();
+    boolean or = manyToManySpecsArr[0].getFirstRelation()
+        .getObjectClass() == Book.class && Author.class == manyToManySpecsArr[0].getSecondRelation()
+        .getObjectClass();
     assertTrue(either || or);
   }
 

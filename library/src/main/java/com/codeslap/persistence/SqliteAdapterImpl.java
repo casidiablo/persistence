@@ -124,7 +124,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
         long id = lastId.getLong(0);
         lastId.close();
         try {
-          dataObject.set(primaryKeyFieldName, bean, id);
+          ColumnField field = dataObject.getField(primaryKeyFieldName);
+          field.set(bean, id);
         } catch (Exception pokemon) {
           pokemon.printStackTrace();
         }
@@ -134,7 +135,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
       }
     } else {
       try {
-        return dataObject.get(primaryKeyFieldName, bean);
+        ColumnField field = dataObject.getField(primaryKeyFieldName);
+        return field.get(bean);
       } catch (Exception pokemon) {
         pokemon.printStackTrace();
       }
@@ -159,8 +161,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
     List<String> transactions = new ArrayList<String>();
     DataObject<?> collectionDataObject = getDataObject(collection.get(0).getClass());
     // TODO revisit this. it should use the optimized insert statement
-    boolean hasRelations = !collectionDataObject.manyToMany().isEmpty() || !collectionDataObject
-        .hasMany().isEmpty();
+    boolean hasRelations = !collectionDataObject.manyToMany()
+        .isEmpty() || !collectionDataObject.hasMany().isEmpty();
     // if there is no listener, parent object, collection is too small or objects in the list have inner
     // relationships: insert them in a normal way, in which there will be a sql execution per object
     if (listener != null || parent != null || collection.size() <= 1 || hasRelations) {
@@ -230,8 +232,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
         for (T stored : allStored) {
           boolean contained = false;
           for (T object : collection) {
-            Object storedId = dataObject.get(dataObject.getPrimaryKeyFieldName(), stored);
-            Object storedObject = dataObject.get(dataObject.getPrimaryKeyFieldName(), object);
+            String pkFieldName = dataObject.getPrimaryKeyFieldName();
+            Object storedId = dataObject.getField(pkFieldName).get(stored);
+            Object storedObject = dataObject.getField(pkFieldName).get(object);
             if (storedId != null && storedObject != null && storedId.equals(storedObject)) {
               contained = true;
               break;
@@ -303,12 +306,13 @@ public class SqliteAdapterImpl implements SqlAdapter {
     DataObject<T> dataObject = getDataObject(theClass);
     Collection<HasManySpec> hasManySpecs = dataObject.hasMany();
     String pkFieldName = dataObject.getPrimaryKeyFieldName();
+    ColumnField pkColumnField = dataObject.getField(pkFieldName);
 
     if (onCascade) {
       List<T> toDelete = findAll(theClass, where, whereArgs);
       for (T object : toDelete) {
         for (HasManySpec hasManySpec : hasManySpecs) {
-          Object objectId = dataObject.get(pkFieldName, object);
+          Object objectId = pkColumnField.get(object);
           String whereForeign = concat(hasManySpec.getThroughColumnName(), " = '",
               String.valueOf(objectId), SQLHelper.QUOTE);
           delete(hasManySpec.contained, whereForeign, null);
@@ -331,7 +335,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
       }
       List<T> toRemove = findAll(theClass, where, whereArgs);
       for (T object : toRemove) {
-        Object objectId = dataObject.get(pkFieldName, object);
+        Object objectId = pkColumnField.get(object);
         String whereForeign = concat(foreignKey, " = '", String.valueOf(objectId), SQLHelper.QUOTE);
 
         List<String> ids = new ArrayList<String>();
@@ -377,8 +381,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> int count(T bean) {
-    Cursor query = SQLHelper
-        .getCursorFindAllWhere(mDbHelper.getDatabase(), bean.getClass(), bean, null, null);
+    Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(), bean.getClass(), bean,
+        null, null);
     int count = query.getCount();
     query.close();
     return count;
@@ -396,8 +400,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   @Override
   public <T> int count(Class<T> clazz) {
-    Cursor query = SQLHelper
-        .getCursorFindAllWhere(mDbHelper.getDatabase(), clazz, null, null, null);
+    Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(), clazz, null, null,
+        null);
     int count = query.getCount();
     query.close();
     return count;
@@ -435,9 +439,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
   private <T, Parent> List<T> findAll(DataObject<T> dataObject, T where, Parent parent,
                                       Constraint constraint) {
-    Cursor query = SQLHelper
-        .getCursorFindAllWhere(mDbHelper.getDatabase(), dataObject.getObjectClass(), where, parent,
-            constraint);
+    Cursor query = SQLHelper.getCursorFindAllWhere(mDbHelper.getDatabase(),
+        dataObject.getObjectClass(), where, parent, constraint);
     return findAllFromCursor(dataObject, query);
   }
 
@@ -445,8 +448,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
     List<T> beans = new ArrayList<T>();
     if (query.moveToFirst()) {
       do {
-        T bean = dataObject
-            .getBeanFromCursor(query, classesTree(dataObject.getObjectClass()), mDbHelper);
+        T bean = dataObject.getBeanFromCursor(query, classesTree(dataObject.getObjectClass()),
+            mDbHelper);
         beans.add(bean);
       } while (query.moveToNext());
     }
@@ -489,8 +492,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
       if (dataObject.hasData(pkFieldName, bean)) {
         // create an object of the same type of the bean with the same id to search of it
         T sample = dataObject.newInstance();
-        Object beanId = dataObject.get(pkFieldName, bean);
-        dataObject.set(pkFieldName, sample, beanId);
+        ColumnField field = dataObject.getField(pkFieldName);
+        Object beanId = field.get(bean);
+        field.set(sample, beanId);
 
         T match = findFirst(sample);
         if (match != null) {
@@ -526,8 +530,9 @@ public class SqliteAdapterImpl implements SqlAdapter {
         continue;
       }
 
-      String firstRelationField = manyToManySpec.getFirstRelationFieldName();
-      Object o = dataObject.get(firstRelationField, bean);
+      String firstRelationFieldName = manyToManySpec.getFirstRelationFieldName();
+      ColumnField firstRelationField = dataObject.getField(firstRelationFieldName);
+      Object o = firstRelationField.get(bean);
       List list = (List) o;
       if (list == null) {
         break;
@@ -559,16 +564,18 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
     ManyToManySpec manyToMany = null;
     String mainKey = null, secondaryKey = null;
-    for (Iterator<ManyToManySpec> iterator = dataObject.manyToMany().iterator(); iterator
-        .hasNext(); ) {
+    for (Iterator<ManyToManySpec> iterator = dataObject.manyToMany()
+        .iterator(); iterator.hasNext(); ) {
       manyToMany = iterator.next();
-      if (manyToMany.getFirstRelation().getObjectClass() == theClass && manyToMany
-          .getSecondRelation().getObjectClass() == collectionClass) {
+      if (manyToMany.getFirstRelation()
+          .getObjectClass() == theClass && manyToMany.getSecondRelation()
+          .getObjectClass() == collectionClass) {
         mainKey = manyToMany.getMainKey();
         secondaryKey = manyToMany.getSecondaryKey();
         break;
-      } else if (manyToMany.getSecondRelation().getObjectClass() == theClass && manyToMany
-          .getFirstRelation().getObjectClass() == collectionClass) {
+      } else if (manyToMany.getSecondRelation()
+          .getObjectClass() == theClass && manyToMany.getFirstRelation()
+          .getObjectClass() == collectionClass) {
         secondaryKey = manyToMany.getMainKey();
         mainKey = manyToMany.getSecondaryKey();
         break;
@@ -588,7 +595,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
     if (dataObject.hasAutoincrement()) {
       beanId = getSelectSeqSqlite(mainTableName);
     } else {
-      beanId = dataObject.get(dataObject.getPrimaryKeyFieldName(), foo);
+      String pkFieldName = dataObject.getPrimaryKeyFieldName();
+      beanId = dataObject.getField(pkFieldName).get(foo);
     }
 
     // get the value for the secondary foo ID
@@ -596,7 +604,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
     if (collectionDataObject.hasAutoincrement()) {
       secondaryId = getSelectSeqSqlite(secondaryTableName);
     } else {
-      secondaryId = collectionDataObject.get(collectionDataObject.getPrimaryKeyFieldName(), bar);
+      String pkFieldName = collectionDataObject.getPrimaryKeyFieldName();
+      secondaryId = collectionDataObject.getField(pkFieldName).get(bar);
     }
 
     // build the sql statement for the insertion of the many-to-many relation
@@ -619,7 +628,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
 
     StringBuilder sqlStatement = new StringBuilder();
     for (HasManySpec hasManySpec : dataObject.hasMany()) {
-      List list = (List) dataObject.get(hasManySpec.listField, bean);
+      ColumnField listField = dataObject.getField(hasManySpec.listField);
+      List list = (List) listField.get(bean);
       if (list == null) {
         break;
       }
