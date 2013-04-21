@@ -18,27 +18,23 @@ package com.codeslap.test.hongo;
 
 import android.app.Activity;
 import com.codeslap.hongo.*;
-import com.codeslap.robolectric.RobolectricSimpleRunner;
-import com.xtremelabs.robolectric.Robolectric;
 import org.junit.Before;
 import org.junit.runner.RunWith;
+import org.robolectric.util.DatabaseConfig;
+import org.robolectric.util.SQLiteMap;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
 /** @author cristian */
-@RunWith(RobolectricSimpleRunner.class)
+@RunWith(RobolectricSqliteRunner.class) @DatabaseConfig.UsingDatabaseMap(SQLiteMap.class)
 public abstract class SqliteTest {
 
   protected SqlAdapter mAdapter;
   private DatabaseSpec mDatabaseSpec;
 
   @Before public void configure() {
-    Robolectric.bindShadowClass(ShadowUriMatcher.class);
-    Robolectric.bindShadowClass(ShadowContentUris.class);
-    HongoConfig.clear();
-
     mDatabaseSpec = HongoConfig.registerSpec(1);
     assertEquals(mDatabaseSpec, HongoConfig.getDatabaseSpec());
     mDatabaseSpec.match(ExampleAutoincrement.class, AnnotationAutoincrement.class,

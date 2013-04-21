@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
+<?xml version="1.0" encoding="UTF-8"?><!--
   ~ Copyright 2013 CodeSlap
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +14,9 @@
   ~ limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>com.codeslap</groupId>
     <artifactId>hongo-project</artifactId>
@@ -41,13 +41,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.pivotallabs</groupId>
+      <groupId>org.robolectric</groupId>
       <artifactId>robolectric</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.codeslap</groupId>
-      <artifactId>robolectric-sqlite</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

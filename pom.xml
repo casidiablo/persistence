@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
+<?xml version="1.0" encoding="UTF-8"?><!--
   ~ Copyright 2013 CodeSlap
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +15,8 @@
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
@@ -30,7 +29,7 @@
   <version>0.9.25-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>Hongo</name>
+  <name>Hongo Project</name>
   <description>hongo - Persistence library for Android</description>
   <url>https://github.com/casidiablo/hongo</url>
 
@@ -49,10 +48,16 @@
     <android.version>4.1.1.4</android.version>
     <android.platform>16</android.platform>
 
+    <!-- Plugins -->
+    <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
+    <maven.javadoc.plugin.version>2.9</maven.javadoc.plugin.version>
+    <maven.deploy.plugin.version>2.7</maven.deploy.plugin.version>
+    <maven.source.plugin.version>2.2.1</maven.source.plugin.version>
+    <android.maven.plugin.version>3.5.3</android.maven.plugin.version>
+
     <!-- Test Dependencies -->
-    <junit.version>4.10</junit.version>
-    <robolectric.version>1.0</robolectric.version>
-    <robolectric.sqlite.version>1.0.0</robolectric.sqlite.version>
+    <junit.version>4.11</junit.version>
+    <robolectric.version>2.0-alpha-2</robolectric.version>
     <easymock.version>3.1</easymock.version>
   </properties>
 
@@ -105,15 +110,9 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>com.pivotallabs</groupId>
+        <groupId>org.robolectric</groupId>
         <artifactId>robolectric</artifactId>
         <version>${robolectric.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.codeslap</groupId>
-        <artifactId>robolectric-sqlite</artifactId>
-        <version>${robolectric.sqlite.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -131,7 +130,7 @@
         <plugin>
           <groupId>com.jayway.maven.plugins.android.generation2</groupId>
           <artifactId>android-maven-plugin</artifactId>
-          <version>3.3.2</version>
+          <version>${android.maven.plugin.version}</version>
           <configuration>
             <sdk>
               <platform>${android.platform}</platform>
@@ -143,7 +142,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.0</version>
+        <version>${maven.compiler.plugin.version}</version>
         <configuration>
           <source>${java.version}</source>
           <target>${java.version}</target>
@@ -153,15 +152,15 @@
       </plugin>
       <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.8</version>
+        <version>${maven.javadoc.plugin.version}</version>
       </plugin>
       <plugin>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>2.5</version>
+        <version>${maven.deploy.plugin.version}</version>
       </plugin>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.1.2</version>
+        <version>${maven.source.plugin.version}</version>
       </plugin>
     </plugins>
   </build>

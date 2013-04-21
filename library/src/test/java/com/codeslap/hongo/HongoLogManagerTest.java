@@ -16,18 +16,19 @@
 
 package com.codeslap.hongo;
 
-import com.codeslap.robolectric.RobolectricSimpleRunner;
-import com.xtremelabs.robolectric.shadows.ShadowLog;
+import android.util.Log;
+import com.codeslap.test.hongo.RobolectricSqliteRunner;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.shadows.ShadowLog;
 
 import static org.junit.Assert.assertEquals;
 
 /**
  * @author cristian
  */
-@RunWith(RobolectricSimpleRunner.class)
+@RunWith(RobolectricSqliteRunner.class)
 public class HongoLogManagerTest {
 
   @Before
@@ -52,14 +53,14 @@ public class HongoLogManagerTest {
     HongoLogManager.d("foo", "bar");
     assertEquals("test:hongo:foo", ShadowLog.getLogs().get(0).tag);
     assertEquals("bar", ShadowLog.getLogs().get(0).msg);
-    assertEquals(ShadowLog.LogType.debug, ShadowLog.getLogs().get(0).type);
+    assertEquals(Log.DEBUG, ShadowLog.getLogs().get(0).type);
 
     ShadowLog.getLogs().clear();
 
     HongoLogManager.e("bar", "foo");
     assertEquals("test:hongo:bar", ShadowLog.getLogs().get(0).tag);
     assertEquals("foo", ShadowLog.getLogs().get(0).msg);
-    assertEquals(ShadowLog.LogType.error, ShadowLog.getLogs().get(0).type);
+    assertEquals(Log.ERROR, ShadowLog.getLogs().get(0).type);
   }
 
   @Test
@@ -92,13 +93,13 @@ public class HongoLogManagerTest {
     HongoLogManager.d("foo", "bar");
     assertEquals("test:hongo:foo", ShadowLog.getLogs().get(0).tag);
     assertEquals("bar", ShadowLog.getLogs().get(0).msg);
-    assertEquals(ShadowLog.LogType.debug, ShadowLog.getLogs().get(0).type);
+    assertEquals(Log.DEBUG, ShadowLog.getLogs().get(0).type);
 
     ShadowLog.getLogs().clear();
 
     HongoLogManager.e("bar", "foo");
     assertEquals("test:hongo:bar", ShadowLog.getLogs().get(0).tag);
     assertEquals("foo", ShadowLog.getLogs().get(0).msg);
-    assertEquals(ShadowLog.LogType.error, ShadowLog.getLogs().get(0).type);
+    assertEquals(Log.ERROR, ShadowLog.getLogs().get(0).type);
   }
 }

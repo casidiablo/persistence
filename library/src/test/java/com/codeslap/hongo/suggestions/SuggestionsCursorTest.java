@@ -17,7 +17,7 @@
 package com.codeslap.hongo.suggestions;
 
 import android.database.Cursor;
-import com.codeslap.robolectric.RobolectricSimpleRunner;
+import com.codeslap.test.hongo.RobolectricSqliteRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import java.util.Arrays;
@@ -27,7 +27,7 @@ import static org.junit.Assert.*;
 /**
  * @author cristian
  */
-@RunWith(RobolectricSimpleRunner.class)
+@RunWith(RobolectricSqliteRunner.class)
 public class SuggestionsCursorTest {
   @Test
   public void suggestionsCursorTest() {

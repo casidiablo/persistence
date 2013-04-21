@@ -19,14 +19,13 @@ package com.codeslap.test.hongo;
 import com.codeslap.hongo.HongoConfig;
 import com.codeslap.hongo.HongoPrefs;
 import com.codeslap.hongo.pref.Preference;
-import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
 /**
  * @author cristian
  */
-@RunWith(RobolectricSimpleRunner.class)
+@RunWith(RobolectricSqliteRunner.class)
 public abstract class PrefTest {
   @Before
   public void configure() {

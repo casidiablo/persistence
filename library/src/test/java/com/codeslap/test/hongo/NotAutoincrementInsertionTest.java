@@ -16,7 +16,6 @@
 
 package com.codeslap.test.hongo;
 
-import com.codeslap.robolectric.RobolectricSimpleRunner;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,7 +28,7 @@ import static org.junit.Assert.*;
 /**
  * @author cristian
  */
-@RunWith(RobolectricSimpleRunner.class)
+@RunWith(RobolectricSqliteRunner.class)
 public class NotAutoincrementInsertionTest extends SqliteTest {
 
   @Test

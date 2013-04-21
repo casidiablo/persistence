@@ -47,10 +47,6 @@ public class ${className}DataObject implements DataObject<${className}> {
     return null;
   }
 
-  @Override public boolean set(String fieldName, ${className} target, Object value) {
-    return false;
-  }
-
   @Override public boolean hasData(String fieldName, ${className} bean) {
     return false;
   }
@@ -68,15 +64,15 @@ public class ${className}DataObject implements DataObject<${className}> {
     List<String> columns) {
   }
 
-  @Override public com.codeslap.persistence.SqliteType getTypeFrom(String fieldName) {
-    return com.codeslap.persistence.SqliteType.TEXT;
+  @Override public com.codeslap.hongo.SqliteType getTypeFrom(String fieldName) {
+    return com.codeslap.hongo.SqliteType.TEXT;
   }
 
-  Collection<ColumnField> getDeclaredFields(){
+  public Collection<ColumnField> getDeclaredFields(){
     return null;
   }
 
-  ColumnField getField(String name){
+  public ColumnField getField(String name){
     return null;
   }
 }

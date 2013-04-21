@@ -23,7 +23,7 @@ import java.lang.annotation.Annotation;
  *
  * @author cristian
  */
-interface ColumnField {
+public interface ColumnField {
   <T extends Annotation> T getAnnotation(Class<T> annotation);
 
   String getName();
