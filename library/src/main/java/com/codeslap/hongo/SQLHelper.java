@@ -19,12 +19,7 @@ package com.codeslap.hongo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.text.TextUtils;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.codeslap.hongo.DataObjectFactory.getDataObject;
 
@@ -35,92 +30,39 @@ public class SQLHelper {
   static final String HEXES = "0123456789ABCDEF";
 
   private static final Map<Class<?>, String> INSERT_COLUMNS_CACHE = new HashMap<Class<?>, String>();
-  private static final Map<Class<?>, Field[]> FIELDS_CACHE = new HashMap<Class<?>, Field[]>();
 
   static final String STATEMENT_SEPARATOR = "b05f72bb_STATEMENT_SEPARATOR";
   static final char QUOTE = '\'';
   static final String DOUBLE_QUOTE = "''";
 
-  static Field[] getDeclaredFields(Class theClass) {
-    if (!FIELDS_CACHE.containsKey(theClass)) {
-      List<Field> list = new ArrayList<Field>();
-      for (Field field : theClass.getDeclaredFields()) {
-        // - If it has the ignore annotation, ignore it.
-        // - Oh, really? What a brilliant idea.
-        if (!field.isAnnotationPresent(Ignore.class) &&
-            !Modifier.isStatic(field.getModifiers()) &&// ignore static fields
-            !Modifier.isFinal(field.getModifiers())) {// ignore final fields
-          list.add(field);
-        }
-      }
-      FIELDS_CACHE.put(theClass, list.toArray(new Field[list.size()]));
-    }
-    return FIELDS_CACHE.get(theClass);
-  }
-
   private static <T> String getSet(T bean) {
     List<String> sets = new ArrayList<String>();
-    if (bean != null) {
-      Field[] fields = getDeclaredFields(bean.getClass());
-      for (Field field : fields) {
-        try {
-          Class<?> type = field.getType();
-          if (type == List.class) {
-            continue;
-          }
-          field.setAccessible(true);
-          Object value = field.get(bean);
-          boolean isBoolean = field.getType() == Boolean.class || field.getType() == boolean.class;
-          if (isBoolean || hasData(type, value)) {
-            ReflectColumnField columnField = new ReflectColumnField(field);
-            if (isBoolean) {
-              int intValue = (Boolean) value ? 1 : 0;
-              sets.add(
-                  StrUtil.concat(ColumnHelper.getColumnName(columnField), " = '", intValue, QUOTE));
-            } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
-              String hex = getHex((byte[]) value);
-              sets.add(StrUtil.concat(ColumnHelper.getColumnName(columnField), " = X'", hex, QUOTE));
-            } else {
-              String cleanedVal = String.valueOf(value)
-                  .replace(String.valueOf(QUOTE), DOUBLE_QUOTE);
-              sets.add(
-                  StrUtil.concat(ColumnHelper.getColumnName(columnField), " = '", cleanedVal, QUOTE));
-            }
-          }
-        } catch (IllegalAccessException ignored) {
+    if (bean == null) {
+      return StrUtil.join(sets, ", ");
+    }
+    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    Collection<ColumnField> fields = dataObject.getDeclaredFields();
+    for (ColumnField field : fields) {
+      Class<?> type = field.getType();
+      if (type == List.class) {
+        continue;
+      }
+      Object value = field.get(bean);
+      boolean isBoolean = field.getType() == Boolean.class || field.getType() == boolean.class;
+      if (isBoolean || dataObject.hasData(field.getName(), bean)) {
+        if (isBoolean) {
+          int intValue = (Boolean) value ? 1 : 0;
+          sets.add(StrUtil.concat(ColumnHelper.getColumnName(field), " = '", intValue, QUOTE));
+        } else if (field.getType() == byte[].class || field.getType() == Byte[].class) {
+          String hex = getHex((byte[]) value);
+          sets.add(StrUtil.concat(ColumnHelper.getColumnName(field), " = X'", hex, QUOTE));
+        } else {
+          String cleanedVal = String.valueOf(value).replace(String.valueOf(QUOTE), DOUBLE_QUOTE);
+          sets.add(StrUtil.concat(ColumnHelper.getColumnName(field), " = '", cleanedVal, QUOTE));
         }
       }
     }
     return StrUtil.join(sets, ", ");
-  }
-
-  // TODO remove this :P
-  static boolean hasData(Class<?> type, Object value) {
-    if (type == long.class || type == Long.class) {
-      return value != null && ((Long) value) != 0L;
-    }
-    if (type == int.class || type == Integer.class) {
-      return value != null && ((Integer) value) != 0;
-    }
-    if (type == float.class || type == Float.class) {
-      return value != null && ((Float) value) != 0.0;
-    }
-    if (type == double.class || type == Double.class) {
-      return value != null && ((Double) value) != 0.0;
-    }
-    if (type == boolean.class || type == Boolean.class) {
-      if (value instanceof Boolean) {
-        return (Boolean) value;
-      }
-      if (value instanceof Integer) {
-        return ((Integer) value) != 0;
-      }
-      return false;
-    }
-    if (type == byte[].class || type == Byte[].class) {
-      return value != null && ((byte[]) value).length > 0;
-    }
-    return value != null;
   }
 
   /**
@@ -176,8 +118,8 @@ public class SQLHelper {
     if (values.size() == 0 && dataObject.hasAutoincrement()) {
       String hack = StrUtil.concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName,
           "')+1");
-      String idColumn = ColumnHelper.getIdColumn(
-          new ReflectColumnField(getPrimaryKeyField(bean.getClass())));
+      ColumnField pkField = dataObject.getField(dataObject.getPrimaryKeyFieldName());
+      String idColumn = ColumnHelper.getIdColumn(pkField);
       return StrUtil.concat("INSERT OR IGNORE INTO ", tableName, " (", idColumn, ") VALUES (", hack,
           ");", STATEMENT_SEPARATOR);
     }
@@ -205,20 +147,6 @@ public class SQLHelper {
     for (ColumnField field : dataObject.getDeclaredFields()) {
       if (ColumnHelper.isPrimaryKey(field)) {
         return field.getName();
-      }
-    }
-    throw new IllegalStateException("Class " + theClass + " does not have a primary key");
-  }
-
-  /**
-   * @param theClass the class to the get primary key from
-   * @return the primary key field from a class
-   */
-  static Field getPrimaryKeyField(Class<?> theClass) {
-    for (Field field : getDeclaredFields(theClass)) {
-      if (ColumnHelper.isPrimaryKey(new ReflectColumnField(field))) {
-        field.setAccessible(true);
-        return field;
       }
     }
     throw new IllegalStateException("Class " + theClass + " does not have a primary key");

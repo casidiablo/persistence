@@ -61,6 +61,7 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
             context.put("hasAutoincrement", shouldBeAutoIncrement(table));
             context.put("tableName", getTableName(table));
             context.put("createTableSentence", getCreateTableStatement(table));
+            context.put("hasManyListBuilding", getHasManyListBuilding());
 
             // now render the template into a StringWriter
             t.merge(context, out);
@@ -72,6 +73,12 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
       }
     }
     return true;
+  }
+
+  private static String getHasManyListBuilding() {
+    StringBuilder sb = new StringBuilder();
+    // TODO
+    return sb.toString();
   }
 
   private static String getCreateTableStatement(Element table) {
@@ -120,8 +127,7 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
   private static SqliteType getTypeFrom(Element element) {
     TypeMirror typeMirror = element.asType();
     return typeMirror.accept(new SimpleTypeVisitor6<SqliteType, Void>() {
-      @Override public SqliteType visitPrimitive(PrimitiveType primitiveType,
-                                                             Void aVoid) {
+      @Override public SqliteType visitPrimitive(PrimitiveType primitiveType, Void aVoid) {
         switch (primitiveType.getKind()) {
           case BOOLEAN:
           case BYTE:

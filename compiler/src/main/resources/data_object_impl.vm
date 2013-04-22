@@ -2,11 +2,15 @@ package ${packageName};
 
 import android.database.Cursor;
 import com.codeslap.hongo.*;
-import java.util.Collection;
-import java.util.Set;
-import java.util.List;
+import java.util.*;
 
 public class ${className}DataObject implements DataObject<${className}> {
+
+  private final Collection<HasManySpec> hasManyList = new ArrayList<HasManySpec>();
+  {
+      ${hasManyListBuilding}
+  }
+
   @Override public String getCreateTableSentence() {
     return "${createTableSentence}";
   }
@@ -20,7 +24,7 @@ public class ${className}DataObject implements DataObject<${className}> {
   }
 
   @Override public Collection<HasManySpec> hasMany() {
-    return null;
+    return hasManyList;
   }
 
   @Override public Collection<ManyToManySpec> manyToMany() {

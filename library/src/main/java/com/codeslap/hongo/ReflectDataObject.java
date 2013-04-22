@@ -36,7 +36,7 @@ public class ReflectDataObject implements DataObject<Object> {
   private final Map<String, ColumnField> fields;
   private final boolean hasAutoincrement;
   private final String tableName;
-  private final Collection<HasManySpec> hasManyList;
+  private final Collection hasManyList;
   private final Collection<ManyToManySpec> manyToManyList;
   private final Class<?> belongsTo;
   private final String primaryKeyName;
@@ -115,9 +115,8 @@ public class ReflectDataObject implements DataObject<Object> {
   public Collection<HasManySpec> hasMany() {
     synchronized (hasManyList) {
       if (hasManyList.isEmpty()) {
-        for (ColumnField columnField : fields.values()) {
-          searchForHasMany(columnField);
-        }
+        Collection<HasManySpec> hasManyColl = getHasManySpecs(objectType, fields.values());
+        hasManyList.addAll(hasManyColl);
       }
     }
     return hasManyList;
@@ -297,10 +296,22 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  private void searchForHasMany(ColumnField columnField) {
+  public static Collection<HasManySpec> getHasManySpecs(Class<?> objectType,
+                                                        Collection<ColumnField> columnFields) {
+    Collection<HasManySpec> specs = new ArrayList<HasManySpec>();
+    for (ColumnField columnField : columnFields) {
+      HasManySpec hasManySpec = searchForHasMany(columnField, objectType);
+      if (hasManySpec != null) {
+        specs.add(hasManySpec);
+      }
+    }
+    return specs;
+  }
+
+  public static HasManySpec searchForHasMany(ColumnField columnField, Class<?> objectType) {
     HasMany hasMany = columnField.getAnnotation(HasMany.class);
     if (hasMany == null) {
-      return;
+      return null;
     }
     Class<?> collectionClass = columnField.getGenericType();
 
@@ -321,8 +332,7 @@ public class ReflectDataObject implements DataObject<Object> {
               collectionClass.getSimpleName() + " belongs to " + objectType.getSimpleName() + " and viceversa");
     }
 
-    HasManySpec hasManySpec = new HasManySpec(objectType, columnField.getName(), collectionClass);
-    hasManyList.add(hasManySpec);
+    return new HasManySpec(objectType, columnField.getName(), collectionClass);
   }
 
   private <Child> List<Child> processInnerCollection(Cursor query, Set<Class<?>> tree,
@@ -348,9 +358,9 @@ public class ReflectDataObject implements DataObject<Object> {
         continue;
       }
       // build a query that uses the joining table and the joined object
+      ColumnField pkField = fields.get(getPrimaryKeyFieldName());
       Object foreignValue = getValueFromCursor(long.class /* TODO test this*/,
-          ColumnHelper.getIdColumn(new ReflectColumnField(SQLHelper.getPrimaryKeyField(objectType))) /* this is not like this all the time*/,
-          query);
+          ColumnHelper.getIdColumn(pkField) /* this is not like this all the time*/, query);
       if (foreignValue != null) {
         String sql = new StringBuilder().append("SELECT * FROM ")
             .append(collectionDataObject.getTableName())
@@ -555,7 +565,7 @@ public class ReflectDataObject implements DataObject<Object> {
     // if there is an attachment
     if (parent != null) {
       HasManySpec hasManySpec = getHasManySpec(parent);
-      Object foreignValue = getRelationValueFromParent(parent);
+      Object foreignValue = getPrimaryKeyValue(parent);
       if (foreignValue != null) {
         if (args == null) {
           conditions.add(
@@ -628,16 +638,17 @@ public class ReflectDataObject implements DataObject<Object> {
     }
     if (parent != null) {
       HasManySpec hasManySpec = getHasManySpec(parent);
-      Object foreignValue = getRelationValueFromParent(parent);
+      Object foreignValue = getPrimaryKeyValue(parent);
 
       if (columns != null) {
         columns.add(hasManySpec.getThroughColumnName());
       }
       if (values != null) {
-        if (foreignValue != null && SQLHelper.hasData(foreignValue.getClass(), foreignValue)) {
+        DataObject<Parent> parentDataObject = (DataObject<Parent>) getDataObject(parent.getClass());
+        String pkFieldName = parentDataObject.getPrimaryKeyFieldName();
+        if (foreignValue != null && parentDataObject.hasData(pkFieldName, parent)) {
           values.add(String.valueOf(foreignValue));
         } else {
-          DataObject<?> parentDataObject = getDataObject(parent.getClass());
           String tableName = parentDataObject.getTableName();
           values.add(
               StrUtil.concat("(SELECT seq FROM sqlite_sequence WHERE name = '", tableName, "')"));
@@ -646,11 +657,10 @@ public class ReflectDataObject implements DataObject<Object> {
     }
   }
 
-  // TODO rename this method
-  private static <Parent> Object getRelationValueFromParent(Parent parent) {
+  private static <T> Object getPrimaryKeyValue(T parent) {
     Object foreignValue = null;
     try {
-      DataObject<Parent> dataObjectParent = getDataObject((Class<Parent>) parent.getClass());
+      DataObject<T> dataObjectParent = getDataObject((Class<T>) parent.getClass());
 
       String parentPKeyName = dataObjectParent.getPrimaryKeyFieldName();
       ColumnField field = dataObjectParent.getField(parentPKeyName);
