@@ -18,6 +18,7 @@ package com.codeslap.hongo;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
 
@@ -84,5 +85,13 @@ public class ReflectColumnField implements ColumnField {
   @Override
   public int hashCode() {
     return field != null ? field.hashCode() : 0;
+  }
+
+  public boolean isStatic() {
+    return Modifier.isStatic(field.getModifiers());
+  }
+
+  public boolean isFinal() {
+    return Modifier.isFinal(field.getModifiers());
   }
 }

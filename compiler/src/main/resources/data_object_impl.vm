@@ -6,6 +6,11 @@ import java.util.*;
 
 public class ${className}DataObject implements DataObject<${className}> {
 
+  private final Collection<ColumnField> columnFields = new ArrayList<ColumnField>();
+  {
+      ${columnFieldBuilding}
+  }
+
   private final Collection<HasManySpec> hasManyList = new ArrayList<HasManySpec>();
   {
       ${hasManyListBuilding}
@@ -73,7 +78,7 @@ public class ${className}DataObject implements DataObject<${className}> {
   }
 
   public Collection<ColumnField> getDeclaredFields(){
-    return null;
+    return columnFields;
   }
 
   public ColumnField getField(String name){

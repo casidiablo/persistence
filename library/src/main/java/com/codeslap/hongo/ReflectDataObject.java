@@ -19,8 +19,6 @@ package com.codeslap.hongo;
 import android.database.Cursor;
 import android.text.TextUtils;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 import static com.codeslap.hongo.DataObjectFactory.getDataObject;
@@ -33,6 +31,7 @@ import static com.codeslap.hongo.DataObjectFactory.getDataObject;
 public class ReflectDataObject implements DataObject<Object> {
 
   private final Class<?> objectType;
+  private final Set<Class<?>> graph;
   private final Map<String, ColumnField> fields;
   private final boolean hasAutoincrement;
   private final String tableName;
@@ -48,25 +47,27 @@ public class ReflectDataObject implements DataObject<Object> {
 
   ReflectDataObject(Class<?> type, Set<Class<?>> graph) {
     objectType = type;
+    this.graph = graph;
     fields = new HashMap<String, ColumnField>();
-    hasManyList = new ArrayList<HasManySpec>();
-    manyToManyList = new ArrayList<ManyToManySpec>();
+    hasManyList = Collections.synchronizedList(new ArrayList<HasManySpec>());
+    manyToManyList = Collections.synchronizedList(new ArrayList<ManyToManySpec>());
 
     PrimaryKey primaryKey = null;
     String primaryKeyName = null;
     Field primaryKeyField = null;
+
     for (Field field : objectType.getDeclaredFields()) {
-      if (field.isAnnotationPresent(Ignore.class) ||
-          Modifier.isStatic(field.getModifiers()) ||// ignore static fields
-          Modifier.isFinal(field.getModifiers())) { // ignore final fields
+      ColumnField columnField = new ReflectColumnField(field);
+      if (columnField.isAnnotationPresent(Ignore.class) ||
+          columnField.isStatic() ||// ignore static fields
+          columnField.isFinal()) { // ignore final fields
         continue;
       }
-      fields.put(field.getName(), new ReflectColumnField(field));
-      field.setAccessible(true);
+      fields.put(field.getName(), columnField);
 
-      PrimaryKey pk = primaryKey == null ? field.getAnnotation(PrimaryKey.class) : null;
-      Class<?> fieldType = field.getType();
+      PrimaryKey pk = primaryKey == null ? columnField.getAnnotation(PrimaryKey.class) : null;
       if (pk != null) {
+        Class<?> fieldType = columnField.getType();
         if (pk.autoincrement() && fieldType != long.class && fieldType != Long.class &&
             fieldType != int.class && fieldType != Integer.class) {
           throw new RuntimeException(
@@ -75,10 +76,6 @@ public class ReflectDataObject implements DataObject<Object> {
         primaryKey = pk;
         primaryKeyName = field.getName();
         primaryKeyField = field;
-      }
-
-      if (fieldType == List.class) {
-        searchForManyToMany(graph, field);
       }
     }
 
@@ -115,8 +112,7 @@ public class ReflectDataObject implements DataObject<Object> {
   public Collection<HasManySpec> hasMany() {
     synchronized (hasManyList) {
       if (hasManyList.isEmpty()) {
-        Collection<HasManySpec> hasManyColl = getHasManySpecs(objectType, fields.values());
-        hasManyList.addAll(hasManyColl);
+        hasManyList.addAll(ClassAnalyzer.getHasManySpecs(objectType, fields.values()));
       }
     }
     return hasManyList;
@@ -124,6 +120,12 @@ public class ReflectDataObject implements DataObject<Object> {
 
   @Override
   public Collection<ManyToManySpec> manyToMany() {
+    synchronized (manyToManyList) {
+      if (manyToManyList.isEmpty()) {
+        manyToManyList.addAll(
+            ClassAnalyzer.getManyToManySpecs(this, objectType, graph, fields.values()));
+      }
+    }
     return manyToManyList;
   }
 
@@ -261,78 +263,6 @@ public class ReflectDataObject implements DataObject<Object> {
       }
     }
     return bean;
-  }
-
-  private void searchForManyToMany(Set<Class<?>> graph, Field field) {
-    ManyToMany manyToMany = field.getAnnotation(ManyToMany.class);
-    if (manyToMany != null && !graph.contains(objectType)) {
-      ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
-      Class<?> collectionClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
-
-      boolean relationExists = false;
-      ManyToMany manyToManyColl;
-      for (Field collField : collectionClass.getDeclaredFields()) {
-        manyToManyColl = collField.getAnnotation(ManyToMany.class);
-        if (manyToManyColl != null && collField.getType() == List.class) {
-          ParameterizedType parameterizedTypeColl = (ParameterizedType) collField.getGenericType();
-          Class<?> selfClass = (Class<?>) parameterizedTypeColl.getActualTypeArguments()[0];
-          if (selfClass == objectType) {
-            relationExists = true;
-            break;
-          }
-        }
-      }
-
-      if (!relationExists) {
-        throw new IllegalStateException(
-            "When defining a ManyToMany relation both classes must use the ManyToMany annotation");
-      }
-
-      if (graph.add(objectType)) {
-        ReflectDataObject collDataObject = new ReflectDataObject(collectionClass, graph);
-        ManyToManySpec manyToManySpec = new ManyToManySpec(this, field.getName(), collDataObject);
-        manyToManyList.add(manyToManySpec);
-      }
-    }
-  }
-
-  public static Collection<HasManySpec> getHasManySpecs(Class<?> objectType,
-                                                        Collection<ColumnField> columnFields) {
-    Collection<HasManySpec> specs = new ArrayList<HasManySpec>();
-    for (ColumnField columnField : columnFields) {
-      HasManySpec hasManySpec = searchForHasMany(columnField, objectType);
-      if (hasManySpec != null) {
-        specs.add(hasManySpec);
-      }
-    }
-    return specs;
-  }
-
-  public static HasManySpec searchForHasMany(ColumnField columnField, Class<?> objectType) {
-    HasMany hasMany = columnField.getAnnotation(HasMany.class);
-    if (hasMany == null) {
-      return null;
-    }
-    Class<?> collectionClass = columnField.getGenericType();
-
-    if (!collectionClass.isAnnotationPresent(Belongs.class)) {
-      throw new IllegalStateException(
-          "When defining a HasMany relation you must specify a Belongs annotation in the child class");
-    }
-    Belongs belongs = collectionClass.getAnnotation(Belongs.class);
-    if (belongs.to() != objectType) {
-      throw new IllegalStateException(
-          "Belongs class points to " + belongs.to() + " but should point to " + objectType);
-    }
-
-    Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
-    if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
-      throw new IllegalStateException(
-          "Cyclic has-many relations not supported. Use many-to-many instead: " +
-              collectionClass.getSimpleName() + " belongs to " + objectType.getSimpleName() + " and viceversa");
-    }
-
-    return new HasManySpec(objectType, columnField.getName(), collectionClass);
   }
 
   private <Child> List<Child> processInnerCollection(Cursor query, Set<Class<?>> tree,

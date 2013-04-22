@@ -61,6 +61,7 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
             context.put("hasAutoincrement", shouldBeAutoIncrement(table));
             context.put("tableName", getTableName(table));
             context.put("createTableSentence", getCreateTableStatement(table));
+            context.put("columnFieldBuilding", getColumnFieldsBuilding(table));
             context.put("hasManyListBuilding", getHasManyListBuilding());
 
             // now render the template into a StringWriter
@@ -73,6 +74,12 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
       }
     }
     return true;
+  }
+
+  private static String getColumnFieldsBuilding(Element table) {
+    StringBuilder sb = new StringBuilder();
+
+    return sb.toString();
   }
 
   private static String getHasManyListBuilding() {

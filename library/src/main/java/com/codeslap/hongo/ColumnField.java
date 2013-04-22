@@ -37,4 +37,8 @@ public interface ColumnField {
   Object get(Object target);
 
   Class<?> getGenericType();
+
+  boolean isStatic();
+
+  boolean isFinal();
 }
