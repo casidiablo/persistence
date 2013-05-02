@@ -17,21 +17,26 @@
 package com.codeslap.hongo;
 
 public class ManyToManySpec {
-  private final DataObject<?> mDataObjectA;
-  private final DataObject<?> mDataObjectB;
+  private final ObjectType<?> mDataObjectA;
+  private final String daoAPKFieldName;
+  private final ObjectType<?> mDataObjectB;
+  private final String daoBPKFieldName;
   private final String dataObjectARelationFieldName;
 
-  ManyToManySpec(DataObject<?> dataObjectA, String relationFieldName, DataObject<?> dataObjectB) {
+  ManyToManySpec(ObjectType<?> dataObjectA, String relationFieldName, ObjectType<?> dataObjectB,
+      String aPkName, String bPkName) {
     mDataObjectA = dataObjectA;
     dataObjectARelationFieldName = relationFieldName;
     mDataObjectB = dataObjectB;
+    daoAPKFieldName = aPkName;
+    daoBPKFieldName = bPkName;
   }
 
-  DataObject<?> getFirstRelation() {
+  ObjectType<?> getFirstRelation() {
     return mDataObjectA;
   }
 
-  DataObject<?> getSecondRelation() {
+  ObjectType<?> getSecondRelation() {
     return mDataObjectB;
   }
 
@@ -51,11 +56,11 @@ public class ManyToManySpec {
   }
 
   String getMainKey() {
-    return StrUtil.concat(mDataObjectA.getTableName(), "_", mDataObjectA.getPrimaryKeyFieldName());
+    return StrUtil.concat(mDataObjectA.getTableName(), "_", daoAPKFieldName);
   }
 
   String getSecondaryKey() {
-    return StrUtil.concat(mDataObjectB.getTableName(), "_", mDataObjectB.getPrimaryKeyFieldName());
+    return StrUtil.concat(mDataObjectB.getTableName(), "_", daoBPKFieldName);
   }
 
   /** @return name of the joined class */

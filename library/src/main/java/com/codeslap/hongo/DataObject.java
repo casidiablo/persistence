@@ -44,11 +44,11 @@ public interface DataObject<T> {
 
   Collection<ManyToManySpec> manyToMany();
 
-  <Child> HasManySpec hasMany(Class<Child> theClass);
+  HasManySpec hasMany(ObjectType childObjectType);
 
-  Class<?> belongsTo();
+  ObjectType<?> belongsTo();
 
-  Class<T> getObjectClass();
+  ObjectType<T> getObjectType();
 
   String getTableName();
 

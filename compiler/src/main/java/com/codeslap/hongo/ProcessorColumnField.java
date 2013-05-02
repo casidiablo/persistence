@@ -55,7 +55,15 @@ public class ProcessorColumnField implements ColumnField {
     return null;
   }
 
-  @Override public Class<?> getGenericType() {
+  @Override public ObjectType<?> getGenericType() {
     return null;
+  }
+
+  @Override public boolean isStatic() {
+    return false;
+  }
+
+  @Override public boolean isFinal() {
+    return false;
   }
 }

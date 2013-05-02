@@ -82,7 +82,8 @@ public class SQLHelper {
   }
 
   static <T> String buildUpdateStatement(T bean, T sample) {
-    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    Class<T> beanClass = (Class<T>) bean.getClass();
+    DataObject<T> dataObject = getDataObject(beanClass);
     String where = dataObject.getWhere(sample, null, null);
     String set = getSet(bean);
     return StrUtil.concat("UPDATE ", dataObject.getTableName(), " SET ", set, " WHERE ", where, ";",
@@ -91,7 +92,8 @@ public class SQLHelper {
 
   public static <T> String buildUpdateStatement(T bean, String where) {
     String set = getSet(bean);
-    DataObject<?> dataObject = getDataObject(bean.getClass());
+    Class<T> beanClass = (Class<T>) bean.getClass();
+    DataObject<?> dataObject = getDataObject(beanClass);
     return StrUtil.concat("UPDATE ", dataObject.getTableName(), " SET ", set, " WHERE ", where, ";",
         STATEMENT_SEPARATOR);
   }
@@ -102,7 +104,8 @@ public class SQLHelper {
     if (!INSERT_COLUMNS_CACHE.containsKey(bean.getClass())) {
       columns = new ArrayList<String>();
     }
-    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    Class<T> beanClass = (Class<T>) bean.getClass();
+    DataObject<T> dataObject = getDataObject(beanClass);
     dataObject.populateColumnsAndValues(bean, parent, values, columns);
 
     String columnsSet;
@@ -139,27 +142,27 @@ public class SQLHelper {
   }
 
   /**
-   * @param theClass the class to the get primary key from
+   * @param type the class to the get primary key from
    * @return the primary key from a class
    */
-  static String getPrimaryKey(Class<?> theClass) {
-    DataObject<?> dataObject = DataObjectFactory.getDataObject(theClass);
+  // TODO should this get removed?
+  static String getPrimaryKey(ObjectType type) {
+    DataObject<?> dataObject = DataObjectFactory.getDataObject(type.getObjectClass());
     for (ColumnField field : dataObject.getDeclaredFields()) {
       if (ColumnHelper.isPrimaryKey(field)) {
         return field.getName();
       }
     }
-    throw new IllegalStateException("Class " + theClass + " does not have a primary key");
+    throw new IllegalStateException("Class " + type + " does not have a primary key");
   }
 
-  static <T, Parent> Cursor getCursorFindAllWhere(SQLiteDatabase db, Class<? extends T> type,
-                                                  T sample, Parent parent, Constraint constraint) {
-    DataObject<T> dataObject = getDataObject((Class<T>) type);
+  static <T, Parent> Cursor getCursorFindAllWhere(SQLiteDatabase db, ObjectType<T> type, T sample,
+                                                  Parent parent, Constraint constraint) {
+    DataObject<T> dataObject = getDataObject(type.getObjectClass());
     String[] selectionArgs = null;
     String where = null;
     if (sample != null || parent != null) {
       ArrayList<String> args = new ArrayList<String>();
-      getDataObject(type);
       where = dataObject.getWhere(sample, args, parent);
       if (TextUtils.isEmpty(where)) {
         where = null;
@@ -185,7 +188,8 @@ public class SQLHelper {
     ArrayList<String> values = new ArrayList<String>();
     ArrayList<String> columns = new ArrayList<String>();
 
-    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    Class<T> beanClass = (Class<T>) bean.getClass();
+    DataObject<T> dataObject = getDataObject(beanClass);
     dataObject.populateColumnsAndValues(bean, null, values, columns);
 
     StringBuilder result = new StringBuilder();
@@ -212,11 +216,39 @@ public class SQLHelper {
 
   static <T> String getUnionInsertSql(T bean) {
     ArrayList<String> values = new ArrayList<String>();
-    DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
+    Class<T> beanClass = (Class<T>) bean.getClass();
+    DataObject<T> dataObject = getDataObject(beanClass);
     dataObject.populateColumnsAndValues(bean, null, values, null);
     StringBuilder builder = new StringBuilder();
     builder.append(" UNION SELECT ");
     builder.append(StrUtil.join(values, ", "));
     return builder.toString();
+  }
+
+  static String getTableName(Class<?> theClass) {
+    Table table = theClass.getAnnotation(Table.class);
+    String tableName;
+    if (table != null) {
+      tableName = table.value();
+      if (TextUtils.isEmpty(tableName)) {
+        String msg = StrUtil.concat("You cannot leave a table name empty: class ",
+            theClass.getSimpleName());
+        throw new IllegalArgumentException(msg);
+      }
+      if (tableName.contains(" ")) {
+        String msg = StrUtil.concat("Table name cannot have spaces: '", tableName,
+            "'; found in class ", theClass.getSimpleName());
+        throw new IllegalArgumentException(msg);
+      }
+    } else {
+      String name = theClass.getSimpleName();
+      if (name.endsWith("y")) {
+        name = name.substring(0, name.length() - 1) + "ies";
+      } else if (!name.endsWith("s")) {
+        name += "s";
+      }
+      tableName = normalize(name);
+    }
+    return tableName;
   }
 }

@@ -22,16 +22,16 @@ package com.codeslap.hongo;
  * @author cristian
  */
 public class HasManySpec {
-  final Class<?> container;
-  final Class<?> contained;
+  final ObjectType container;
+  final ObjectType contained;
   final String listField;
   final String getThroughColumnName;
 
-  HasManySpec(Class<?> container, String listField, Class<?> contained) {
+  HasManySpec(ObjectType container, String listField, ObjectType contained) {
     this.container = container;
     this.listField = listField;
     this.contained = contained;
-    if (contained == null || contained == Object.class) {
+    if (contained == null || contained.getObjectClass() == Object.class) {
       throw new IllegalStateException("Cannot use Object class. Sorry :P");
     }
 

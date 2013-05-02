@@ -18,11 +18,14 @@ package com.codeslap.hongo;
 
 import android.app.Activity;
 import com.codeslap.test.hongo.SqliteTest;
-import org.junit.Test;
 import java.util.Collection;
 import java.util.List;
+import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class HelpersTest extends SqliteTest {
 
@@ -87,26 +90,30 @@ public class HelpersTest extends SqliteTest {
     assertNotNull(manyToManySpecs);
     assertEquals(1, manyToManySpecs.size());
     ManyToManySpec[] manyToManySpecsArr = manyToManySpecs.toArray(new ManyToManySpec[0]);
-    boolean either = manyToManySpecsArr[0].getFirstRelation()
-        .getObjectClass() == Author.class && Book.class == manyToManySpecsArr[0].getSecondRelation()
-        .getObjectClass();
-    boolean or = manyToManySpecsArr[0].getFirstRelation()
-        .getObjectClass() == Book.class && Author.class == manyToManySpecsArr[0].getSecondRelation()
-        .getObjectClass();
+    ObjectType<Book> bookObjectType = dataObject.getObjectType();
+    ObjectType<Author> authorObjectType =
+        DataObjectFactory.getDataObject(Author.class).getObjectType();
+    boolean either = manyToManySpecsArr[0].getFirstRelation().equals(authorObjectType)
+        && manyToManySpecsArr[0].getSecondRelation().equals(bookObjectType);
+    boolean or = manyToManySpecsArr[0].getFirstRelation().equals(bookObjectType)
+        && manyToManySpecsArr[0].getSecondRelation().equals(authorObjectType);
     assertTrue(either || or);
   }
 
   @Test
   public void testHas() {
     DataObject<PolyTheist> dataObject = DataObjectFactory.getDataObject(PolyTheist.class);
+    ObjectType<PolyTheist> polyTheistObjectType = dataObject.getObjectType();
+    DataObject<God> godDataObject = DataObjectFactory.getDataObject(God.class);
+    ObjectType<God> godObjectType = godDataObject.getObjectType();
     assertNotNull(dataObject);
     assertNotNull(dataObject.hasMany());
     assertFalse(dataObject.hasMany().isEmpty());
-    assertNotNull(dataObject.hasMany(God.class));
-    assertEquals(dataObject.hasMany(God.class).container, PolyTheist.class);
-    assertEquals(dataObject.hasMany(God.class).contained, God.class);
-    assertNotNull(dataObject.hasMany(God.class).listField);
-    assertNotNull(dataObject.hasMany(God.class).getThroughColumnName());
+    assertNotNull(dataObject.hasMany(godObjectType));
+    assertEquals(dataObject.hasMany(godObjectType).container, polyTheistObjectType);
+    assertEquals(dataObject.hasMany(godObjectType).contained, godObjectType);
+    assertNotNull(dataObject.hasMany(godObjectType).listField);
+    assertNotNull(dataObject.hasMany(godObjectType).getThroughColumnName());
   }
 
   @Test(expected = IllegalArgumentException.class)

@@ -16,16 +16,14 @@
 
 package com.codeslap.hongo;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 public class ClassAnalyzer {
-  public static Collection<HasManySpec> getHasManySpecs(Class<?> objectType,
-                                                        Collection<ColumnField> columnFields) {
+  public static Collection<HasManySpec> getHasManySpecs(ObjectType objectType,
+      Collection<ColumnField> columnFields) {
     Collection<HasManySpec> specs = new ArrayList<HasManySpec>();
     for (ColumnField columnField : columnFields) {
       HasManySpec hasManySpec = searchForHasMany(columnField, objectType);
@@ -36,41 +34,44 @@ public class ClassAnalyzer {
     return specs;
   }
 
-  private static HasManySpec searchForHasMany(ColumnField columnField, Class<?> objectType) {
+  private static HasManySpec searchForHasMany(ColumnField columnField, ObjectType objectType) {
     HasMany hasMany = columnField.getAnnotation(HasMany.class);
     if (hasMany == null) {
       return null;
     }
-    Class<?> collectionClass = columnField.getGenericType();
+    ObjectType<?> collectionType = columnField.getGenericType();
 
-    if (!collectionClass.isAnnotationPresent(Belongs.class)) {
+    if (!collectionType.getObjectClass().isAnnotationPresent(Belongs.class)) {
       throw new IllegalStateException(
           "When defining a HasMany relation you must specify a Belongs annotation in the child class");
     }
-    Belongs belongs = collectionClass.getAnnotation(Belongs.class);
-    if (belongs.to() != objectType) {
+    Belongs belongs = collectionType.getAnnotation(Belongs.class);
+    if (belongs.to() != objectType.getObjectClass()) {
       throw new IllegalStateException(
           "Belongs class points to " + belongs.to() + " but should point to " + objectType);
     }
 
-    Belongs thisBelongsTo = objectType.getAnnotation(Belongs.class);
-    if (thisBelongsTo != null && thisBelongsTo.to() == collectionClass) {
+    Belongs thisBelongsTo = (Belongs) objectType.getAnnotation(Belongs.class);
+    if (thisBelongsTo != null && thisBelongsTo.to() == collectionType.getObjectClass()) {
       throw new IllegalStateException(
-          "Cyclic has-many relations not supported. Use many-to-many instead: " +
-              collectionClass.getSimpleName() + " belongs to " + objectType.getSimpleName() + " and viceversa");
+          "Cyclic has-many relations not supported. Use many-to-many instead: "
+              +
+              collectionType.getSimpleName()
+              + " belongs to "
+              + objectType.getSimpleName()
+              + " and viceversa");
     }
 
-    return new HasManySpec(objectType, columnField.getName(), collectionClass);
+    return new HasManySpec(objectType, columnField.getName(), collectionType);
   }
 
-  public static Collection<? extends ManyToManySpec> getManyToManySpecs(
-      ReflectDataObject dataObjectA, Class<?> objectType, Set<Class<?>> graph,
-      Collection<ColumnField> columnFields) {
+  public static Collection<? extends ManyToManySpec> getManyToManySpecs(DataObject dataObjectA,
+      ObjectType<?> objectType, Set<Class<?>> graph, Collection<ColumnField> columnFields) {
     Collection<ManyToManySpec> manyToManySpecs = new ArrayList<ManyToManySpec>();
     for (ColumnField columnField : columnFields) {
       if (columnField.getType() == List.class) {
-        ManyToManySpec manyToManySpec = searchForManyToMany(dataObjectA, objectType, graph,
-            columnField);
+        ManyToManySpec manyToManySpec =
+            searchForManyToMany(dataObjectA, objectType, graph, columnField);
         if (manyToManySpec != null) {
           manyToManySpecs.add(manyToManySpec);
         }
@@ -79,23 +80,22 @@ public class ClassAnalyzer {
     return manyToManySpecs;
   }
 
-  private static ManyToManySpec searchForManyToMany(ReflectDataObject dataObjectA,
-                                                    Class<?> objectType, Set<Class<?>> graph,
-                                                    ColumnField field) {
+  private static ManyToManySpec searchForManyToMany(DataObject dataObjectA,
+      ObjectType<?> objectType, Set<Class<?>> graph, ColumnField field) {
     ManyToMany manyToMany = field.getAnnotation(ManyToMany.class);
-    if (manyToMany == null || graph.contains(objectType)) {
+    if (manyToMany == null || graph.contains(objectType.getObjectClass())) {
       return null;
     }
-    Class<?> collectionClass = field.getGenericType();
+
+    ObjectType<?> collectionType = field.getGenericType();
 
     boolean relationExists = false;
     ManyToMany manyToManyColl;
-    for (Field collField : collectionClass.getDeclaredFields()) {
+    for (ColumnField collField : collectionType.getDeclaredFields()) {
       manyToManyColl = collField.getAnnotation(ManyToMany.class);
       if (manyToManyColl != null && collField.getType() == List.class) {
-        ParameterizedType parameterizedTypeColl = (ParameterizedType) collField.getGenericType();
-        Class<?> selfClass = (Class<?>) parameterizedTypeColl.getActualTypeArguments()[0];
-        if (selfClass == objectType) {
+        ObjectType<?> selfClass = collField.getGenericType();
+        if (selfClass.equals(objectType)) {
           relationExists = true;
           break;
         }
@@ -107,9 +107,12 @@ public class ClassAnalyzer {
           "When defining a ManyToMany relation both classes must use the ManyToMany annotation");
     }
 
-    if (graph.add(objectType)) {
-      ReflectDataObject collDataObject = new ReflectDataObject(collectionClass, graph);
-      return new ManyToManySpec(dataObjectA, field.getName(), collDataObject);
+    if (graph.add(objectType.getObjectClass())) {
+      DataObject<?> collDataObject =
+          DataObjectFactory.getDataObject(collectionType.getObjectClass());
+      return new ManyToManySpec(dataObjectA.getObjectType(), field.getName(),
+          collDataObject.getObjectType(), dataObjectA.getPrimaryKeyFieldName(),
+          collDataObject.getPrimaryKeyFieldName());
     }
     return null;
   }

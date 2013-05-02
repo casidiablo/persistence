@@ -36,15 +36,15 @@ public class ${className}DataObject implements DataObject<${className}> {
     return null;
   }
 
-  @Override public <Child> HasManySpec hasMany(Class<Child> theClass) {
+  @Override public HasManySpec hasMany(ObjectType theClass) {
     return null;
   }
 
-  @Override public Class<?> belongsTo() {
+  @Override public ObjectType<?> belongsTo() {
     return null;
   }
 
-  @Override public Class<${className}> getObjectClass() {
+  @Override public ObjectType<${className}> getObjectType() {
     return null;
   }
 
@@ -60,7 +60,7 @@ public class ${className}DataObject implements DataObject<${className}> {
     return false;
   }
 
-  @Override public ${className} getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper) {
+  @Override public ${className} getBeanFromCursor(Cursor join, Set<ObjectType<?>> tree, SqliteDb dbHelper) {
     return null;
   }
 

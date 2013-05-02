@@ -50,19 +50,6 @@ public class DatabaseSpec {
     return this;
   }
 
-  /** Use this to create a new {@link DbOpenHelper} implementation */
-  public static interface DbOpenHelperBuilder {
-    /**
-     * This method must return a new {@link DbOpenHelper} implementation always.
-     *
-     * @param context the context used to create the open helper
-     * @param name    the name to provide to the open helper (database name)
-     * @param version the version to provide to the open helper (database name)
-     * @return new {@link DbOpenHelper} implementation
-     */
-    DbOpenHelper buildOpenHelper(Context context, String name, int version);
-  }
-
   public int getVersion() {
     return mVersion;
   }
@@ -72,9 +59,7 @@ public class DatabaseSpec {
    * which will be treated as autoincrement if possible. If your class has a field called
    * <code>id</code> then it will be automatically taken as an autoincrement primary key; if your
    * primary key field has another name, use the {@link PrimaryKey} which will also allow you to
-   * specify whether the field is autoincrement or not.  If you do not have control over the classes
-   * and want to avoid the autoincrement, register the class using the {@link
-   * HongoConfig#notAutoIncrement(Class[])}.
+   * specify whether the field is autoincrement or not.
    *
    * @param classes a list of classes to register
    */
@@ -92,7 +77,7 @@ public class DatabaseSpec {
    * created.
    *
    * @param context used to get the content of the assets
-   * @param paths   one or more file paths relative to the Assets folder
+   * @param paths one or more file paths relative to the Assets folder
    */
   public void beforeCreateImportFromAssets(Context context, String... paths) {
     if (paths.length == 0) {
@@ -107,7 +92,7 @@ public class DatabaseSpec {
    * Adds an importer from a stream. This is executed before tables are created.
    *
    * @param inputStream the input stream must not be null and must point to sqlite statements to
-   *                    execute
+   * execute
    */
   public void beforeCreateImportFromStream(InputStream inputStream) {
     mBeforeImporters.add(new StreamImporter(inputStream));
@@ -127,7 +112,7 @@ public class DatabaseSpec {
    * created. Executes the specified sql statements after tables are created.
    *
    * @param context used to get the content of the assets
-   * @param paths   one or more file paths relative to the Assets folder
+   * @param paths one or more file paths relative to the Assets folder
    */
   public void afterCreateImportFromAssets(Context context, String... paths) {
     if (paths.length == 0) {
@@ -142,7 +127,7 @@ public class DatabaseSpec {
    * Adds an importer from a stream. This is executed after tables are created.
    *
    * @param inputStream the input stream must not be null and must point to sqlite statements to
-   *                    execute
+   * execute
    */
   public void afterCreateImportFromStream(InputStream inputStream) {
     mAfterImporters.add(new StreamImporter(inputStream));

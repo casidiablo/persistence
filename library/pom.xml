@@ -26,7 +26,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>hongo</artifactId>
-  <name>Codeslap Persistence Library</name>
+  <name>Hongo Library</name>
 
   <dependencies>
     <dependency>

@@ -45,12 +45,15 @@ class RawQueryImpl implements RawQuery {
 
   @Override
   public Cursor findAll(Object where, Constraint constraint) {
-    return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, null, constraint);
+    DataObject dataObject = getDataObject(where.getClass());
+    return SQLHelper.getCursorFindAllWhere(mDb, dataObject.getObjectType(), where, null,
+        constraint);
   }
 
   @Override
   public Cursor findAll(Object where, Object parent) {
-    return SQLHelper.getCursorFindAllWhere(mDb, where.getClass(), where, parent, null);
+    DataObject dataObject = getDataObject(where.getClass());
+    return SQLHelper.getCursorFindAllWhere(mDb, dataObject.getObjectType(), where, parent, null);
   }
 
   @Override
@@ -67,7 +70,7 @@ class RawQueryImpl implements RawQuery {
   @Override
   public Cursor findAll(String table, String[] projection, String selection, String[] selectionArgs,
                         String groupBy, String having, String sortOrder, String limit) {
-    return mDb
-        .query(table, projection, selection, selectionArgs, groupBy, having, sortOrder, limit);
+    return mDb.query(table, projection, selection, selectionArgs, groupBy, having, sortOrder,
+        limit);
   }
 }

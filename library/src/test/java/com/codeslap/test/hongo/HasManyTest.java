@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 public class HasManyTest extends SqliteTest {
   @Test
   public void testHasMany() {
-    // let's create some gods. We men have a lot of practice creating gods
+    // let's create some gods. We men experts at this
     List<God> gods = new ArrayList<God>();
     Random random = new Random();
     for (String name : new String[]{"Jesús", "Shiva", "Ganesh", "Odin"}) {
@@ -47,7 +47,6 @@ public class HasManyTest extends SqliteTest {
     assertTrue(store instanceof Long);
 
     PolyTheist found = mAdapter.findFirst(PolyTheist.class, "_id = ?", new String[]{String.valueOf(store)});
-    assertNotNull(found);
     assertEquals(polyTheist, found);
   }
 }

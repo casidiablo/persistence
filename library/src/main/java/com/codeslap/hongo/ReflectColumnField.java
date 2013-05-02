@@ -64,14 +64,14 @@ public class ReflectColumnField implements ColumnField {
     }
   }
 
-  @Override public Class<?> getGenericType() {
+  @Override public ObjectType<?> getGenericType() {
     if (getType() != List.class) {
       throw new IllegalStateException(
           "Cannot use get generic type with a non list field: " + field);
     }
     ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
     Class<?> collectionClass = (Class<?>) stringListType.getActualTypeArguments()[0];
-    return collectionClass;
+    return DataObjectFactory.getDataObject(collectionClass).getObjectType();
   }
 
   @Override

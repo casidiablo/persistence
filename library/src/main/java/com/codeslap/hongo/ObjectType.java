@@ -18,27 +18,19 @@ package com.codeslap.hongo;
 
 import java.lang.annotation.Annotation;
 
-/**
- * Representation of a column field
- *
- * @author cristian
- */
-public interface ColumnField {
-  <T extends Annotation> T getAnnotation(Class<T> annotation);
+public interface ObjectType<T> {
+
+  ColumnField[] getDeclaredFields();
+
+  String getSimpleName();
+
+  <A extends Annotation> A getAnnotation(Class<A> annotationClass);
+
+  String getTableName();
+
+  T newInstance();
+
+  Class<T> getObjectClass();
 
   String getName();
-
-  <T extends Annotation> boolean isAnnotationPresent(Class<T> annotation);
-
-  Class<?> getType();
-
-  boolean set(Object target, Object value);
-
-  Object get(Object target);
-
-  ObjectType<?> getGenericType();
-
-  boolean isStatic();
-
-  boolean isFinal();
 }
