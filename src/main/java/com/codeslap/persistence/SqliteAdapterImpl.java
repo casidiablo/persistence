@@ -24,10 +24,9 @@ import android.text.TextUtils;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * This is a persistence adapter that uses sqlite database as persistence engine.
@@ -40,6 +39,7 @@ public class SqliteAdapterImpl implements SqlAdapter {
     // this expression is used when inserting rows in the many-to-many relation tables. It will basically
     // prevent a row from being inserted when the values already exist.
     private static final String HACK_INSERT_FORMAT = "CASE WHEN (SELECT COUNT(*) FROM %s WHERE %s = %s AND %s = %s) == 0 THEN %s ELSE NULL END";
+	private static final DateFormat dateFormat = new SimpleDateFormat("E MMM dd HH:mm:ss z yyyy", Locale.ENGLISH);
     private static final String TAG = "sqliteImpl";
 
     private final DatabaseSpec mDatabaseSpec;
@@ -739,6 +739,8 @@ public class SqliteAdapterImpl implements SqlAdapter {
                 value = query.getString(columnIndex);
             } else if (type == byte[].class || type == Byte[].class) {
                 value = query.getBlob(columnIndex);
+            } else if (type == Date.class){
+	            value = dateFormat.parse(query.getString(columnIndex));
             }
             return value;
         } catch (Exception e) {
