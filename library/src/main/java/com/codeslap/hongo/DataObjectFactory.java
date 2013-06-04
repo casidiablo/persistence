@@ -45,7 +45,7 @@ class DataObjectFactory {
       } catch (Exception e) {
       }
       if (dataObject == null) {
-        dataObject = (DataObject<T>) new ReflectDataObject(new ReflectObjectType(type));
+        dataObject = (DataObject<T>) new ReflectDataObject(type);
       }
       dataObjects.put(type, dataObject);
     }

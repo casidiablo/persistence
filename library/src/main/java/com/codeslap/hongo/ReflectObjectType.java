@@ -47,7 +47,7 @@ public class ReflectObjectType<T> implements ObjectType {
   }
 
   @Override public String getTableName() {
-    return SQLHelper.getTableName(type);
+    return SQLHelper.getTableName(this);
   }
 
   @Override public Object newInstance() {

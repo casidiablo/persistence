@@ -1,8 +1,10 @@
 package com.codeslap.hongo;
 
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
+import java.io.IOException;
+import java.io.Writer;
+import java.net.URL;
+import java.util.Properties;
+import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -16,11 +18,9 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleTypeVisitor6;
 import javax.tools.JavaFileObject;
-import java.io.IOException;
-import java.io.Writer;
-import java.net.URL;
-import java.util.Properties;
-import java.util.Set;
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
 
 @SupportedAnnotationTypes("com.codeslap.hongo.Table")
 public class HongoAnnotationsProcessor extends AbstractProcessor {
@@ -32,59 +32,61 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
     for (TypeElement typeElement : typeElements) {
       Set<? extends Element> tables = env.getElementsAnnotatedWith(typeElement);
       for (Element table : tables) {
-        PackageElement packageElement = CodeGenHelper.getPackage(table);
-        boolean isClass = table.getKind() == ElementKind.CLASS;
-        if (isClass) {
-          try {
-            String mainClassName = table.getSimpleName().toString();
-            String className = mainClassName + "DataObject";
-            String sourceName = packageElement.getQualifiedName() + "." + className;
-            JavaFileObject sourceFile = createSourceFile(sourceName, table);
+        ProcessorObjectType objectType = new ProcessorObjectType(table);
+        try {
+          String mainClassName = table.getSimpleName().toString();
+          String className = mainClassName + "DataObject";
+          PackageElement packageElement = CodeGenHelper.getPackage(table);
+          String sourceName = packageElement.getQualifiedName() + "." + className;
+          JavaFileObject sourceFile = createSourceFile(sourceName, table);
 
-            Writer out = sourceFile.openWriter();
+          Writer out = sourceFile.openWriter();
 
-            Properties props = new Properties();
-            URL url = this.getClass().getClassLoader().getResource("velocity.properties");
-            props.load(url.openStream());
+          Properties props = new Properties();
+          URL url = this.getClass().getClassLoader().getResource("velocity.properties");
+          props.load(url.openStream());
 
-            // first, get and initialize an engine
-            VelocityEngine ve = new VelocityEngine(props);
-            ve.init();
+          // first, get and initialize an engine
+          VelocityEngine ve = new VelocityEngine(props);
+          ve.init();
 
-            // next, get the Template
-            Template t = ve.getTemplate("data_object_impl.vm");
+          // next, get the Template
+          Template t = ve.getTemplate("data_object_impl.vm");
 
-            // create a context and add data
-            VelocityContext context = new VelocityContext();
-            context.put("packageName", packageElement.getSimpleName().toString());
-            context.put("className", mainClassName);
-            context.put("hasAutoincrement", shouldBeAutoIncrement(table));
-            context.put("tableName", getTableName(table));
-            context.put("createTableSentence", getCreateTableStatement(table));
-            context.put("columnFieldBuilding", getColumnFieldsBuilding(table));
-            context.put("hasManyListBuilding", getHasManyListBuilding());
+          // create a context and add data
+          VelocityContext context = new VelocityContext();
+          context.put("packageName", packageElement.getSimpleName().toString());
+          context.put("className", mainClassName);
+          context.put("hasAutoincrement", shouldBeAutoIncrement(table));
+          context.put("tableName", getTableName(table));
+          context.put("createTableSentence", getCreateTableStatement(table));
+          context.put("columnFieldBuilding", getColumnFieldsBuilding(objectType));
+          context.put("hasManyListBuilding", getHasManyListBuilding(objectType));
 
-            // now render the template into a StringWriter
-            t.merge(context, out);
-            out.close();
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
+          // now render the template into a StringWriter
+          t.merge(context, out);
+          out.close();
+        } catch (Exception e) {
+          e.printStackTrace();
         }
       }
     }
     return true;
   }
 
-  private static String getColumnFieldsBuilding(Element table) {
-    StringBuilder sb = new StringBuilder();
+  private static String getColumnFieldsBuilding(ObjectType table) {
+    ColumnField[] declaredFields = table.getDeclaredFields();
 
+    StringBuilder sb = new StringBuilder();
+    //sb.append("columnFields[] = ")
     return sb.toString();
   }
 
-  private static String getHasManyListBuilding() {
+  private static String getHasManyListBuilding(ObjectType objectType) {
     StringBuilder sb = new StringBuilder();
-    // TODO
+    for (HasManySpec hasManySpec : ClassAnalyzer.getHasManySpecs(objectType)) {
+      sb.append("columnFields.add();\n");
+    }
     return sb.toString();
   }
 
@@ -110,24 +112,6 @@ public class HongoAnnotationsProcessor extends AbstractProcessor {
         createTable.add(columnName, type, notNull);
       }
     }
-
-    // check whether this class belongs to a has-many relation,
-    // in which case we need to create an additional field
-//    Class<?> containerClass = belongsTo();
-//    if (containerClass != null) {
-//      DataObject<?> containerDataObject = DataObjectFactory.getDataObject(containerClass);
-//      for (HasManySpec hasManySpec : containerDataObject.hasMany()) {
-//        if (hasManySpec.contained != objectType) {
-//          continue;
-//        }
-//        // add a new field to the table creation statement to create the relation
-//        // TODO is it really necessary to mark this field as "not null"?
-//        String columnName = hasManySpec.getThroughColumnName();
-//        createTable.add(columnName, getTypeFrom(hasManySpec.throughField), false);
-//        break;
-//      }
-//    }
-
     return createTable.build();
   }
 

@@ -6,7 +6,7 @@ import java.util.*;
 
 public class ${className}DataObject implements DataObject<${className}> {
 
-  private final Collection<ColumnField> columnFields = new ArrayList<ColumnField>();
+  private final ColumnField[] columnFields;
   {
       ${columnFieldBuilding}
   }
@@ -60,7 +60,7 @@ public class ${className}DataObject implements DataObject<${className}> {
     return false;
   }
 
-  @Override public ${className} getBeanFromCursor(Cursor join, Set<ObjectType<?>> tree, SqliteDb dbHelper) {
+  @Override public ${className} getBeanFromCursor(Cursor join, Set<Class<?>> tree, SqliteDb dbHelper) {
     return null;
   }
 
@@ -77,7 +77,7 @@ public class ${className}DataObject implements DataObject<${className}> {
     return com.codeslap.hongo.SqliteType.TEXT;
   }
 
-  public Collection<ColumnField> getDeclaredFields(){
+  public ColumnField[] getDeclaredFields(){
     return columnFields;
   }
 

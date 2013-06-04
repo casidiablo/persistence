@@ -65,7 +65,7 @@ public interface DataObject<T> {
 
   SqliteType getTypeFrom(String fieldName);
 
-  Collection<ColumnField> getDeclaredFields();
+  ColumnField[] getDeclaredFields();
 
   ColumnField getField(String name);
 }

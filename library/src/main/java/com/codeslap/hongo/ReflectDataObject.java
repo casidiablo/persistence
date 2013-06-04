@@ -46,8 +46,8 @@ public class ReflectDataObject implements DataObject<Object> {
   private final String primaryKeyName;
   private final ColumnField primaryKeyField;
 
-  public ReflectDataObject(ObjectType type) {
-    this(type, new TreeSet<Class<?>>(SqliteAdapterImpl.CLASS_COMPARATOR));
+  ReflectDataObject(Class<?> type) {
+    this(new ReflectObjectType(type), new TreeSet<Class<?>>(SqliteAdapterImpl.CLASS_COMPARATOR));
   }
 
   ReflectDataObject(ObjectType type, Set<Class<?>> graph) {
@@ -112,7 +112,7 @@ public class ReflectDataObject implements DataObject<Object> {
   public Collection<HasManySpec> hasMany() {
     synchronized (hasManyList) {
       if (hasManyList.isEmpty()) {
-        hasManyList.addAll(ClassAnalyzer.getHasManySpecs(objectType, fields.values()));
+        hasManyList.addAll(ClassAnalyzer.getHasManySpecs(objectType));
       }
     }
     return hasManyList;
@@ -122,8 +122,7 @@ public class ReflectDataObject implements DataObject<Object> {
   public Collection<ManyToManySpec> manyToMany() {
     synchronized (manyToManyList) {
       if (manyToManyList.isEmpty()) {
-        manyToManyList.addAll(
-            ClassAnalyzer.getManyToManySpecs(this, objectType, graph, fields.values()));
+        manyToManyList.addAll(ClassAnalyzer.getManyToManySpecs(this, objectType, graph));
       }
     }
     return manyToManyList;
@@ -193,7 +192,7 @@ public class ReflectDataObject implements DataObject<Object> {
   @Override
   public String getCreateTableSentence() {
     CreateTableHelper createTable = CreateTableHelper.init(tableName);
-    for (ColumnField columnField : fields.values()) {
+    for (ColumnField columnField : objectType.getDeclaredFields()) {
       String columnName = ColumnHelper.getColumnName(columnField);
       SqliteType type = getTypeFrom(columnField);
       if (ColumnHelper.isPrimaryKey(columnField)) {
@@ -237,7 +236,7 @@ public class ReflectDataObject implements DataObject<Object> {
     }
 
     // get each field and put its value in a content values object
-    for (ColumnField columnField : fields.values()) {
+    for (ColumnField columnField : objectType.getDeclaredFields()) {
       // get the column index
       String normalize = ColumnHelper.getColumnName(columnField);
       int columnIndex = query.getColumnIndex(normalize);
@@ -397,8 +396,8 @@ public class ReflectDataObject implements DataObject<Object> {
     return getTypeFrom(fields.get(fieldName));
   }
 
-  @Override public Collection<ColumnField> getDeclaredFields() {
-    return fields.values();
+  @Override public ColumnField[] getDeclaredFields() {
+    return objectType.getDeclaredFields();
   }
 
   @Override public ColumnField getField(String name) {
@@ -425,7 +424,7 @@ public class ReflectDataObject implements DataObject<Object> {
   @Override public <Parent> String getWhere(Object bean, List<String> args, Parent parent) {
     List<String> conditions = new ArrayList<String>();
     if (bean != null) {
-      for (ColumnField columnField : fields.values()) {
+      for (ColumnField columnField : objectType.getDeclaredFields()) {
         Class<?> type = columnField.getType();
         if (type == byte[].class || type == Byte[].class || type == List.class) {
           continue;
@@ -485,7 +484,7 @@ public class ReflectDataObject implements DataObject<Object> {
     if (bean == null) {
       return;
     }
-    for (ColumnField columnField : fields.values()) {
+    for (ColumnField columnField : objectType.getDeclaredFields()) {
       // if the class has an autoincrement, ignore the ID
       if (ColumnHelper.isPrimaryKey(columnField) && hasAutoincrement()) {
         continue;

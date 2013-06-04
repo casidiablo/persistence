@@ -41,8 +41,7 @@ public class SQLHelper {
       return StrUtil.join(sets, ", ");
     }
     DataObject<T> dataObject = getDataObject((Class<T>) bean.getClass());
-    Collection<ColumnField> fields = dataObject.getDeclaredFields();
-    for (ColumnField field : fields) {
+    for (ColumnField field : dataObject.getDeclaredFields()) {
       Class<?> type = field.getType();
       if (type == List.class) {
         continue;
@@ -225,7 +224,7 @@ public class SQLHelper {
     return builder.toString();
   }
 
-  static String getTableName(Class<?> theClass) {
+  static String getTableName(ObjectType<?> theClass) {
     Table table = theClass.getAnnotation(Table.class);
     String tableName;
     if (table != null) {

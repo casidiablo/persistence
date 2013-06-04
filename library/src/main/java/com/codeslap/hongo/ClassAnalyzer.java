@@ -22,10 +22,9 @@ import java.util.List;
 import java.util.Set;
 
 public class ClassAnalyzer {
-  public static Collection<HasManySpec> getHasManySpecs(ObjectType objectType,
-      Collection<ColumnField> columnFields) {
+  public static Collection<HasManySpec> getHasManySpecs(ObjectType objectType) {
     Collection<HasManySpec> specs = new ArrayList<HasManySpec>();
-    for (ColumnField columnField : columnFields) {
+    for (ColumnField columnField : objectType.getDeclaredFields()) {
       HasManySpec hasManySpec = searchForHasMany(columnField, objectType);
       if (hasManySpec != null) {
         specs.add(hasManySpec);
@@ -66,9 +65,9 @@ public class ClassAnalyzer {
   }
 
   public static Collection<? extends ManyToManySpec> getManyToManySpecs(DataObject dataObjectA,
-      ObjectType<?> objectType, Set<Class<?>> graph, Collection<ColumnField> columnFields) {
+      ObjectType<?> objectType, Set<Class<?>> graph) {
     Collection<ManyToManySpec> manyToManySpecs = new ArrayList<ManyToManySpec>();
-    for (ColumnField columnField : columnFields) {
+    for (ColumnField columnField : objectType.getDeclaredFields()) {
       if (columnField.getType() == List.class) {
         ManyToManySpec manyToManySpec =
             searchForManyToMany(dataObjectA, objectType, graph, columnField);
