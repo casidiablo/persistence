@@ -168,7 +168,7 @@ Looking for examples? You might take a look at [Github Jobs][3] app.
 ### Feedback
 
 If you have any questions or suggestions do not hesitate to sending me an email about it (cristian@elhacker.net).
-Keep in mind that this is project is in beta phase and I do not warranty it will work as expected.
+Keep in mind that this project is in beta phase and I do not warranty it will work as expected.
 
   [1]: http://en.wikipedia.org/wiki/Plain_Old_Java_Object
   [2]: https://github.com/casidiablo/persistence/blob/master/src/main/java/com/codeslap/persistence/SqlAdapter.java
