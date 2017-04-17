@@ -22,7 +22,7 @@ In order to use this library from you Android project using maven your pom shoul
 </project>
 ```
 
-###Normal integration
+### Normal integration
 
 Refer to the downloads section to get a JAR to import to your project.
 
